@@ -159,7 +159,7 @@ static int scfs_file_release(struct inode *inode, struct file *file)
 /*
  * scfs_readdir
  */
-static int scfs_readdir(struct file *file, void *dirent, filldir_t filldir)
+static int scfs_readdir(struct file *file, struct dir_context *ctx)
 {
 	struct file *lower_file = NULL;
 	struct dentry *dentry = file->f_path.dentry;
@@ -167,7 +167,7 @@ static int scfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 
 	lower_file = scfs_lower_file(file);
 	lower_file->f_pos = file->f_pos;
-	ret = vfs_readdir(lower_file, filldir, dirent);
+	ret = iterate_dir(lower_file, ctx);
 	file->f_pos = lower_file->f_pos;
 	if (ret >= 0)
 		fsstack_copy_attr_atime(dentry->d_inode, lower_file->f_path.dentry->d_inode);
@@ -324,7 +324,7 @@ static int scfs_mmap(struct file *file, struct vm_area_struct *vma)
 const struct file_operations scfs_dir_fops = {
 	.llseek		= default_llseek,
 	.read		= generic_read_dir,
-	.readdir	= scfs_readdir,
+	.iterate	= scfs_readdir,
 	.unlocked_ioctl	= scfs_unlocked_ioctl,
 #ifdef CONFIG_COMPAT
 	.compat_ioctl	= scfs_compat_ioctl,
