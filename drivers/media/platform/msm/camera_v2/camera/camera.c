@@ -506,7 +506,7 @@ static int camera_v4l2_fh_open(struct file *filep)
 	filep->private_data = &sp->fh;
 
 	/* stream_id = open id */
-	sp->stream_id = atomic_read(&pvdev->opened);
+	sp->stream_id = atomic_read(&pvdev->stream_cnt);
 
 	v4l2_fh_init(&sp->fh, pvdev->vdev);
 	v4l2_fh_add(&sp->fh);
@@ -625,7 +625,7 @@ static int camera_v4l2_open(struct file *filep)
 		}
 	} else {
 		rc = msm_create_command_ack_q(pvdev->vdev->num,
-			atomic_read(&pvdev->opened));
+			atomic_read(&pvdev->stream_cnt));
 		if (rc < 0) {
 		    pr_err("%s : msm_create_command_ack_q", __FUNCTION__);
 		    goto session_fail;
@@ -633,6 +633,7 @@ static int camera_v4l2_open(struct file *filep)
 	}
 
 	atomic_add(1, &pvdev->opened);
+	atomic_add(1, &pvdev->stream_cnt);
 	return rc;
 
 post_fail:
@@ -689,6 +690,8 @@ static int camera_v4l2_close(struct file *filep)
 		/* This should take care of both normal close
 		 * and application crashes */
 		msm_destroy_session(pvdev->vdev->num);
+		atomic_set(&pvdev->stream_cnt, 0);
+
 	} else {
 		camera_pack_event(filep, MSM_CAMERA_SET_PARM,
 			MSM_CAMERA_PRIV_DEL_STREAM, -1, &event);
@@ -787,6 +790,7 @@ int camera_init_v4l2(struct device *dev, unsigned int *session)
 
 	*session = pvdev->vdev->num;
 	atomic_set(&pvdev->opened, 0);
+	atomic_set(&pvdev->stream_cnt, 0);
 	video_set_drvdata(pvdev->vdev, pvdev);
 	pr_warn("%s : Succeed!", __FUNCTION__);
 	goto init_end;
