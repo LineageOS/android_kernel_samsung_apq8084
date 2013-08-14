@@ -40,7 +40,7 @@
 #define ISPIF_INTF_CMD_DISABLE_IMMEDIATELY    0x02
 
 #define ISPIF_TIMEOUT_SLEEP_US                1000
-#define ISPIF_TIMEOUT_ALL_US                500000
+#define ISPIF_TIMEOUT_ALL_US               1000000
 
 #define CSID_VERSION_V30 0x30000000
 
