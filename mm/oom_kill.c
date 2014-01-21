@@ -59,7 +59,7 @@ static bool has_intersects_mems_allowed(struct task_struct *tsk,
 {
 	struct task_struct *start = tsk;
 
-	do {
+	for_each_thread(start, tsk) {
 		if (mask) {
 			/*
 			 * If this is a mempolicy constrained oom, tsk's
@@ -77,7 +77,7 @@ static bool has_intersects_mems_allowed(struct task_struct *tsk,
 			if (cpuset_mems_allowed_intersects(current, tsk))
 				return true;
 		}
-	} while_each_thread(start, tsk);
+	}
 
 	return false;
 }
@@ -97,14 +97,14 @@ static bool has_intersects_mems_allowed(struct task_struct *tsk,
  */
 struct task_struct *find_lock_task_mm(struct task_struct *p)
 {
-	struct task_struct *t = p;
+	struct task_struct *t;
 
-	do {
+	for_each_thread(p, t) {
 		task_lock(t);
 		if (likely(t->mm))
 			return t;
 		task_unlock(t);
-	} while_each_thread(p, t);
+	}
 
 	return NULL;
 }
@@ -310,7 +310,7 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
 #endif
 
 	rcu_read_lock();
-	do_each_thread(g, p) {
+	for_each_process_thread(g, p) {
 		unsigned int points;
 #ifdef CONFIG_OOM_SCAN_WA_PREVENT_WRONG_SEARCH
 		skip_search_thread = false;
@@ -345,8 +345,7 @@ static struct task_struct *select_bad_process(unsigned int *ppoints,
 			chosen = p;
 			chosen_points = points;
 		}
-	} while_each_thread(g, p);
-	
+	}
 	if (chosen)
 	{
 #ifdef CONFIG_OOM_SCAN_SKIP_SEARCH_THREAD
@@ -439,7 +438,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 {
 	struct task_struct *victim = p;
 	struct task_struct *child;
-	struct task_struct *t = p;
+	struct task_struct *t;
 	struct mm_struct *mm;
 	unsigned int victim_points = 0;
 	static DEFINE_RATELIMIT_STATE(oom_rs, DEFAULT_RATELIMIT_INTERVAL,
@@ -470,7 +469,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 	 * still freeing memory.
 	 */
 	read_lock(&tasklist_lock);
-	do {
+	for_each_thread(p, t) {
 		list_for_each_entry(child, &t->children, sibling) {
 			unsigned int child_points;
 
@@ -488,7 +487,7 @@ void oom_kill_process(struct task_struct *p, gfp_t gfp_mask, int order,
 				get_task_struct(victim);
 			}
 		}
-	} while_each_thread(p, t);
+	}
 	read_unlock(&tasklist_lock);
 
 	rcu_read_lock();
