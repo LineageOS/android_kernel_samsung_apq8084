@@ -10,6 +10,9 @@ else
 		obj-$(CONFIG_CRYPTO_DEV_QCE) += qce.o
 	endif
 endif
+ifdef CONFIG_COMPAT
+obj-$(CONFIG_CRYPTO_DEV_QCE) += compat_qcedev.o
+endif
 ifeq ($(CONFIG_FIPS_ENABLE), y)
 	obj-$(CONFIG_CRYPTO_DEV_QCRYPTO) += qcrypto_fips.o
 endif

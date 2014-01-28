@@ -218,6 +218,10 @@ struct	qcedev_sha_op_req {
 	enum qcedev_sha_alg_enum	alg;
 };
 
+struct file;
+extern long qcedev_ioctl(struct file *file,
+			unsigned cmd, unsigned long arg);
+
 /**
 * struct qfips_verify_t - Holds data for FIPS Integrity test
 * @kernel_size  (IN):		Size of kernel Image
