@@ -27,21 +27,6 @@
  * page boundaries. The code refers to these linked pages as a single entity
  * called zspage.
  *
- * For simplicity, zsmalloc can only allocate objects of size up to PAGE_SIZE
- * since this satisfies the requirements of all its current users (in the
- * worst case, page is incompressible and is thus stored "as-is" i.e. in
- * uncompressed form). For allocation requests larger than this size, failure
- * is returned (see zs_malloc).
- *
- * Additionally, zs_malloc() does not return a dereferenceable pointer.
- * Instead, it returns an opaque handle (unsigned long) which encodes actual
- * location of the allocated object. The reason for this indirection is that
- * zsmalloc does not keep zspages permanently mapped since that would cause
- * issues on 32-bit systems where the VA region for kernel space mappings
- * is very small. So, before using the allocating memory, the object has to
- * be mapped using zs_map_object() to get a usable pointer and subsequently
- * unmapped using zs_unmap_object().
- *
  * Following is how we use various fields and flags of underlying
  * struct page(s) to form a zspage.
  *
@@ -61,6 +46,8 @@
  *	page->freelist: points to the first free object in zspage.
  *		Free objects are linked together using in-place
  *		metadata.
+ *	page->objects: maximum number of objects we can store in this
+ *		zspage (class->zspage_order * PAGE_SIZE / class->size)
  *	page->lru: links together first pages of various zspages.
  *		Basically forming list of zspages in a fullness group.
  *	page->mapping: class index and fullness group of the zspage
@@ -70,6 +57,10 @@
  *	PG_private2: identifies the last component page
  *
  */
+
+#ifdef CONFIG_ZSMALLOC_DEBUG
+#define DEBUG
+#endif
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -87,7 +78,6 @@
 #include <linux/hardirq.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
-
 #include <linux/zsmalloc.h>
 
 /*
@@ -107,7 +97,7 @@
 
 /*
  * Object location (<PFN>, <obj_idx>) is encoded as
- * as single (unsigned long) handle value.
+ * as single (void *) handle value.
  *
  * Note that object index <obj_idx> is relative to system
  * page <PFN> it is stored in, so for each sub-page belonging
@@ -216,6 +206,7 @@ struct zs_pool {
 	struct size_class size_class[ZS_SIZE_CLASSES];
 
 	struct zs_ops *ops;
+	gfp_t flags;	/* allocation flags used when growing pool */
 };
 
 /*
@@ -227,8 +218,19 @@ struct zs_pool {
 #define CLASS_IDX_MASK	((1 << CLASS_IDX_BITS) - 1)
 #define FULLNESS_MASK	((1 << FULLNESS_BITS) - 1)
 
+/*
+ * By default, zsmalloc uses a copy-based object mapping method to access
+ * allocations that span two pages. However, if a particular architecture
+ * performs VM mapping faster than copying, then it should be added here
+ * so that USE_PGTABLE_MAPPING is defined. This causes zsmalloc to use
+ * page table mapping rather than copying for object mapping.
+*/
+#if defined(CONFIG_ARM) && !defined(MODULE)
+#define USE_PGTABLE_MAPPING
+#endif
+
 struct mapping_area {
-#ifdef CONFIG_PGTABLE_MAPPING
+#ifdef USE_PGTABLE_MAPPING
 	struct vm_struct *vm; /* vm area for mapping object that span pages */
 #else
 	char *vm_buf; /* copy buffer for objects that span pages */
@@ -288,13 +290,6 @@ static void set_zspage_mapping(struct page *page, unsigned int class_idx,
 	page->mapping = (struct address_space *)m;
 }
 
-/*
- * zsmalloc divides the pool into various size classes where each
- * class maintains a list of zspages where each zspage is divided
- * into equal sized chunks. Each allocation falls into one of these
- * classes depending on its size. This function returns index of the
- * size class which has chunk size big enough to hold the give size.
- */
 static int get_size_class_index(int size)
 {
 	int idx = 0;
@@ -306,22 +301,14 @@ static int get_size_class_index(int size)
 	return idx;
 }
 
-/*
- * For each size class, zspages are divided into different groups
- * depending on how "full" they are. This was done so that we could
- * easily find empty or nearly empty zspages when we try to shrink
- * the pool (not yet implemented). This function returns fullness
- * status of the given page.
- */
-static enum fullness_group get_fullness_group(struct page *page,
-					struct size_class *class)
+static enum fullness_group get_fullness_group(struct page *page)
 {
 	int inuse, max_objects;
 	enum fullness_group fg;
 	BUG_ON(!is_first_page(page));
 
 	inuse = page->inuse;
-	max_objects = class->pages_per_zspage * PAGE_SIZE / class->size;
+	max_objects = page->objects;
 
 	if (inuse == 0)
 		fg = ZS_EMPTY;
@@ -335,12 +322,6 @@ static enum fullness_group get_fullness_group(struct page *page,
 	return fg;
 }
 
-/*
- * Each size class maintains various freelists and zspages are assigned
- * to one of these freelists based on the number of live objects they
- * have. This functions inserts the given zspage into the freelist
- * identified by <class, fullness_group>.
- */
 static void insert_zspage(struct page *page, struct size_class *class,
 				enum fullness_group fullness)
 {
@@ -358,10 +339,6 @@ static void insert_zspage(struct page *page, struct size_class *class,
 	*head = page;
 }
 
-/*
- * This function removes the given zspage from the freelist identified
- * by <class, fullness_group>.
- */
 static void remove_zspage(struct page *page, struct size_class *class,
 				enum fullness_group fullness)
 {
@@ -383,15 +360,6 @@ static void remove_zspage(struct page *page, struct size_class *class,
 	list_del_init(&page->lru);
 }
 
-/*
- * Each size class maintains zspages in different fullness groups depending
- * on the number of live objects they contain. When allocating or freeing
- * objects, the fullness status of the page can change, say, from ALMOST_FULL
- * to ALMOST_EMPTY when freeing an object. This function checks if such
- * a status change has occurred for the given page and accordingly moves the
- * page from the freelist of the old fullness group to that of the new
- * fullness group.
- */
 static enum fullness_group fix_fullness_group(struct zs_pool *pool,
 						struct page *page)
 {
@@ -402,11 +370,11 @@ static enum fullness_group fix_fullness_group(struct zs_pool *pool,
 	BUG_ON(!is_first_page(page));
 
 	get_zspage_mapping(page, &class_idx, &currfg);
-	class = &pool->size_class[class_idx];
-	newfg = get_fullness_group(page, class);
+	newfg = get_fullness_group(page);
 	if (newfg == currfg)
 		goto out;
 
+	class = &pool->size_class[class_idx];
 	remove_zspage(page, class, currfg);
 	insert_zspage(page, class, newfg);
 	set_zspage_mapping(page, class_idx, newfg);
@@ -544,7 +512,7 @@ static void free_zspage(struct zs_ops *ops, struct page *first_page)
 		ops->free(nextp);
 	}
 	reset_page(head_extra);
-	ops->free(head_extra);
+	ops->free(nextp);
 }
 
 /* Initialize a newly allocated zspage */
@@ -642,6 +610,8 @@ static struct page *alloc_zspage(struct zs_ops *ops, struct size_class *class,
 	init_zspage(first_page, class);
 
 	first_page->freelist = obj_location_to_handle(first_page, 0);
+	/* Maximum number of objects we can store in this zspage */
+	first_page->objects = class->pages_per_zspage * PAGE_SIZE / class->size;
 
 	error = 0; /* Success */
 
@@ -668,7 +638,7 @@ static struct page *find_get_zspage(struct size_class *class)
 	return page;
 }
 
-#ifdef CONFIG_PGTABLE_MAPPING
+#ifdef USE_PGTABLE_MAPPING
 static inline int __zs_cpu_up(struct mapping_area *area)
 {
 	/*
@@ -702,14 +672,11 @@ static inline void __zs_unmap_object(struct mapping_area *area,
 				struct page *pages[2], int off, int size)
 {
 	unsigned long addr = (unsigned long)area->vm_addr;
-	unsigned long end = addr + (PAGE_SIZE * 2);
 
-	flush_cache_vunmap(addr, end);
-	unmap_kernel_range_noflush(addr, PAGE_SIZE * 2);
-	flush_tlb_kernel_range(addr, end);
+	unmap_kernel_range(addr, PAGE_SIZE * 2);
 }
 
-#else /* CONFIG_PGTABLE_MAPPING*/
+#else /* USE_PGTABLE_MAPPING */
 
 static inline int __zs_cpu_up(struct mapping_area *area)
 {
@@ -787,7 +754,7 @@ out:
 	pagefault_enable();
 }
 
-#endif /* CONFIG_PGTABLE_MAPPING */
+#endif /* USE_PGTABLE_MAPPING */
 
 static int zs_cpu_notifier(struct notifier_block *nb, unsigned long action,
 				void *pcpu)
@@ -858,7 +825,7 @@ struct zs_pool *zs_create_pool(gfp_t flags, struct zs_ops *ops)
 	struct zs_pool *pool;
 
 	ovhd_size = roundup(sizeof(*pool), PAGE_SIZE);
-	pool = kzalloc(ovhd_size, flags);
+	pool = kzalloc(ovhd_size, GFP_KERNEL);
 	if (!pool)
 		return NULL;
 
@@ -882,6 +849,7 @@ struct zs_pool *zs_create_pool(gfp_t flags, struct zs_ops *ops)
 		pool->ops = ops;
 	else
 		pool->ops = &zs_default_ops;
+	pool->flags = flags;
 
 	return pool;
 }
