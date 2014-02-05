@@ -30,10 +30,9 @@
 #include <crypto/md5.h>
 #include <crypto/algapi.h>
 #ifdef CONFIG_CRYPTO_DEV_QCRYPTO
-#include <mach/qcrypto.h>
+#include <linux/qcrypto.h>
 #endif
 #include <linux/device-mapper.h>
-
 
 #define DM_MSG_PREFIX "req-crypt"
 
