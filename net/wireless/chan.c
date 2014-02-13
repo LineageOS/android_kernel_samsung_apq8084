@@ -551,6 +551,4 @@ cfg80211_get_chan_state(struct wireless_dev *wdev,
 	case NUM_NL80211_IFTYPES:
 		WARN_ON(1);
 	}
-
-	return;
 }
