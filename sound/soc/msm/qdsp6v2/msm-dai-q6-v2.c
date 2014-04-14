@@ -740,9 +740,8 @@ static int msm_dai_q6_spdif_dai_probe(struct snd_soc_dai *dai)
 	if (!dai_data) {
 		dev_err(dai->dev, "DAI-%d: fail to allocate dai data\n",
 				AFE_PORT_ID_SPDIF_RX);
-		rc = -ENOMEM;
 	} else
-		rc = dev_set_drvdata(dai->dev, dai_data);
+		dev_set_drvdata(dai->dev, dai_data);
 
 	kcontrol = &spdif_config_controls[1];
 
