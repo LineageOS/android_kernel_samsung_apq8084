@@ -772,7 +772,8 @@ int msm_post_event(struct v4l2_event *event, int timeout)
 		if (!rc) {
 			pr_err("%s: Timed out\n", __func__);
 			msm_print_event_error(event);
-			rc = -ETIMEDOUT;
+			mutex_unlock(&session->lock);
+			return -ETIMEDOUT;
 		}
 		if (rc < 0) {
 			msm_print_event_error(event);
