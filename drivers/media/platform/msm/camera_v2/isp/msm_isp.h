@@ -477,6 +477,7 @@ struct vfe_device {
 	int vfe_clk_idx;
 	uint32_t vfe_open_cnt;
 	uint8_t vt_enable;
+	uint8_t ignore_error;
 	void __iomem *p_avtimer_msw;
 	void __iomem *p_avtimer_lsw;
 	uint8_t reset_pending;
