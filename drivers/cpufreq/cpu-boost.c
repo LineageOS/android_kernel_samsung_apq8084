@@ -157,7 +157,8 @@ static int boost_mig_sync_thread(void *data)
 	unsigned int req_freq;
 
 	while (1) {
-		wait_event(s->sync_wq, s->pending || kthread_should_stop());
+		wait_event_interruptible(s->sync_wq,
+					s->pending || kthread_should_stop());
 #ifdef CONFIG_IRLED_GPIO
 		if (unlikely(gir_boost_disable)) {
 			pr_debug("[GPIO_IR][%s] continue~!(cpu:%d)\n", 
