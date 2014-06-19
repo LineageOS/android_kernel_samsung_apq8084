@@ -1,5 +1,4 @@
-
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -133,7 +132,12 @@ static int32_t imx135_platform_probe(struct platform_device *pdev)
 	if (IS_ERR(camera_class))
 	    pr_err("failed to create device cam_dev_rear!\n");
 
-	rc = msm_sensor_platform_probe(pdev, match->data);
+	if (match)
+		rc = msm_sensor_platform_probe(pdev, match->data);
+	else {
+		pr_err("%s:%d match is null\n", __func__, __LINE__);
+		rc = -EINVAL;
+	}
 	printk("%s00:%d\n", __func__, __LINE__);
 
 	printk("%s01:%d\n", __func__, __LINE__);
