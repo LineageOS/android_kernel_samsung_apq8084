@@ -319,6 +319,10 @@ static int msm_isp_buf_unprepare(struct msm_isp_buf_mgr *buf_mgr,
 
 	for (i = 0; i < bufq->num_bufs; i++) {
 		buf_info = msm_isp_get_buf_ptr(bufq, i);
+		if (!buf_info) {
+			pr_err("%s: buf not found\n", __func__);
+			return rc;
+		}
 		spin_lock_irqsave(&buf_info->lock, flags1);
 		if (buf_info->state == MSM_ISP_BUFFER_STATE_UNUSED ||
 				buf_info->state ==
