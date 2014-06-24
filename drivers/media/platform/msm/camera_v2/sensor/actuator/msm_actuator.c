@@ -1791,6 +1791,7 @@ static int32_t msm_actuator_platform_probe(struct platform_device *pdev)
 	msm_actuator_t->msm_sd.sd.entity.group_id = MSM_CAMERA_SUBDEV_ACTUATOR;
 	msm_actuator_t->msm_sd.close_seq = MSM_SD_CLOSE_2ND_CATEGORY | 0x2;
 	msm_sd_register(&msm_actuator_t->msm_sd);
+	msm_actuator_t->actuator_state = ACTUATOR_POWER_DOWN;
 
 #if defined(CONFIG_OIS)
 	g_msm_actuator_t = msm_actuator_t;
