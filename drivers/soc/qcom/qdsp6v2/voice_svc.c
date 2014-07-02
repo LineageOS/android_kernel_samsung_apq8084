@@ -582,7 +582,7 @@ static int voice_svc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int voice_svc_flush(struct file *file, fl_owner_t id)
+static int voice_svc_release(struct inode *inode, struct file *file)
 {
 	int ret = 0;
 	struct apr_response_list *resp = NULL;
@@ -633,24 +633,13 @@ static int voice_svc_flush(struct file *file, fl_owner_t id)
 	spin_unlock_irqrestore(&prtd->response_lock, spin_flags);
 	mutex_unlock(&prtd->response_mutex_lock);
 
-done:
-	return ret;
-}
-
-static int voice_svc_release(struct inode *inode, struct file *file)
-{
-	struct voice_svc_prvt *prtd;
-
-	pr_debug("%s\n", __func__);
-
-	prtd = (struct voice_svc_prvt *)file->private_data;
-	if (prtd)
-		mutex_destroy(&prtd->response_mutex_lock);
+	mutex_destroy(&prtd->response_mutex_lock);
 
 	kfree(file->private_data);
 	file->private_data = NULL;
 
-	return 0;
+done:
+	return ret;
 }
 
 static const struct file_operations voice_svc_fops = {
@@ -658,7 +647,6 @@ static const struct file_operations voice_svc_fops = {
 	.open =                 voice_svc_open,
 	.read =                 voice_svc_read,
 	.write =                voice_svc_write,
-	.flush =                voice_svc_flush,
 	.release =              voice_svc_release,
 };
 
