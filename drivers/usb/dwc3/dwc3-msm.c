@@ -215,6 +215,7 @@ struct dwc3_msm {
 
 	unsigned int		irq_to_affin;
 	struct notifier_block	dwc3_cpu_notifier;
+	atomic_t		hs_phy_irq_wake;
 };
 
 #define USB_HSPHY_3P3_VOL_MIN		3050000 /* uV */
@@ -1560,11 +1561,14 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc)
 		enable_irq(mdwc->hs_phy_irq);
 		/* with DCP we dont require wakeup using HS_PHY_IRQ */
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
-		if (dcp || !mdwc->vbus_active) // add SAMSUNG
+		if ((dcp || !mdwc->vbus_active) // add SAMSUNG
 #else
-		if (dcp)
+		if (dcp
 #endif
+		    && atomic_read(&mdwc->hs_phy_irq_wake)) {
+			atomic_set(&mdwc->hs_phy_irq_wake, 0);
 			disable_irq_wake(mdwc->hs_phy_irq);
+		}
 	}
 
 	return 0;
@@ -1679,11 +1683,14 @@ static int dwc3_msm_resume(struct dwc3_msm *mdwc)
 	}
 	/* it must DCP disconnect, re-enable HS_PHY wakeup IRQ */
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
-	if ((mdwc->hs_phy_irq && dcp) || !mdwc->vbus_active) // add SAMSUNG
+	if (((mdwc->hs_phy_irq && dcp) || !mdwc->vbus_active) // add SAMSUNG
 #else
-	if (mdwc->hs_phy_irq && dcp)
+	if (mdwc->hs_phy_irq && dcp
 #endif
+	    && !atomic_read(&mdwc->hs_phy_irq_wake)) {
+		atomic_set(&mdwc->hs_phy_irq_wake, 1);
 		enable_irq_wake(mdwc->hs_phy_irq);
+	}
 
 	dev_info(mdwc->dev, "DWC3 exited from low power mode\n");
 
@@ -2624,6 +2631,7 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 			goto disable_ref_clk;
 		}
 		enable_irq_wake(mdwc->hs_phy_irq);
+		atomic_set(&mdwc->hs_phy_irq_wake, 1);
 	}
 
 	if (mdwc->ext_xceiv.otg_capability) {
@@ -3022,7 +3030,10 @@ static int dwc3_msm_remove(struct platform_device *pdev)
 	if (!IS_ERR_OR_NULL(mdwc->vbus_otg))
 		regulator_disable(mdwc->vbus_otg);
 
-	disable_irq_wake(mdwc->hs_phy_irq);
+	if (atomic_read(&mdwc->hs_phy_irq_wake)) {
+		atomic_set(&mdwc->hs_phy_irq_wake, 0);
+		disable_irq_wake(mdwc->hs_phy_irq);
+	}
 
 	clk_disable_unprepare(mdwc->utmi_clk);
 	clk_disable_unprepare(mdwc->core_clk);
