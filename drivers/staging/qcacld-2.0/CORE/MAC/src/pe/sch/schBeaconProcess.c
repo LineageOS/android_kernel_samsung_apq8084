@@ -349,17 +349,14 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     vos_mem_zero(&beaconParams, sizeof(tUpdateBeaconParams));
     beaconParams.paramChangeBitmap = 0;
 
-    if(eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole )
-    {
+    if (LIM_IS_IBSS_ROLE(psessionEntry)) {
         limHandleIBSScoalescing(pMac, pBeacon,  pRxPacketInfo, psessionEntry);
-    }
-    else if(  (eLIM_STA_ROLE == psessionEntry->limSystemRole) ||
-                  (eLIM_BT_AMP_STA_ROLE == psessionEntry->limSystemRole))
-    {
+    } else if (LIM_IS_STA_ROLE(psessionEntry) ||
+               LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) {
         /*
         *  This handles two cases:
-        *  -- Infra STA receving beacons from AP
-        *  -- BTAMP_STA receving beacons from BTAMP_AP
+        *  -- Infra STA receiving beacons from AP
+        *  -- BTAMP_STA receiving beacons from BTAMP_AP
         */
         //Always save the beacon into LIM's cached scan results
         limCheckAndAddBssDescription(pMac, pBeacon, pRxPacketInfo, eANI_BOOLEAN_FALSE, eANI_BOOLEAN_FALSE);
@@ -461,9 +458,9 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         limUpdateStaRunTimeHTSwitchChnlParams( pMac, &pBeacon->HTInfo, bssIdx,psessionEntry);
     }
 
-    if ( (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) ||
-          (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) )
-    {
+    if (LIM_IS_STA_ROLE(psessionEntry) ||
+        LIM_IS_BT_AMP_STA_ROLE(psessionEntry) ||
+        LIM_IS_IBSS_ROLE(psessionEntry)) {
         /* Channel Switch information element updated */
         if(pBeacon->channelSwitchPresent ||
             pBeacon->propIEinfo.propChannelSwitchPresent)
@@ -477,10 +474,9 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
     }
 
 #ifdef WLAN_FEATURE_11AC
-    if ((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-        (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) ||
-        (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE))
-    {
+    if (LIM_IS_STA_ROLE(psessionEntry) ||
+        LIM_IS_BT_AMP_STA_ROLE(psessionEntry) ||
+        LIM_IS_IBSS_ROLE(psessionEntry)) {
        // check for VHT capability
        pStaDs = dphLookupHashEntry(pMac, pMh->sa, &aid,
              &psessionEntry->dph.dphHashTable);
@@ -743,8 +739,7 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
 #endif
     )
         {
-            if (eLIM_AP_ROLE != pAPSession->limSystemRole)
-            {
+            if (!LIM_IS_AP_ROLE(pAPSession)) {
                 continue;
             }
 

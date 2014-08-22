@@ -1504,9 +1504,9 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
 
 error:
     /* Delete the PE session Created */
-    if((psessionEntry != NULL) && ((psessionEntry ->limSystemRole ==  eLIM_STA_ROLE) ||
-                                  (psessionEntry ->limSystemRole ==  eLIM_BT_AMP_STA_ROLE)) )
-    {
+    if ((psessionEntry != NULL) &&
+           (LIM_IS_STA_ROLE(psessionEntry) ||
+            LIM_IS_BT_AMP_STA_ROLE(psessionEntry))) {
         peDeleteSession(pMac,psessionEntry);
     }
 
@@ -2839,8 +2839,7 @@ void limHandleCSAoffloadMsg(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
    }
 
 
-   if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
-   {
+   if (LIM_IS_STA_ROLE(psessionEntry)) {
       psessionEntry->gLimChannelSwitch.switchMode = csa_params->switchmode;
       /* timer already started by firmware, switch immediately */
       psessionEntry->gLimChannelSwitch.switchCount = 0;
@@ -2935,16 +2934,11 @@ void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
         vos_mem_free(MsgQ->bodyptr);
         return;
     }
-    if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
-    {
-        limIbssDelBssRsp(pMac, MsgQ->bodyptr,psessionEntry);
-    }
-    else if(psessionEntry->limSystemRole == eLIM_UNKNOWN_ROLE)
-    {
+    if (LIM_IS_IBSS_ROLE(psessionEntry)) {
+        limIbssDelBssRsp(pMac, MsgQ->bodyptr, psessionEntry);
+    } else if(LIM_IS_UNKNOWN_ROLE(psessionEntry)) {
          limProcessSmeDelBssRsp(pMac, MsgQ->bodyval,psessionEntry);
-    }
-
-    else
+    } else
          limProcessMlmDelBssRsp(pMac,MsgQ,psessionEntry);
 
 }
@@ -3278,9 +3272,8 @@ limProcessBeaconTxSuccessInd(tpAniSirGlobal pMac, tANI_U16 msgType, void *event)
        return;
    }
 
-   if (eLIM_AP_ROLE == psessionEntry->limSystemRole &&
-       VOS_TRUE == psessionEntry->dfsIncludeChanSwIe)
-   {
+   if (LIM_IS_AP_ROLE(psessionEntry) &&
+       VOS_TRUE == psessionEntry->dfsIncludeChanSwIe) {
       /* Send only 5 beacons with CSA IE Set in when a radar is detected */
       if (psessionEntry->gLimChannelSwitch.switchCount > 0)
       {
