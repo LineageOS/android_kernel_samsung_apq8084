@@ -204,13 +204,12 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
              limLog(pMac, LOGE, FL("Deleting sta: staId %d, reasonCode %d"),
                              pMsg->staId, pMsg->reasonCode);
-             if (eLIM_STA_IN_IBSS_ROLE == psessionEntry->limSystemRole) {
+             if (LIM_IS_IBSS_ROLE(psessionEntry)) {
                  vos_mem_free(pMsg);
                  return;
              }
-             if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) ||
-                     (eLIM_AP_ROLE == psessionEntry->limSystemRole))
-             {
+             if (LIM_IS_BT_AMP_AP_ROLE(psessionEntry) ||
+                 LIM_IS_AP_ROLE(psessionEntry)) {
                  PELOG1(limLog(pMac, LOG1, FL("SAP:lim Delete Station Context (staId: %d, assocId: %d) "),
                              pMsg->staId, pMsg->assocId);)
                  limSendDisassocMgmtFrame(pMac,
@@ -221,14 +220,13 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 #ifdef FEATURE_WLAN_TDLS
              else
              {
-                if (eLIM_STA_ROLE == psessionEntry->limSystemRole &&
-                    STA_ENTRY_TDLS_PEER == pStaDs->staType)
-                {
+                if (LIM_IS_STA_ROLE(psessionEntry) &&
+                    STA_ENTRY_TDLS_PEER == pStaDs->staType) {
                     //TeardownLink with PEER
                     //Reason code HAL_DEL_STA_REASON_CODE_KEEP_ALIVE means
                     //eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE
                     limSendSmeTDLSDelStaInd(pMac, pStaDs, psessionEntry,
-                    /*pMsg->reasonCode*/ eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE);
+                                       eSIR_MAC_TDLS_TEARDOWN_PEER_UNREACHABLE);
                 }
              }
 #endif
@@ -455,8 +453,8 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
     /* Ensure HB Status for the session has been reseted */
     psessionEntry->LimHBFailureStatus = eANI_BOOLEAN_FALSE;
 
-    if (((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-         (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&
+    if ((LIM_IS_STA_ROLE(psessionEntry) ||
+         LIM_IS_BT_AMP_STA_ROLE(psessionEntry)) &&
          (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) &&
          (psessionEntry->limSmeState != eLIM_SME_WT_DISASSOC_STATE) &&
          (psessionEntry->limSmeState != eLIM_SME_WT_DEAUTH_STATE))
