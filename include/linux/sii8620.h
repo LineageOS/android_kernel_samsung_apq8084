@@ -143,7 +143,7 @@ struct sii8620_platform_data {
 	void (*link_monitor)(u8 cmd_value);
 #endif
 };
-extern int system_rev;
+extern unsigned int system_rev;
 int acc_register_notifier(struct notifier_block *nb);
 #if defined(CONFIG_MACH_TRLTE_LDU) || defined(CONFIG_MACH_TBLTE_LDU)
 bool sii8620_hmt_connect(void);

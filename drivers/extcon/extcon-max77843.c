@@ -50,7 +50,7 @@
 /* for lpm mode check */
 extern int poweroff_charging;
 
-extern int system_rev;
+extern unsigned int system_rev;
 
 extern struct otg_notify *get_otg_notify(void);
 
