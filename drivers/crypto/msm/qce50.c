@@ -45,6 +45,8 @@
 #define CE_CLK_DIV	1000000
 
 static DEFINE_MUTEX(bam_register_lock);
+static DEFINE_MUTEX(qce_iomap_mutex);
+
 struct bam_registration_info {
 	struct list_head qlist;
 	unsigned long handle;
@@ -5413,6 +5415,7 @@ void *qce_open(struct platform_device *pdev, int *rc)
 	}
 	pce_dev->pdev = &pdev->dev;
 
+	mutex_lock(&qce_iomap_mutex);
 	if (pdev->dev.of_node) {
 		*rc = __qce_get_device_tree_data(pdev, pce_dev);
 		if (*rc)
@@ -5452,7 +5455,7 @@ void *qce_open(struct platform_device *pdev, int *rc)
 		goto err;
 	qce_setup_ce_sps_data(pce_dev);
 	qce_disable_clk(pce_dev);
-
+	mutex_unlock(&qce_iomap_mutex);
 	return pce_dev;
 err:
 	qce_disable_clk(pce_dev);
@@ -5468,6 +5471,7 @@ err_iobase:
 	if (pce_dev->iobase)
 		iounmap(pce_dev->iobase);
 err_pce_dev:
+	mutex_unlock(&qce_iomap_mutex);
 	kfree(pce_dev);
 	return NULL;
 }
@@ -5481,6 +5485,7 @@ int qce_close(void *handle)
 	if (handle == NULL)
 		return -ENODEV;
 
+	mutex_lock(&qce_iomap_mutex);
 	qce_enable_clk(pce_dev);
 	qce_sps_exit(pce_dev);
 
@@ -5492,7 +5497,7 @@ int qce_close(void *handle)
 
 	qce_disable_clk(pce_dev);
 	__qce_deinit_clk(pce_dev);
-
+	mutex_unlock(&qce_iomap_mutex);
 	kfree(handle);
 
 	return 0;
