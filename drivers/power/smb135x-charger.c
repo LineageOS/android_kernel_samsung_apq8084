@@ -1242,6 +1242,29 @@ static int smb135x_battery_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 		smb135x_system_temp_level_set(chip, val->intval);
 		break;
+	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
+		smb_stay_awake(&chip->smb_wake_source);
+		chip->bms_check = 1;
+		cancel_delayed_work(&chip->heartbeat_work);
+		queue_delayed_work(system_power_efficient_wq,
+			&chip->heartbeat_work,
+			msecs_to_jiffies(0));
+		break;
+	case POWER_SUPPLY_PROP_HEALTH:
+		smb_stay_awake(&chip->smb_wake_source);
+		smb135x_set_prop_batt_health(chip, val->intval);
+		smb135x_check_temp_range(chip);
+		smb135x_set_chrg_path_temp(chip);
+		chip->temp_check = 1;
+		cancel_delayed_work(&chip->heartbeat_work);
+		queue_delayed_work(system_power_efficient_wq,
+			&chip->heartbeat_work,
+			msecs_to_jiffies(0));
+		break;
+	/* Block from Fuel Gauge */
+	case POWER_SUPPLY_PROP_TEMP_HOTSPOT:
+		smb135x_bms_set_property(chip, prop, val);
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1743,6 +1766,254 @@ static void wireless_insertion_work(struct work_struct *work)
 	smb135x_path_suspend(chip, DC, CURRENT, false);
 }
 
+static int drop_usbin_rate(struct smb135x_chg *chip)
+{
+	int rc;
+	u8 reg;
+
+	rc = smb135x_read(chip, CFG_C_REG, &reg);
+	if (rc < 0)
+		dev_err(chip->dev, "Failed to Read CFG C\n");
+
+	reg = reg & USBIN_INPUT_MASK;
+	if (reg > 0)
+		reg--;
+	dev_warn(chip->dev, "Input current Set 0x%x\n", reg);
+	rc = smb135x_masked_write(chip,
+				  CFG_C_REG, USBIN_INPUT_MASK,
+				  reg);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't Lower Input Rate\n");
+
+	return reg;
+}
+
+static void aicl_check_work(struct work_struct *work)
+{
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+				aicl_check_work.work);
+	int rc;
+
+	dev_dbg(chip->dev, "Drop Rate!\n");
+
+	rc = drop_usbin_rate(chip);
+	if (!chip->aicl_weak_detect && (rc < 0x02))
+		chip->aicl_weak_detect = true;
+
+	cancel_delayed_work(&chip->src_removal_work);
+	queue_delayed_work(system_power_efficient_wq,
+		&chip->src_removal_work,
+		msecs_to_jiffies(3000));
+	if (!rc) {
+		dev_dbg(chip->dev, "Reached Bottom IC!\n");
+		return;
+	}
+
+	rc = smb135x_masked_write(chip,
+				  IRQ_CFG_REG,
+				  IRQ_USBIN_UV_BIT,
+				  IRQ_USBIN_UV_BIT);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't Unmask USBIN UV IRQ\n");
+}
+
+static void src_removal_work(struct work_struct *work)
+{
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+				src_removal_work.work);
+	bool usb_present = is_usb_plugged_in(chip);
+	if (chip->usb_present && !usb_present) {
+		/* USB removed */
+		chip->usb_present = usb_present;
+		if (!usb_present && !is_dc_plugged_in(chip)) {
+			chip->chg_done_batt_full = false;
+			chip->float_charge_start_time = 0;
+		}
+		notify_usb_removal(chip);
+	}
+}
+
+static int smb135x_get_charge_rate(struct smb135x_chg *chip)
+{
+	u8 reg;
+	int rc;
+
+	if (!is_usb_plugged_in(chip))
+		return POWER_SUPPLY_CHARGE_RATE_NONE;
+
+	if (chip->aicl_weak_detect)
+		return POWER_SUPPLY_CHARGE_RATE_WEAK;
+
+	rc = smb135x_read(chip, STATUS_6_REG, &reg);
+	if (rc < 0)
+		return POWER_SUPPLY_CHARGE_RATE_NORMAL;
+
+	if (reg & HVDCP_BIT)
+		return POWER_SUPPLY_CHARGE_RATE_TURBO;
+
+	return POWER_SUPPLY_CHARGE_RATE_NORMAL;
+}
+
+#define HVDCP_INPUT_CURRENT_MAX 1600
+static void rate_check_work(struct work_struct *work)
+{
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+			     rate_check_work.work);
+
+	chip->charger_rate = smb135x_get_charge_rate(chip);
+
+	if (chip->charger_rate > POWER_SUPPLY_CHARGE_RATE_NORMAL) {
+		pr_warn("Charger Rate = %d\n", chip->charger_rate);
+
+		if (chip->charger_rate ==
+		    POWER_SUPPLY_CHARGE_RATE_TURBO) {
+			mutex_lock(&chip->current_change_lock);
+			chip->usb_psy_ma = HVDCP_INPUT_CURRENT_MAX;
+			smb135x_set_appropriate_current(chip, USB);
+			mutex_unlock(&chip->current_change_lock);
+		}
+
+		chip->rate_check_count = 0;
+		power_supply_changed(&chip->batt_psy);
+		return;
+	}
+
+	chip->rate_check_count++;
+	if (chip->rate_check_count < 6)
+		queue_delayed_work(system_power_efficient_wq,
+				&chip->rate_check_work,
+				msecs_to_jiffies(500));
+}
+
+static void usb_insertion_work(struct work_struct *work)
+{
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+				usb_insertion_work.work);
+	int rc;
+
+	rc = smb135x_force_apsd(chip);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't rerun apsd rc = %d\n", rc);
+
+	smb_relax(&chip->smb_wake_source);
+}
+
+static void toggle_usbin_aicl(struct smb135x_chg *chip)
+{
+	int rc;
+
+	/* Set AICL OFF */
+	rc = smb135x_masked_write(chip, CFG_D_REG, AICL_ENABLE, 0);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't disable AICL\n");
+
+	/* Set AICL ON */
+	rc = smb135x_masked_write(chip, CFG_D_REG, AICL_ENABLE, AICL_ENABLE);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't enable AICL\n");
+}
+
+#define FLOAT_CHG_TIME_SECS 1800
+#define INPUT_CURR_CHECK_THRES 0x0C /*  1100 mA */
+static void heartbeat_work(struct work_struct *work)
+{
+	u8 reg;
+	int rc;
+	struct timespec bootup_time;
+	unsigned long float_timestamp;
+	bool usb_present;
+	bool dc_present;
+	int batt_health;
+	int batt_soc;
+	bool taper_reached;
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+				heartbeat_work.work);
+	bool poll_status = chip->poll_fast;
+
+	if (!chip->resume_completed ||
+	    smb135x_get_prop_batt_capacity(chip, &batt_soc) ||
+	    smb135x_get_prop_batt_health(chip, &batt_health)) {
+		dev_warn(chip->dev, "HB Failed to run resume = %d!\n",
+			 (int)chip->resume_completed);
+			queue_delayed_work(system_power_efficient_wq,
+				&chip->heartbeat_work,
+				msecs_to_jiffies(1000));
+		return;
+	}
+
+	smb_stay_awake(&chip->smb_wake_source);
+	chip->hb_running = true;
+
+	dev_dbg(chip->dev, "HB Pound!\n");
+	cancel_delayed_work(&chip->src_removal_work);
+
+static int smb135x_regulator_init(struct smb135x_chg *chip)
+{
+	int rc = 0;
+	struct regulator_init_data *init_data;
+	struct regulator_config cfg = {};
+
+	init_data = of_get_regulator_init_data(chip->dev, chip->dev->of_node);
+	if (!init_data) {
+		dev_err(chip->dev, "Unable to allocate memory\n");
+		return -ENOMEM;
+	}
+
+	if (init_data->constraints.name) {
+		chip->otg_vreg.rdesc.owner = THIS_MODULE;
+		chip->otg_vreg.rdesc.type = REGULATOR_VOLTAGE;
+		chip->otg_vreg.rdesc.ops = &smb135x_chg_otg_reg_ops;
+		chip->otg_vreg.rdesc.name = init_data->constraints.name;
+
+		cfg.dev = chip->dev;
+		cfg.init_data = init_data;
+		cfg.driver_data = chip;
+		cfg.of_node = chip->dev->of_node;
+
+		init_data->constraints.valid_ops_mask
+			|= REGULATOR_CHANGE_STATUS;
+
+		chip->otg_vreg.rdev = regulator_register(
+						&chip->otg_vreg.rdesc, &cfg);
+		if (IS_ERR(chip->otg_vreg.rdev)) {
+			rc = PTR_ERR(chip->otg_vreg.rdev);
+			chip->otg_vreg.rdev = NULL;
+			if (rc != -EPROBE_DEFER)
+				dev_err(chip->dev,
+					"OTG reg failed, rc=%d\n", rc);
+		}
+	}
+
+	return rc;
+}
+
+static void smb135x_regulator_deinit(struct smb135x_chg *chip)
+{
+	if (chip->otg_vreg.rdev)
+		regulator_unregister(chip->otg_vreg.rdev);
+}
+
+static void wireless_insertion_work(struct work_struct *work)
+{
+	struct smb135x_chg *chip =
+		container_of(work, struct smb135x_chg,
+				wireless_insertion_work.work);
+
+	/* unsuspend dc */
+	smb135x_path_suspend(chip, DC, CURRENT, false);
+	queue_delayed_work(system_power_efficient_wq,
+		&chip->heartbeat_work,
+		msecs_to_jiffies(60000));
+	chip->hb_running = false;
+	if (!usb_present && !dc_present)
+		smb_relax(&chip->smb_wake_source);
+}
+
 static int hot_hard_handler(struct smb135x_chg *chip, u8 rt_stat)
 {
 	pr_debug("rt_stat = 0x%02x\n", rt_stat);
@@ -1826,6 +2097,22 @@ static int power_ok_handler(struct smb135x_chg *chip, u8 rt_stat)
 	return 0;
 }
 
+#define MAX_OTG_RETRY	3
+static int otg_oc_handler(struct smb135x_chg *chip, u8 rt_stat)
+{
+	if (!(rt_stat & IRQ_F_OTG_OC_BIT)) {
+		pr_err("Spurious OTG OC irq\n");
+		return 0;
+	}
+
+	queue_delayed_work(system_power_efficient_wq,
+		&chip->ocp_clear_work,
+		msecs_to_jiffies(0));
+
+	pr_err("rt_stat = 0x%02x\n", rt_stat);
+	return 0;
+}
+
 static int handle_dc_removal(struct smb135x_chg *chip)
 {
 	if (chip->dc_psy_type == POWER_SUPPLY_TYPE_WIRELESS) {
@@ -1842,7 +2129,8 @@ static int handle_dc_removal(struct smb135x_chg *chip)
 static int handle_dc_insertion(struct smb135x_chg *chip)
 {
 	if (chip->dc_psy_type == POWER_SUPPLY_TYPE_WIRELESS)
-		schedule_delayed_work(&chip->wireless_insertion_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&chip->wireless_insertion_work,
 			msecs_to_jiffies(DCIN_UNSUSPEND_DELAY_MS));
 	if (chip->dc_psy_type != -EINVAL)
 		power_supply_set_online(&chip->dc_psy,
@@ -1934,6 +2222,32 @@ static int handle_usb_insertion(struct smb135x_chg *chip)
 		dev_err(chip->dev, "Couldn't read status 5 rc = %d\n", rc);
 		return rc;
 	}
+	cancel_delayed_work(&chip->usb_insertion_work);
+
+	/* Rerun APSD 1 sec later */
+	if ((reg & SDP_BIT) && !chip->apsd_rerun_cnt) {
+		dev_info(chip->dev, "HW Detected SDP!\n");
+		smb_stay_awake(&chip->smb_wake_source);
+		chip->apsd_rerun_cnt++;
+		chip->usb_present = 0;
+		queue_delayed_work(system_power_efficient_wq,
+			&chip->usb_insertion_work,
+			msecs_to_jiffies(1000));
+		return 0;
+	}
+
+	chip->apsd_rerun_cnt = 0;
+
+	if (!chip->aicl_disabled) {
+		/* Set AICL Glich to 15 us */
+		rc = smb135x_masked_write(chip,
+					  CFG_D_REG,
+					  AICL_GLITCH,
+					  AICL_GLITCH);
+		if (rc < 0)
+			dev_err(chip->dev, "Couldn't set 15 us AICL glitch\n");
+	}
+
 	/*
 	 * Report the charger type as UNKNOWN if the
 	 * apsd-fail flag is set. This nofifies the USB driver
@@ -1952,6 +2266,14 @@ static int handle_usb_insertion(struct smb135x_chg *chip)
 		pr_debug("setting usb psy present = %d\n", chip->usb_present);
 		power_supply_set_present(chip->usb_psy, chip->usb_present);
 	}
+	smb_stay_awake(&chip->smb_wake_source);
+
+	chip->charger_rate =  POWER_SUPPLY_CHARGE_RATE_NORMAL;
+	chip->rate_check_count = 0;
+	cancel_delayed_work(&chip->rate_check_work);
+	queue_delayed_work(system_power_efficient_wq,
+		&chip->rate_check_work,
+		msecs_to_jiffies(500));
 	return 0;
 }
 
@@ -1970,6 +2292,32 @@ static int usbin_uv_handler(struct smb135x_chg *chip, u8 rt_stat)
 
 	pr_debug("chip->usb_present = %d usb_present = %d\n",
 			chip->usb_present, usb_present);
+
+	if (ignore_disconnect) {
+		pr_info("Ignore usbin_uv - usb_present = %d\n", usb_present);
+		return 0;
+	}
+
+	if (is_usb_plugged_in(chip)) {
+		if (!chip->aicl_disabled) {
+			rc = smb135x_read(chip, STATUS_0_REG, &reg);
+			if (rc < 0)
+				pr_err("Failed to Read Status 0x46\n");
+			else if (!reg)
+				toggle_usbin_aicl(chip);
+		} else if (!usb_present) {
+			rc = smb135x_masked_write(chip,
+						  IRQ_CFG_REG,
+						  IRQ_USBIN_UV_BIT, 0);
+			if (rc < 0)
+				pr_err("Failed to Disable USBIN UV IRQ\n");
+			cancel_delayed_work(&chip->aicl_check_work);
+			queue_delayed_work(system_power_efficient_wq,
+				&chip->aicl_check_work,
+				msecs_to_jiffies(0));
+		}
+		return 0;
+	}
 	if (chip->usb_present && !usb_present) {
 		/* USB removed */
 		chip->usb_present = usb_present;
@@ -3251,6 +3599,68 @@ static int smb135x_charger_probe(struct i2c_client *client,
 				"Couldn't create dc vote file rc = %d\n",
 				rc);
 		}
+
+	the_chip = chip;
+
+	if (chip->factory_mode) {
+		rc = device_create_file(chip->dev,
+					&dev_attr_force_chg_usb_suspend);
+		if (rc) {
+			pr_err("couldn't create force_chg_usb_suspend\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+					&dev_attr_force_chg_fail_clear);
+		if (rc) {
+			pr_err("couldn't create force_chg_fail_clear\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+					&dev_attr_force_chg_auto_enable);
+		if (rc) {
+			pr_err("couldn't create force_chg_auto_enable\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+				&dev_attr_force_chg_ibatt);
+		if (rc) {
+			pr_err("couldn't create force_chg_ibatt\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+					&dev_attr_force_chg_iusb);
+		if (rc) {
+			pr_err("couldn't create force_chg_iusb\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+					&dev_attr_force_chg_itrick);
+		if (rc) {
+			pr_err("couldn't create force_chg_itrick\n");
+			goto unregister_dc_psy;
+		}
+
+		rc = device_create_file(chip->dev,
+				&dev_attr_force_chg_usb_otg_ctl);
+		if (rc) {
+			pr_err("couldn't create force_chg_usb_otg_ctl\n");
+			goto unregister_dc_psy;
+		}
+
+	}
+
+	rc = smb135x_setup_vbat_monitoring(chip);
+	if (rc < 0)
+		pr_err("failed to set up voltage notifications: %d\n", rc);
+
+	queue_delayed_work(system_power_efficient_wq,
+			&chip->heartbeat_work,
+			msecs_to_jiffies(60000));
 
 	dev_info(chip->dev, "SMB135X version = %s revision = %s successfully probed batt=%d dc = %d usb = %d\n",
 			version_str[chip->version],
