@@ -276,6 +276,15 @@ static cpumask_var_t *wq_numa_possible_cpumask;
 static bool wq_disable_numa;
 module_param_named(disable_numa, wq_disable_numa, bool, 0444);
 
+/* see the comment above the definition of WQ_POWER_EFFICIENT */
+#ifdef CONFIG_WQ_POWER_EFFICIENT_DEFAULT
+static bool wq_power_efficient = true;
+#else
+static bool wq_power_efficient;
+#endif
+
+module_param_named(power_efficient, wq_power_efficient, bool, 0444);
+
 static bool wq_numa_enabled;		/* unbound NUMA affinity enabled */
 
 /* buf for wq_update_unbound_numa_attrs(), protected by CPU hotplug exclusion */
@@ -312,6 +321,10 @@ struct workqueue_struct *system_unbound_wq __read_mostly;
 EXPORT_SYMBOL_GPL(system_unbound_wq);
 struct workqueue_struct *system_freezable_wq __read_mostly;
 EXPORT_SYMBOL_GPL(system_freezable_wq);
+struct workqueue_struct *system_power_efficient_wq __read_mostly;
+EXPORT_SYMBOL_GPL(system_power_efficient_wq);
+struct workqueue_struct *system_freezable_power_efficient_wq __read_mostly;
+EXPORT_SYMBOL_GPL(system_freezable_power_efficient_wq);
 
 static int worker_thread(void *__worker);
 static void copy_workqueue_attrs(struct workqueue_attrs *to,
@@ -1454,13 +1467,13 @@ static void __queue_delayed_work(int cpu, struct workqueue_struct *wq,
 	timer_stats_timer_set_start_info(&dwork->timer);
 
 	dwork->wq = wq;
+	/* timer isn't guaranteed to run in this cpu, record earlier */
+	if (cpu == WORK_CPU_UNBOUND)
+		cpu = raw_smp_processor_id();
 	dwork->cpu = cpu;
 	timer->expires = jiffies + delay;
 
-	if (unlikely(cpu != WORK_CPU_UNBOUND))
-		add_timer_on(timer, cpu);
-	else
-		add_timer(timer);
+	add_timer_on(timer, cpu);
 }
 
 /**
@@ -1932,17 +1945,13 @@ static void pool_mayday_timeout(unsigned long __pool)
  * spin_lock_irq(pool->lock) which may be released and regrabbed
  * multiple times.  Does GFP_KERNEL allocations.  Called only from
  * manager.
- *
- * RETURNS:
- * %false if no action was taken and pool->lock stayed locked, %true
- * otherwise.
  */
-static bool maybe_create_worker(struct worker_pool *pool)
+static void maybe_create_worker(struct worker_pool *pool)
 __releases(&pool->lock)
 __acquires(&pool->lock)
 {
 	if (!need_to_create_worker(pool))
-		return false;
+		return;
 restart:
 	spin_unlock_irq(&pool->lock);
 
@@ -1959,7 +1968,7 @@ restart:
 			start_worker(worker);
 			if (WARN_ON_ONCE(need_to_create_worker(pool)))
 				goto restart;
-			return true;
+			return;
 		}
 
 		if (!need_to_create_worker(pool))
@@ -1976,7 +1985,7 @@ restart:
 	spin_lock_irq(&pool->lock);
 	if (need_to_create_worker(pool))
 		goto restart;
-	return true;
+	return;
 }
 
 /**
@@ -1989,15 +1998,9 @@ restart:
  * LOCKING:
  * spin_lock_irq(pool->lock) which may be released and regrabbed
  * multiple times.  Called only from manager.
- *
- * RETURNS:
- * %false if no action was taken and pool->lock stayed locked, %true
- * otherwise.
  */
-static bool maybe_destroy_workers(struct worker_pool *pool)
+static void maybe_destroy_workers(struct worker_pool *pool)
 {
-	bool ret = false;
-
 	while (too_many_workers(pool)) {
 		struct worker *worker;
 		unsigned long expires;
@@ -2011,10 +2014,7 @@ static bool maybe_destroy_workers(struct worker_pool *pool)
 		}
 
 		destroy_worker(worker);
-		ret = true;
 	}
-
-	return ret;
 }
 
 /**
@@ -2034,13 +2034,14 @@ static bool maybe_destroy_workers(struct worker_pool *pool)
  * multiple times.  Does GFP_KERNEL allocations.
  *
  * RETURNS:
- * spin_lock_irq(pool->lock) which may be released and regrabbed
- * multiple times.  Does GFP_KERNEL allocations.
+ * %false if the pool doesn't need management and the caller can safely
+ * start processing works, %true if management function was performed and
+ * the conditions that the caller verified before calling the function may
+ * no longer be true.
  */
 static bool manage_workers(struct worker *worker)
 {
 	struct worker_pool *pool = worker->pool;
-	bool ret = false;
 
 	/*
 	 * Managership is governed by two mutexes - manager_arb and
@@ -2064,7 +2065,7 @@ static bool manage_workers(struct worker *worker)
 	 * manager_mutex.
 	 */
 	if (!mutex_trylock(&pool->manager_arb))
-		return ret;
+		return false;
 
 	/*
 	 * With manager arbitration won, manager_mutex would be free in
@@ -2074,7 +2075,6 @@ static bool manage_workers(struct worker *worker)
 		spin_unlock_irq(&pool->lock);
 		mutex_lock(&pool->manager_mutex);
 		spin_lock_irq(&pool->lock);
-		ret = true;
 	}
 
 	pool->flags &= ~POOL_MANAGE_WORKERS;
@@ -2083,12 +2083,12 @@ static bool manage_workers(struct worker *worker)
 	 * Destroy and then create so that may_start_working() is true
 	 * on return.
 	 */
-	ret |= maybe_destroy_workers(pool);
-	ret |= maybe_create_worker(pool);
+	maybe_destroy_workers(pool);
+	maybe_create_worker(pool);
 
 	mutex_unlock(&pool->manager_mutex);
 	mutex_unlock(&pool->manager_arb);
-	return ret;
+	return true;
 }
 
 /**
@@ -2864,19 +2864,57 @@ bool flush_work(struct work_struct *work)
 }
 EXPORT_SYMBOL_GPL(flush_work);
 
+struct cwt_wait {
+	wait_queue_t		wait;
+	struct work_struct	*work;
+};
+
+static int cwt_wakefn(wait_queue_t *wait, unsigned mode, int sync, void *key)
+{
+	struct cwt_wait *cwait = container_of(wait, struct cwt_wait, wait);
+
+	if (cwait->work != key)
+		return 0;
+	return autoremove_wake_function(wait, mode, sync, key);
+}
+
 static bool __cancel_work_timer(struct work_struct *work, bool is_dwork)
 {
+	static DECLARE_WAIT_QUEUE_HEAD(cancel_waitq);
 	unsigned long flags;
 	int ret;
 
 	do {
 		ret = try_to_grab_pending(work, is_dwork, &flags);
 		/*
-		 * If someone else is canceling, wait for the same event it
-		 * would be waiting for before retrying.
+		 * If someone else is already canceling, wait for it to
+		 * finish.  flush_work() doesn't work for PREEMPT_NONE
+		 * because we may get scheduled between @work's completion
+		 * and the other canceling task resuming and clearing
+		 * CANCELING - flush_work() will return false immediately
+		 * as @work is no longer busy, try_to_grab_pending() will
+		 * return -ENOENT as @work is still being canceled and the
+		 * other canceling task won't be able to clear CANCELING as
+		 * we're hogging the CPU.
+		 *
+		 * Let's wait for completion using a waitqueue.  As this
+		 * may lead to the thundering herd problem, use a custom
+		 * wake function which matches @work along with exclusive
+		 * wait and wakeup.
 		 */
-		if (unlikely(ret == -ENOENT))
-			flush_work(work);
+		if (unlikely(ret == -ENOENT)) {
+			struct cwt_wait cwait;
+
+			init_wait(&cwait.wait);
+			cwait.wait.func = cwt_wakefn;
+			cwait.work = work;
+
+			prepare_to_wait_exclusive(&cancel_waitq, &cwait.wait,
+						  TASK_UNINTERRUPTIBLE);
+			if (work_is_canceling(work))
+				schedule();
+			finish_wait(&cancel_waitq, &cwait.wait);
+		}
 	} while (unlikely(ret < 0));
 
 	/* tell other tasks trying to grab @work to back off */
@@ -2885,6 +2923,16 @@ static bool __cancel_work_timer(struct work_struct *work, bool is_dwork)
 
 	flush_work(work);
 	clear_work_data(work);
+
+	/*
+	 * Paired with prepare_to_wait() above so that either
+	 * waitqueue_active() is visible here or !work_is_canceling() is
+	 * visible there.
+	 */
+	smp_mb();
+	if (waitqueue_active(&cancel_waitq))
+		__wake_up(&cancel_waitq, TASK_NORMAL, 1, work);
+
 	return ret;
 }
 
@@ -4137,6 +4185,10 @@ struct workqueue_struct *__alloc_workqueue_key(const char *fmt,
 	struct workqueue_struct *wq;
 	struct pool_workqueue *pwq;
 
+	/* see the comment above the definition of WQ_POWER_EFFICIENT */
+	if ((flags & WQ_POWER_EFFICIENT) && wq_power_efficient)
+		flags |= WQ_UNBOUND;
+
 	/* allocate wq and format name */
 	if (flags & WQ_UNBOUND)
 		tbl_size = wq_numa_tbl_len * sizeof(wq->numa_pwq_tbl[0]);
@@ -4580,10 +4632,13 @@ static void wq_unbind_fn(struct work_struct *work)
 /**
  * rebind_workers - rebind all workers of a pool to the associated CPU
  * @pool: pool of interest
+ * @force: if it is true, replace WORKER_UNBOUND with WORKER_REBOUND
+ * irrespective of flags of workers. Otherwise, replace the flags only
+ * when workers have WORKER_UNBOUND flag.
  *
  * @pool->cpu is coming online.  Rebind all workers to the CPU.
  */
-static void rebind_workers(struct worker_pool *pool)
+static void rebind_workers(struct worker_pool *pool, bool force)
 {
 	struct worker *worker;
 	int wi;
@@ -4602,6 +4657,7 @@ static void rebind_workers(struct worker_pool *pool)
 						  pool->attrs->cpumask) < 0);
 
 	spin_lock_irq(&pool->lock);
+	pool->flags &= ~POOL_DISASSOCIATED;
 
 	for_each_pool_worker(worker, wi, pool) {
 		unsigned int worker_flags = worker->flags;
@@ -4632,10 +4688,12 @@ static void rebind_workers(struct worker_pool *pool)
 		 * fail incorrectly leading to premature concurrency
 		 * management operations.
 		 */
-		WARN_ON_ONCE(!(worker_flags & WORKER_UNBOUND));
-		worker_flags |= WORKER_REBOUND;
-		worker_flags &= ~WORKER_UNBOUND;
-		ACCESS_ONCE(worker->flags) = worker_flags;
+		if (force || (worker_flags & WORKER_UNBOUND)) {
+			WARN_ON_ONCE(!(worker_flags & WORKER_UNBOUND));
+			worker_flags |= WORKER_REBOUND;
+			worker_flags &= ~WORKER_UNBOUND;
+			ACCESS_ONCE(worker->flags) = worker_flags;
+		}
 	}
 
 	spin_unlock_irq(&pool->lock);
@@ -4704,15 +4762,12 @@ static int __cpuinit workqueue_cpu_up_callback(struct notifier_block *nfb,
 		for_each_pool(pool, pi) {
 			mutex_lock(&pool->manager_mutex);
 
-			if (pool->cpu == cpu) {
-				spin_lock_irq(&pool->lock);
-				pool->flags &= ~POOL_DISASSOCIATED;
-				spin_unlock_irq(&pool->lock);
-
-				rebind_workers(pool);
-			} else if (pool->cpu < 0) {
+			if (pool->cpu == cpu)
+				rebind_workers(pool,
+					(action & ~CPU_TASKS_FROZEN)
+						!= CPU_DOWN_FAILED);
+			else if (pool->cpu < 0)
 				restore_unbound_workers_cpumask(pool, cpu);
-			}
 
 			mutex_unlock(&pool->manager_mutex);
 		}
@@ -5046,8 +5101,15 @@ static int __init init_workqueues(void)
 					    WQ_UNBOUND_MAX_ACTIVE);
 	system_freezable_wq = alloc_workqueue("events_freezable",
 					      WQ_FREEZABLE, 0);
+	system_power_efficient_wq = alloc_workqueue("events_power_efficient",
+					      WQ_POWER_EFFICIENT, 0);
+	system_freezable_power_efficient_wq = alloc_workqueue("events_freezable_power_efficient",
+					      WQ_FREEZABLE | WQ_POWER_EFFICIENT,
+					      0);
 	BUG_ON(!system_wq || !system_highpri_wq || !system_long_wq ||
-	       !system_unbound_wq || !system_freezable_wq);
+	       !system_unbound_wq || !system_freezable_wq ||
+	       !system_power_efficient_wq ||
+	       !system_freezable_power_efficient_wq);
 	return 0;
 }
 early_initcall(init_workqueues);
