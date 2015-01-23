@@ -744,6 +744,11 @@ static int msm_ispif_restart_frame_boundary(struct ispif_device *ispif,
 
 	for (i = 0; i < params->num; i++) {
 		vfe_intf = params->entries[i].vfe_intf;
+		if (vfe_intf >= VFE_MAX) {
+			pr_err("%s: %d invalid i %d vfe_intf %d\n", __func__,
+				__LINE__, i, vfe_intf);
+			return -EINVAL;
+		}
 		vfe_mask |= (1 << vfe_intf);
   }
 #if 1
