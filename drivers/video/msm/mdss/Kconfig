@@ -120,5 +120,11 @@ config WACOM_LCD_FREQ_COMPENSATE
 	---help---
 		Support wcom freq. calibration LUT
 
+config FB_MSM_MDSS_KCAL_CTRL
+	depends on FB_MSM_MDSS
+	bool "MDSS color control"
+	---help---
+	  Enable sysfs for rgb/lut control for mdss-mdp display controllers
+	  in the MDSS sub-system.
 
 source "drivers/video/msm/mdss/samsung/Kconfig"
