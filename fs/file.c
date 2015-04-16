@@ -655,8 +655,7 @@ struct file *fget(unsigned int fd)
 	file = fcheck_files(files, fd);
 	if (file) {
 		/* File object ref couldn't be taken */
-		if (file->f_mode & FMODE_PATH ||
-		    !atomic_long_inc_not_zero(&file->f_count))
+		if ((file->f_mode & FMODE_PATH) || !get_file_rcu(file))
 			file = NULL;
 	}
 	rcu_read_unlock();
