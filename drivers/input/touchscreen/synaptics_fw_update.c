@@ -1684,6 +1684,12 @@ static ssize_t fwu_sysfs_store_image(struct file *data_file,
 		struct kobject *kobj, struct bin_attribute *attributes,
 		char *buf, loff_t pos, size_t count)
 {
+	if (!fwu->ext_data_source) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot use this without setting imagesize!\n");
+		return -EAGAIN;
+	}
+
 	memcpy((void *)(&fwu->ext_data_source[fwu->data_pos]),
 			(const void *)buf,
 			count);
@@ -1826,6 +1832,18 @@ static ssize_t fwu_sysfs_write_lockdown_store(struct device *dev,
 		goto exit;
 	}
 
+	if (!fwu->ext_data_source) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot use this without loading image in manual way!\n");
+		return -EAGAIN;
+	}
+
+	if (fwu->rmi4_data->suspended == true) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot lockdown while device is in suspend\n");
+		return -EBUSY;
+	}
+
 	retval = fwu_start_write_lockdown();
 	if (retval < 0) {
 		dev_err(&rmi4_data->i2c_client->dev,
@@ -1861,6 +1879,18 @@ static ssize_t fwu_sysfs_write_config_store(struct device *dev,
 		goto exit;
 	}
 
+	if (!fwu->ext_data_source) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot use this without loading image in manual way!\n");
+		return -EAGAIN;
+	}
+
+	if (fwu->rmi4_data->suspended == true) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot write config while device is in suspend\n");
+		return -EBUSY;
+	}
+
 	retval = fwu_start_write_config();
 	if (retval < 0) {
 		dev_err(&rmi4_data->i2c_client->dev,
@@ -1889,6 +1919,12 @@ static ssize_t fwu_sysfs_read_config_store(struct device *dev,
 
 	if (input != 1)
 		return -EINVAL;
+
+	if (fwu->rmi4_data->suspended == true) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"Cannot read config while device is in suspend\n");
+		return -EBUSY;
+	}
 
 	retval = fwu_do_read_config();
 	if (retval < 0) {
