@@ -895,4 +895,6 @@ void mdss_mdp_ctl_restore(void);
 int  mdss_mdp_ctl_reset(struct mdss_mdp_ctl *ctl);
 void dumpreg(void);
 void mdp5_dump_regs(void);
+int mdss_mdp_user_pcc_config(struct mdp_pcc_cfg_data *config);
+
 #endif /* MDSS_MDP_H */
