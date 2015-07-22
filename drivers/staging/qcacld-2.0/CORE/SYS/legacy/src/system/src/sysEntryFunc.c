@@ -114,7 +114,6 @@ tSirRetStatus
 sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                          tANI_U32 subType)
 {
-    static tANI_U32 lastDeauthPacketTime = 0, lastDisassocPacketTime = 0;
     tANI_U32 framecount;
     tSirRetStatus ret;
     void*         pBd;
@@ -122,11 +121,6 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus =
               WDA_DS_PeekRxPacketInfo( pVosPkt, (v_PVOID_t *)&pBd, VOS_FALSE );
-#ifdef WLAN_FEATURE_11W
-    tANI_U8         sessionId;
-    tpPESession     psessionEntry;
-    tpSirMacMgmtHdr pMacHdr;
-#endif /* WLAN_FEATURE_11W */
 
     pMac->sys.gSysBbtReceived++;
 
@@ -157,33 +151,10 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                 goto fail;
             }
 
-            if (((subType == SIR_MAC_MGMT_DEAUTH) ||
-                     (subType == SIR_MAC_MGMT_DISASSOC)) &&
-                 (framecount >= MAX_DEAUTH_ALLOWED))
-            {
-                tANI_U32 timeNow = adf_os_ticks(), timeGap;
-                if (subType == SIR_MAC_MGMT_DEAUTH)
-                    timeGap = adf_os_ticks_to_msecs(timeNow -
-                                              lastDeauthPacketTime);
-                else
-                    timeGap = adf_os_ticks_to_msecs(timeNow -
-                                              lastDisassocPacketTime);
-                if (timeGap < 1000) {
-#ifdef WLAN_FEATURE_11W
-                    pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
-                    psessionEntry = peFindSessionByPeerSta(pMac,
-                                        pMacHdr->sa, &sessionId);
-                    if(!psessionEntry) {
-                        PELOGE(sysLog(pMac, LOGE,
-                            FL("session does not exist for given STA [%pM]"),
-                            pMacHdr->sa););
-                        goto fail;
-                    }
-                    if (!psessionEntry->limRmfEnabled)
-#endif /* WLAN_FEATURE_11W */
-                        goto fail;
-                }
-            }
+            if ((subType == SIR_MAC_MGMT_DEAUTH ||
+                 subType == SIR_MAC_MGMT_DISASSOC)&&
+                lim_is_deauth_diassoc_for_drop(pMac, pBd))
+                goto fail;
 
             if (subType == SIR_MAC_MGMT_DEAUTH)
             {
@@ -198,7 +169,6 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                        MAC_ADDR_ARRAY(pMacHdr->sa),
                        MAC_ADDR_ARRAY(pMacHdr->bssId),
                        pMac->sys.gSysFrameCount[type][subType] ););
-                lastDeauthPacketTime = adf_os_ticks();
             }
             if (subType == SIR_MAC_MGMT_DISASSOC)
             {
@@ -213,7 +183,6 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                        MAC_ADDR_ARRAY(pMacHdr->sa),
                        MAC_ADDR_ARRAY(pMacHdr->bssId),
                        pMac->sys.gSysFrameCount[type][subType] ););
-                lastDisassocPacketTime = adf_os_ticks();
             }
 
             if( (dropReason = limIsPktCandidateForDrop(pMac, pBd, subType)) != eMGMT_DROP_NO_DROP)
