@@ -775,6 +775,11 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
        return;
     }
 
+    if (!test_bit(TDLS_INIT_DONE, &pAdapter->event_flags)) {
+        hddLog(LOGE, FL("TDLS init was not done, exit"));
+        return;
+    }
+
     pHddTdlsCtx = WLAN_HDD_GET_TDLS_CTX_PTR(pAdapter);
     if (NULL == pHddTdlsCtx)
     {
@@ -784,7 +789,7 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                  FL("pHddTdlsCtx is NULL, adapter device mode: %d"),
                  pAdapter->device_mode);
-       return;
+       goto done;
     }
 
     vos_flush_work(&pHddTdlsCtx->implicit_setup);
@@ -886,6 +891,9 @@ void wlan_hdd_tdls_exit(hdd_adapter_t *pAdapter)
     vos_mem_free(pHddTdlsCtx);
     pAdapter->sessionCtx.station.pHddTdlsCtx = NULL;
     pHddTdlsCtx = NULL;
+
+done:
+    clear_bit(TDLS_INIT_DONE, &pAdapter->event_flags);
 }
 
 static void wlan_hdd_tdls_monitor_timers_destroy(tdlsCtx_t *pHddTdlsCtx)
