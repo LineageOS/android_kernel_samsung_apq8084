@@ -14934,6 +14934,13 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                                       )
 {
     int status;
+    u16 channel;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)) || \
+    defined(CFG80211_BSSID_HINT_BACKPORT)
+    const u8 *bssid_hint = req->bssid_hint;
+#else
+    const u8 *bssid_hint = NULL;
+#endif
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev );
     VOS_STATUS exitbmpsStatus = VOS_STATUS_E_INVAL;
     hdd_context_t *pHddCtx;
@@ -15045,27 +15052,14 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         return status;
     }
 
-    if (req->channel) {
-        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                                  req->ssid_len, req->bssid,
-                          #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)) || \
-                                           defined(CFG80211_BSSID_HINT_BACKPORT)
-                                                  req->bssid_hint,
-                          #else
-                                                  NULL,
-                          #endif
-                                                  req->channel->hw_value);
-    } else {
-        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                                  req->ssid_len, req->bssid,
-                          #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0)) || \
-                                           defined(CFG80211_BSSID_HINT_BACKPORT)
-                                                  req->bssid_hint,
-                          #else
-                                                  NULL,
-                          #endif
-                                                  0);
-    }
+    if (req->channel)
+        channel = req->channel->hw_value;
+    else
+        channel = 0;
+    status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
+                                             req->ssid_len, req->bssid,
+                                             bssid_hint, channel);
+
     if (0 != status) {
         //ReEnable BMPS if disabled
         // If PS offload is enabled, fw will take care of
