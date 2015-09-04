@@ -1287,9 +1287,6 @@ static long msm_ispif_subdev_ioctl(struct v4l2_subdev *sd,
 	case VIDIOC_MSM_ISPIF_CFG:
 		return msm_ispif_cmd(sd, arg);
 	case MSM_SD_SHUTDOWN: {
-		struct ispif_device *ispif =
-			(struct ispif_device *)v4l2_get_subdevdata(sd);
-		msm_ispif_release(ispif);
 		return 0;
 	}
 	default:
