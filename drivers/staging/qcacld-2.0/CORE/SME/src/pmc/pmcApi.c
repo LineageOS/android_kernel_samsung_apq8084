@@ -3583,7 +3583,7 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
         else
         {
             /* Failed to Queue Sta Mode Ps Request */
-            smsLog(pMac, LOGE,
+            smsLog(pMac, LOGW,
                    FL("Failed to Queue Sta Mode Ps Request"));
             return eHAL_STATUS_FAILURE;
         }
@@ -3596,7 +3596,7 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
          * If it is already set Auto Powersave Timer
          * will take care of enabling Power Save
          */
-        smsLog(pMac, LOGE,
+        smsLog(pMac, LOGW,
                FL("sta mode power save already enabled"));
         return eHAL_STATUS_SUCCESS;
     }
@@ -3618,7 +3618,7 @@ eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
          * If it is already cleared then no need to
          * do anything
          */
-        smsLog(pMac, LOGE,
+        smsLog(pMac, LOGW,
                FL("sta mode power save already disabled"));
         /* Stop the Auto Sta Ps Timer if running */
         pmcOffloadStopAutoStaPsTimer(pMac, sessionId);
