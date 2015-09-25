@@ -2964,7 +2964,7 @@ static int hdd_set_rx_filter(hdd_adapter_t *adapter, bool action,
 				memcpy(filter->multicastAddr[j],
 					adapter->mc_addr_list.addr[i],
 					sizeof(adapter->mc_addr_list.addr[i]));
-				hddLog(LOGE, "%s RX filter : addr ="
+				hddLog(LOG1, "%s RX filter : addr ="
 				    MAC_ADDRESS_STR,
 				    action ? "setting" : "clearing",
 				    MAC_ADDR_ARRAY(filter->multicastAddr[j]));
@@ -2978,7 +2978,7 @@ static int hdd_set_rx_filter(hdd_adapter_t *adapter, bool action,
 		sme_8023MulticastList(handle, adapter->sessionId, filter);
 		vos_mem_free(filter);
 	} else {
-		hddLog(LOGE, FL("mode %d mc_cnt %d"),
+		hddLog(LOGW, FL("mode %d mc_cnt %d"),
 			adapter->device_mode, adapter->mc_addr_list.mc_cnt);
 	}
 
@@ -9344,7 +9344,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxFlowMaxQueueDepth);
              /* Temporary set log level as error
               * TX Flow control feature settled down, will lower log level */
-             hddLog(VOS_TRACE_LEVEL_ERROR,
+             hddLog(LOG1,
                     "MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
                     pAdapter->device_mode,
                     targetChannel,
@@ -9369,7 +9369,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                 WLANTL_SetAdapterMaxQDepth(pHddCtx->pvosContext,
                                            pAdapter->sessionId,
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
-                hddLog(VOS_TRACE_LEVEL_ERROR,
+                hddLog(LOG1,
                       "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
                       pAdapter->device_mode,
                       targetChannel,
@@ -9393,7 +9393,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                            pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
+                hddLog(LOG1,
                       "SCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
                       preAdapterContext->device_mode,
                       targetChannel,
@@ -9437,7 +9437,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxHbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
+                hddLog(LOG1,
                     "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
                     pAdapter5->device_mode,
                     channel5,
@@ -9461,7 +9461,7 @@ void hdd_dump_concurrency_info(hdd_context_t *pHddCtx)
                                         pHddCtx->cfg_ini->TxLbwFlowMaxQueueDepth);
                 /* Temporary set log level as error
                  * TX Flow control feature settled down, will lower log level */
-                hddLog(VOS_TRACE_LEVEL_ERROR,
+                hddLog(LOG1,
                     "MCC: MODE %d, CH %d, LWM %d, HWM %d, TXQDEP %d",
                     pAdapter2_4->device_mode,
                     channel24,
@@ -9843,7 +9843,7 @@ static void __hdd_set_multicast_list(struct net_device *dev)
          if ((!memcmp(ha->addr, ipv6_router_solicitation, ETH_ALEN)) ||
              (pAdapter->addr_filter_pattern && (!memcmp(ha->addr,
                                  &pAdapter->addr_filter_pattern, 1)))) {
-                hddLog(LOGE, FL("MC/BC filtering Skip addr ="MAC_ADDRESS_STR),
+                hddLog(LOG1, FL("MC/BC filtering Skip addr ="MAC_ADDRESS_STR),
                      MAC_ADDR_ARRAY(ha->addr));
              pAdapter->mc_addr_list.mc_cnt--;
              continue;
@@ -10107,7 +10107,7 @@ static void hdd_wlan_register_ip6_notifier(hdd_context_t *hdd_ctx)
 	if (ret)
 		hddLog(LOGE, FL("Failed to register IPv6 notifier"));
 	else
-		hddLog(LOGE, FL("Registered IPv6 notifier"));
+		hddLog(LOG1, FL("Registered IPv6 notifier"));
 
 	return;
 }
@@ -11888,7 +11888,7 @@ int hdd_wlan_startup(struct device *dev, v_VOID_t *hif_sc)
    if (ret)
       hddLog(LOGE, FL("Failed to register IPv4 notifier"));
    else
-      hddLog(LOGE, FL("Registered IPv4 notifier"));
+      hddLog(LOG1, FL("Registered IPv4 notifier"));
 
    pHddCtx->isLoadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);

@@ -1623,7 +1623,7 @@ static int wmi_unified_vdev_down_send(wmi_unified_t wmi, u_int8_t vdev_id)
 		adf_nbuf_free(buf);
 		return -EIO;
 	}
-	WMA_LOGE("%s: vdev_id %d", __func__, vdev_id);
+	WMA_LOGD("%s: vdev_id %d", __func__, vdev_id);
 	return 0;
 }
 
@@ -3482,7 +3482,7 @@ static int wma_extscan_cached_results_event_handler(void *handle,
 			event->first_entry_index);
 	WMA_LOGI("num_entries_in_page %d", numap);
 	if (!src_hotlist || !src_rssi || !numap) {
-		WMA_LOGE("%s: Cached results empty, send 0 results", __func__);
+		WMA_LOGW("%s: Cached results empty, send 0 results", __func__);
 		goto noresults;
         }
 
@@ -6812,7 +6812,7 @@ static VOS_STATUS wma_vdev_detach(tp_wma_handle wma_handle,
         }
 
 
-        WMA_LOGA("vdev_id:%hu vdev_hdl:%p", vdev_id, iface->handle);
+        WMA_LOGD("vdev_id:%hu vdev_hdl:%p", vdev_id, iface->handle);
         if (!generateRsp) {
                 WMA_LOGE("Call txrx detach w/o callback for vdev %d", vdev_id);
                 ol_txrx_vdev_detach(iface->handle, NULL, NULL);
@@ -7411,7 +7411,7 @@ static ol_txrx_vdev_handle wma_vdev_attach(tp_wma_handle wma_handle,
 						txrx_vdev_type);
 	wma_handle->interfaces[self_sta_req->sessionId].pause_bitmap = 0;
 
-	WMA_LOGA("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
+	WMA_LOGD("vdev_id %hu, txrx_vdev_handle = %p", self_sta_req->sessionId,
 			txrx_vdev_handle);
 
 	if (NULL == txrx_vdev_handle) {
@@ -8291,7 +8291,7 @@ VOS_STATUS wma_start_scan(tp_wma_handle wma_handle,
 			cmd->scan_req_id, cmd->vdev_id,
 			scan_req->p2pScanType);
 
-	WMA_LOGE("scan_id %x, vdev_id %x, scan type %x, msg_type %x",
+	WMA_LOGD("scan_id %x, vdev_id %x, scan type %x, msg_type %x",
 			cmd->scan_id, cmd->vdev_id, scan_req->p2pScanType,
 			msg_type);
 
@@ -21352,7 +21352,7 @@ static VOS_STATUS wma_process_mcbc_set_filter_req(tp_wma_handle wma_handle,
 	int i;
 
 	if(mcbc_param->ulMulticastAddrCnt <= 0) {
-		WMA_LOGE("Number of multicast addresses is 0");
+		WMA_LOGW("Number of multicast addresses is 0");
 		return VOS_STATUS_E_FAILURE;
 	}
 
