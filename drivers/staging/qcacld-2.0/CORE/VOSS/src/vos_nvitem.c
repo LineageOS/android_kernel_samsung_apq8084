@@ -1055,12 +1055,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             continue;
 
         if (wiphy->bands[i] == NULL)
-        {
-
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "error: wiphy->bands is NULL, i = %d", i);
             continue;
-        }
 
         /* internal channels[] is one continous array for both 2G and 5G bands
            m is internal starting channel index for each band */
@@ -1610,10 +1605,7 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
     {
 
         if (wiphy->bands[i] == NULL)
-        {
-            pr_info("error: wiphy->bands[i] is NULL, i = %d\n", i);
             continue;
-        }
 
         /* internal channels[] is one continous array for both 2G and 5G bands
            m is internal starting channel index for each band */
