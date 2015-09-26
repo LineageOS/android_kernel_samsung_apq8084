@@ -50,7 +50,7 @@
 #define FW_MODULE_LOG_LEVEL_STRING_LENGTH  (255)
 
 //Number of items that can be configured
-#define MAX_CFG_INI_ITEMS   512
+#define MAX_CFG_INI_ITEMS   1024
 
 // Defines for all of the things we read from the configuration (registry).
 
