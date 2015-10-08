@@ -114,6 +114,7 @@ enum hal_extradata_id {
 	HAL_EXTRADATA_DIGITAL_ZOOM,
 	HAL_EXTRADATA_LTR_INFO,
 	HAL_EXTRADATA_METADATA_MBI,
+	HAL_EXTRADATA_VUI_DISPLAY_INFO,
 };
 
 enum hal_property {
@@ -206,6 +207,7 @@ enum hal_property {
 	HAL_CONFIG_VENC_HIER_P_NUM_FRAMES,
 	HAL_PARAM_VENC_HIER_P_MAX_ENH_LAYERS,
 	HAL_PARAM_VENC_ENABLE_INITIAL_QP,
+	HAL_PARAM_VENC_VIDEO_SIGNAL_INFO,
 };
 
 enum hal_domain {
@@ -863,6 +865,16 @@ struct hal_vpe_color_space_conversion {
 	u32 csc_matrix[HAL_MAX_MATRIX_COEFFS];
 	u32 csc_bias[HAL_MAX_BIAS_COEFFS];
 	u32 csc_limit[HAL_MAX_LIMIT_COEFFS];
+};
+
+enum hal_video_color_space {
+	HAL_VIDEO_COLOR_SPACE_601,
+	HAL_VIDEO_COLOR_SPACE_709,
+};
+
+struct hal_video_signal_info {
+	enum hal_video_color_space color_space;
+	bool clamped;
 };
 
 enum vidc_resource_id {

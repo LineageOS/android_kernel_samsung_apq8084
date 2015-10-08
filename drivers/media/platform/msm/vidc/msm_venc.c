@@ -2757,6 +2757,7 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		struct hal_uncompressed_format_select hal_fmt = {0};
 		struct hal_frame_size frame_sz;
+		struct hal_video_signal_info signal_info = {0};
 
 		inst->prop.width[OUTPUT_PORT] = f->fmt.pix_mp.width;
 		inst->prop.height[OUTPUT_PORT] = f->fmt.pix_mp.height;
@@ -2766,6 +2767,8 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 				"%s: session not supported\n", __func__);
 			goto exit;
 		}
+
+		/* Configure frame dimensions */
 		frame_sz.buffer_type = HAL_BUFFER_INPUT;
 		frame_sz.width = inst->prop.width[OUTPUT_PORT];
 		frame_sz.height = inst->prop.height[OUTPUT_PORT];
@@ -2786,6 +2789,8 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 				"Failed to set hal property for framesize\n");
 			goto exit;
 		}
+
+		/* Configure frame color format */
 		fmt = msm_comm_get_pixel_fmt_fourcc(venc_formats,
 			ARRAY_SIZE(venc_formats), f->fmt.pix_mp.pixelformat,
 			OUTPUT_PORT);
@@ -2819,51 +2824,130 @@ int msm_venc_s_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 				"Failed to set input color format\n");
 			goto exit;
 		}
+
+		/* Configure frame color format characteristics */
+		if (f->fmt.pix_mp.colorspace) {
+			switch (f->fmt.pix_mp.colorspace) {
+				case V4L2_COLORSPACE_REC709:
+					signal_info.color_space =
+						HAL_VIDEO_COLOR_SPACE_709;
+					signal_info.clamped = true;
+					break;
+				case V4L2_COLORSPACE_BT878:
+					/* equiv to ITU-R BT.601 clamped */
+					signal_info.clamped = true;
+					/* fall thru */
+				case V4L2_COLORSPACE_470_SYSTEM_BG:
+					/* equiv to ITU-R BT.601 */
+					signal_info.color_space =
+						HAL_VIDEO_COLOR_SPACE_601;
+					break;
+				default:
+					dprintk(VIDC_ERR, "Colorspace %d not supported\n",
+							f->fmt.pix_mp.colorspace);
+					rc = -ENOTSUPP;
+					goto exit;
+			}
+
+			switch (f->fmt.pix_mp.pixelformat) {
+				case V4L2_PIX_FMT_NV12:
+				case V4L2_PIX_FMT_NV21:
+					rc = call_hfi_op(hdev, session_set_property,
+							inst->session,
+							HAL_PARAM_VENC_VIDEO_SIGNAL_INFO,
+							&signal_info);
+					if (rc) {
+						dprintk(VIDC_ERR,
+								"Failed to set the colorspace: %d\n",
+								rc);
+						goto exit;
+					}
+					break;
+				default:
+					dprintk(VIDC_ERR,
+							"Colorspace %d not supported for format %d\n",
+							f->fmt.pix_mp.colorspace,
+							f->fmt.pix_mp.pixelformat);
+					rc = -ENOTSUPP;
+					break;
+			}
+		}
 	}
 
-	if (fmt) {
-		f->fmt.pix_mp.num_planes = fmt->num_planes;
-		for (i = 0; i < fmt->num_planes; ++i) {
-			f->fmt.pix_mp.plane_fmt[i].sizeimage =
-				fmt->get_frame_size(i, f->fmt.pix_mp.height,
-						f->fmt.pix_mp.width);
-		}
-		inst->fmts[fmt->type] = fmt;
-		if (f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-			struct hal_frame_size frame_sz;
-			rc = msm_comm_try_state(inst, MSM_VIDC_OPEN_DONE);
-			if (rc) {
-				dprintk(VIDC_ERR, "Failed to open instance\n");
-				goto exit;
-			}
-			frame_sz.width = inst->prop.width[CAPTURE_PORT];
-			frame_sz.height = inst->prop.height[CAPTURE_PORT];
-			frame_sz.buffer_type = HAL_BUFFER_OUTPUT;
-			rc = call_hfi_op(hdev, session_set_property, (void *)
-					inst->session, HAL_PARAM_FRAME_SIZE,
-					&frame_sz);
-			if (rc) {
-				dprintk(VIDC_ERR,
-					"Failed to set OUTPUT framesize\n");
-				goto exit;
-			}
-		} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-			struct hal_buffer_requirements *buff_req_buffer = NULL;
-			int extra_idx = 0;
-			extra_idx = EXTRADATA_IDX(fmt->num_planes);
-			if (extra_idx && (extra_idx < VIDEO_MAX_PLANES)) {
-				buff_req_buffer =
-					get_buff_req_buffer(inst,
-						HAL_BUFFER_EXTRADATA_INPUT);
-				f->fmt.pix_mp.plane_fmt[extra_idx].sizeimage =
-					buff_req_buffer ?
-					buff_req_buffer->buffer_size : 0;
-			}
-		}
-	} else {
+	if (!fmt) {
 		dprintk(VIDC_ERR, "Buf type not recognized, type = %d\n",
 					f->type);
-		rc = -EINVAL;
+		rc = -ENOTSUPP;
+		goto exit;
+	}
+
+	inst->fmts[fmt->type] = fmt;
+	f->fmt.pix_mp.num_planes = fmt->num_planes;
+	for (i = 0; i < fmt->num_planes; ++i) {
+		f->fmt.pix_mp.plane_fmt[i].sizeimage = fmt->get_frame_size(i,
+				f->fmt.pix_mp.height, f->fmt.pix_mp.width);
+	}
+
+	if (f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+		struct hal_frame_size frame_sz = {0};
+		struct hal_quantization_range qp_range;
+		void *pdata = NULL;
+
+		rc = msm_comm_try_state(inst, MSM_VIDC_OPEN_DONE);
+		if (rc) {
+			dprintk(VIDC_ERR, "Failed to open instance\n");
+			msm_comm_session_clean(inst);
+			goto exit;
+		}
+
+		frame_sz.width = inst->prop.width[CAPTURE_PORT];
+		frame_sz.height = inst->prop.height[CAPTURE_PORT];
+		frame_sz.buffer_type = HAL_BUFFER_OUTPUT;
+		rc = call_hfi_op(hdev, session_set_property, inst->session,
+				HAL_PARAM_FRAME_SIZE, &frame_sz);
+		if (rc) {
+			dprintk(VIDC_ERR,
+					"Failed to set OUTPUT framesize\n");
+			goto exit;
+		}
+
+		if (inst->fmts[CAPTURE_PORT]->fourcc == V4L2_PIX_FMT_HEVC) {
+
+			/*
+			* Currently Venus HW has a limitation on minimum
+			* value of QP for HEVC encoder. Hence restricting
+			* the QP in the range of 2 - 51. This workaround
+			* will be removed once FW able to handle the full
+			* QP range.
+			*/
+
+			qp_range.layer_id = 0;
+			qp_range.max_qp = 51;
+			qp_range.min_qp = 2;
+
+			pdata = &qp_range;
+
+			rc = call_hfi_op(hdev, session_set_property,
+					(void *)inst->session,
+					HAL_PARAM_VENC_SESSION_QP_RANGE, pdata);
+			if (rc) {
+				dprintk(VIDC_ERR,
+						"Failed to set QP range\n");
+				goto exit;
+			}
+		}
+
+	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+		struct hal_buffer_requirements *bufreq = NULL;
+		int extra_idx = 0;
+
+		extra_idx = EXTRADATA_IDX(fmt->num_planes);
+		if (extra_idx && (extra_idx < VIDEO_MAX_PLANES)) {
+			bufreq = get_buff_req_buffer(inst,
+					HAL_BUFFER_EXTRADATA_INPUT);
+			f->fmt.pix_mp.plane_fmt[extra_idx].sizeimage =
+				bufreq ? bufreq->buffer_size : 0;
+		}
 	}
 exit:
 	return rc;
