@@ -10499,6 +10499,7 @@ void __hdd_wlan_exit(void)
    pHddCtx->isUnloadInProgress = TRUE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+   vos_set_unload_in_progress(TRUE);
 
 #ifdef WLAN_FEATURE_LPSS
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
@@ -12263,6 +12264,7 @@ static void hdd_driver_exit(void)
       rtnl_lock();
       pHddCtx->isUnloadInProgress = TRUE;
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+      vos_set_unload_in_progress(TRUE);
       rtnl_unlock();
    }
 
