@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -353,7 +353,7 @@ typedef struct tLimPreAuthNode
 typedef struct tLimPreAuthTable
 {
     tANI_U32        numEntry;
-    tpLimPreAuthNode pTable;
+    tLimPreAuthNode **pTable;
 }tLimPreAuthTable, *tpLimPreAuthTable;
 
 /// Per STA context structure definition
