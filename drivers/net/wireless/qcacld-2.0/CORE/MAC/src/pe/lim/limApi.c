@@ -734,6 +734,7 @@ limCleanup(tpAniSirGlobal pMac)
 {
 //Before destroying the list making sure all the nodes have been deleted.
 //Which should be the normal case, but a memory leak has been reported.
+    uint8_t i;
 
     tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL;
 
@@ -754,6 +755,8 @@ limCleanup(tpAniSirGlobal pMac)
     // free up preAuth table
     if (pMac->lim.gLimPreAuthTimerTable.pTable != NULL)
     {
+        for (i = 0; i < pMac->lim.gLimPreAuthTimerTable.numEntry; i++)
+            vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable[i]);
         vos_mem_free(pMac->lim.gLimPreAuthTimerTable.pTable);
         pMac->lim.gLimPreAuthTimerTable.pTable = NULL;
         pMac->lim.gLimPreAuthTimerTable.numEntry = 0;
