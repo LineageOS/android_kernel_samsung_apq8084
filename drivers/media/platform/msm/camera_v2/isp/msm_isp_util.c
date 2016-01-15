@@ -13,7 +13,9 @@
 #include <linux/io.h>
 #include <media/v4l2-subdev.h>
 #include <linux/ratelimit.h>
-
+#ifdef CONFIG_MSM_AVTIMER
+#include <linux/avtimer_kernel.h>
+#endif
 #include "msm.h"
 #include "msm_isp_util.h"
 #include "msm_isp_axi_util.h"
