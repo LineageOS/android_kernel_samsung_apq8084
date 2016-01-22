@@ -258,16 +258,19 @@ struct buffer_info *get_registered_buf(struct msm_vidc_inst *inst,
 	list_for_each_entry(temp, list, list) {
 		for (i = 0; (i < temp->num_planes)
 			&& (i < VIDEO_MAX_PLANES); i++) {
-			if (temp &&
-				((fd == temp->fd[i]) ||
-				(device_addr == temp->device_addr[i])) &&
-				(CONTAINS(temp->buff_off[i],
-				temp->size[i], buff_off)
-				|| CONTAINS(buff_off,
-				size, temp->buff_off[i])
-				|| OVERLAPS(buff_off, size,
-				temp->buff_off[i],
-				temp->size[i]))) {
+			bool ion_hndl_matches = temp->handle[i] ?
+				msm_smem_compare_buffers(inst->mem_client, fd,
+				temp->handle[i]->smem_priv) : false;
+			bool device_addr_matches = device_addr ==
+						temp->device_addr[i];
+			bool contains_within = CONTAINS(temp->buff_off[i],
+					temp->size[i], buff_off) ||
+				CONTAINS(buff_off, size, temp->buff_off[i]);
+			bool overlaps = OVERLAPS(buff_off, size,
+					temp->buff_off[i], temp->size[i]);
+			if (!temp->inactive &&
+				(ion_hndl_matches || device_addr_matches) &&
+				(contains_within || overlaps)) {
 					dprintk(VIDC_DBG,
 						"This memory region is already mapped\n");
 					ret = temp;
@@ -461,6 +464,9 @@ int map_and_register_buf(struct msm_vidc_inst *inst, struct v4l2_buffer *b)
 	int plane = 0;
 	int i = 0, rc = 0;
 	struct msm_smem *same_fd_handle = NULL;
+	bool check_same_fd_handle = !is_dynamic_output_buffer_mode(b, inst) &&
+		!(inst->session_type == MSM_VIDC_ENCODER &&
+			b->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
 
 	if (!b || !inst) {
 		dprintk(VIDC_ERR, "%s: invalid input\n", __func__);
@@ -518,9 +524,10 @@ int map_and_register_buf(struct msm_vidc_inst *inst, struct v4l2_buffer *b)
 		if (rc < 0)
 			goto exit;
 
-		same_fd_handle = get_same_fd_buffer(inst,
-					&inst->registered_bufs,
-					b->m.planes[i].reserved[0]);
+		if (check_same_fd_handle)
+			same_fd_handle = get_same_fd_buffer(inst,
+						&inst->registered_bufs,
+						b->m.planes[i].reserved[0]);
 
 		populate_buf_info(binfo, b, i);
 		if (same_fd_handle) {
