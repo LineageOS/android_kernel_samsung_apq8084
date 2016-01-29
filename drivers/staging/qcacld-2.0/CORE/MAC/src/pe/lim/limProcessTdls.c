@@ -653,7 +653,8 @@ static tSirRetStatus limSendTdlsDisRspFrame(tpAniSirGlobal pMac,
 
     /* populate supported rate and ext supported rate IE */
     if (eSIR_FAILURE == populate_dot11f_rates_tdls(pMac, &tdlsDisRsp.SuppRates,
-                               &tdlsDisRsp.ExtSuppRates))
+                               &tdlsDisRsp.ExtSuppRates,
+                               psessionEntry->currentOperChannel))
         limLog(pMac, LOGE, FL("could not populate supported data rates"));
 
 
@@ -901,9 +902,13 @@ tSirRetStatus limSendTdlsLinkSetupReqFrame(tpAniSirGlobal pMac,
     }
     swapBitField16(caps, ( tANI_U16* )&tdlsSetupReq.Capabilities );
 
+    limLog(pMac, LOG1, FL("Sending operating channel %d and dotl11mode %d\n"),
+           psessionEntry->currentOperChannel, psessionEntry->dot11mode);
+
     /* populate supported rate and ext supported rate IE */
     populate_dot11f_rates_tdls(pMac, &tdlsSetupReq.SuppRates,
-                               &tdlsSetupReq.ExtSuppRates);
+                               &tdlsSetupReq.ExtSuppRates,
+                               psessionEntry->currentOperChannel);
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupReq.ExtCap);
@@ -1375,7 +1380,8 @@ static tSirRetStatus limSendTdlsSetupRspFrame(tpAniSirGlobal pMac,
 
     /* populate supported rate and ext supported rate IE */
     populate_dot11f_rates_tdls(pMac, &tdlsSetupRsp.SuppRates,
-                               &tdlsSetupRsp.ExtSuppRates);
+                               &tdlsSetupRsp.ExtSuppRates,
+                               psessionEntry->currentOperChannel);
 
     /* Populate extended supported rates */
     PopulateDot11fTdlsExtCapability(pMac, psessionEntry, &tdlsSetupRsp.ExtCap);
