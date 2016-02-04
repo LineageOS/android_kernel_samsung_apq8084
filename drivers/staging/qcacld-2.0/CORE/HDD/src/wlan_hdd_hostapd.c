@@ -1574,12 +1574,14 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
         case eSAP_CHANNEL_CHANGE_EVENT:
             hddLog(LOG1, FL("Received eSAP_CHANNEL_CHANGE_EVENT event"));
-            /* Prevent suspend for new channel */
-            hdd_hostapd_channel_prevent_suspend(pHostapdAdapter,
-                    pSapEvent->sapevt.sapChannelChange.operatingChannel);
-            /* Allow suspend for old channel */
-            hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
-                    pHddApCtx->operatingChannel);
+            if (pHostapdState->bssState != BSS_STOP) {
+                /* Prevent suspend for new channel */
+                hdd_hostapd_channel_prevent_suspend(pHostapdAdapter,
+                        pSapEvent->sapevt.sapChannelChange.operatingChannel);
+                /* Allow suspend for old channel */
+                hdd_hostapd_channel_allow_suspend(pHostapdAdapter,
+                        pHddApCtx->operatingChannel);
+            }
             /* TODO Need to indicate operating channel change to hostapd */
             return VOS_STATUS_SUCCESS;
 
