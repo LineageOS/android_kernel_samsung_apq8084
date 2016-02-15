@@ -2141,6 +2141,13 @@ send_link_resp:
         limMsg->bodyptr = NULL;
         break;
 #endif
+
+    case eWNI_SME_DEL_ALL_TDLS_PEERS:
+        lim_process_sme_del_all_tdls_peers(pMac, limMsg->bodyptr);
+        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
+        limMsg->bodyptr = NULL;
+        break;
+
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);
         limMsg->bodyptr = NULL;

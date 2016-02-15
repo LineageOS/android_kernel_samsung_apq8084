@@ -4115,4 +4115,6 @@ eHalStatus sme_set_lost_link_info_cb(tHalHandle hal,
                                      void (*cb)(void *,
                                                 struct sir_lost_link_info *));
 
+eHalStatus sme_delete_all_tdls_peers(tHalHandle hal, uint8_t session_id);
+
 #endif //#if !defined( __SME_API_H )
