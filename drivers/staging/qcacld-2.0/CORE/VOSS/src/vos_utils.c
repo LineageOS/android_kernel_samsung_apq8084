@@ -72,6 +72,7 @@
 #ifdef CONFIG_CNSS
 #include <linux/qcomwlan_secif.h>
 #endif
+#include <errno.h>
 
 #include "ieee80211_common.h"
 /*----------------------------------------------------------------------------
@@ -1223,4 +1224,41 @@ v_U8_t vos_chan_to_band(v_U32_t chan)
         return VOS_BAND_2GHZ;
 
     return VOS_BAND_5GHZ;
+}
+
+/**
+ * vos_status_to_os_return(): translates vos_status types to linux return types
+ * @status: status to translate
+ *
+ * Translates error types that linux may want to handle specially.
+ *
+ * return: 0 or the linux error code that most closely matches the VOS_STATUS.
+ *      defaults to -1 (EPERM)
+ */
+int vos_status_to_os_return(VOS_STATUS status)
+{
+	switch (status) {
+	case VOS_STATUS_SUCCESS:
+		return 0;
+	case VOS_STATUS_E_FAULT:
+		return -EFAULT;
+	case VOS_STATUS_E_TIMEOUT:
+	case VOS_STATUS_E_BUSY:
+		return -EBUSY;
+	case VOS_STATUS_E_AGAIN:
+		return -EAGAIN;
+	case VOS_STATUS_E_NOSUPPORT:
+		return -ENOSYS;
+	case VOS_STATUS_E_ALREADY:
+		return -EALREADY;
+	case VOS_STATUS_E_NOMEM:
+		return -ENOMEM;
+	case VOS_STATUS_E_FAILURE:
+	case VOS_STATUS_E_INVAL:
+		return -EINVAL;
+	default:
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+			  FL("Unhandled VOS_STATUS:%d"), status);
+		return -EPERM;
+	}
 }
