@@ -140,7 +140,8 @@ int hdd_SetGENIEToCsr( hdd_adapter_t *pAdapter, eCsrAuthType *RSNAuthType );
 
 int hdd_set_csr_auth_type( hdd_adapter_t *pAdapter, eCsrAuthType RSNAuthType );
 VOS_STATUS hdd_roamRegisterTDLSSTA( hdd_adapter_t *pAdapter,
-                                    tANI_U8 *peerMac, tANI_U16 staId, tANI_U8 ucastSig);
+                                    const tANI_U8 *peerMac, tANI_U16 staId,
+                                    tANI_U8 ucastSig, uint8_t qos);
 void hdd_PerformRoamSetKeyComplete(hdd_adapter_t *pAdapter);
 
 VOS_STATUS hdd_roamDeregisterTDLSSTA(hdd_adapter_t *adapter, uint8_t staId);

@@ -1226,6 +1226,9 @@ int wlan_hdd_tdls_set_peer_caps(hdd_adapter_t *pAdapter,
 
     curr_peer->supported_oper_classes_len =
                StaParams->supported_oper_classes_len;
+
+    curr_peer->qos = StaParams->capability & CAPABILITIES_QOS_OFFSET;
+
     return 0;
 }
 
@@ -1262,6 +1265,9 @@ int wlan_hdd_tdls_get_link_establish_params(hdd_adapter_t *pAdapter, u8 *mac,
 
     tdlsLinkEstablishParams->supportedOperClassesLen =
                  curr_peer->supported_oper_classes_len;
+
+    tdlsLinkEstablishParams->qos = curr_peer->qos;
+
     return 0;
 }
 
