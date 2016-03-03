@@ -694,6 +694,7 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN ignorePeerErpInfo;
     v_U16_t pkt_err_disconn_th;
     tANI_BOOLEAN sendDeauthBeforeCon;
+    bool enable_fatal_event;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
