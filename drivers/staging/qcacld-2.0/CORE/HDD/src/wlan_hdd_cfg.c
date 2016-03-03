@@ -4187,6 +4187,13 @@ REG_TABLE_ENTRY mbssid_sap_dyn_ini_reg_table[] =
                  CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN,
                  CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX ),
 
+   REG_VARIABLE(CFG_ENABLE_FATAL_EVENT_TRIGGER, WLAN_PARAM_Integer,
+                hdd_config_t, enable_fatal_event,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_DEFAULT,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_MIN,
+                CFG_ENABLE_FATAL_EVENT_TRIGGER_MAX),
+
    REG_VARIABLE( CFG_SAP_CHANNEL_SELECT_END_CHANNEL , WLAN_PARAM_Integer,
                  mbssid_sap_dyn_ini_config_t, apEndChannelNum,
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT
@@ -4820,6 +4827,9 @@ void print_hdd_cfg(hdd_context_t *pHddCtx)
            "Name = [gExtWoWApp2TcpRxTimeout] Value = [%u]",
                    pHddCtx->cfg_ini->extWowApp2TcpRxTimeout);
 #endif
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "Name = [gEnableFatalEvent] Value = [%u] ",
+                          pHddCtx->cfg_ini->enable_fatal_event);
 
   hddLog(LOG2, "Name = [gfine_time_meas_cap] Value = [%u]",
                    pHddCtx->cfg_ini->fine_time_meas_cap);
@@ -6546,6 +6556,8 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
                    pHddCtx->cfg_ini->pkt_err_disconn_th;
    smeConfig->csrConfig.ignorePeerErpInfo = pConfig->ignorePeerErpInfo;
 
+   smeConfig->csrConfig.enable_fatal_event =
+                          pConfig->enable_fatal_event;
    smeConfig->csrConfig.sendDeauthBeforeCon = pConfig->sendDeauthBeforeCon;
    halStatus = sme_UpdateConfig( pHddCtx->hHal, smeConfig);
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
