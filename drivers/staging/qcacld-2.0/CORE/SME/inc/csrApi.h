@@ -1272,6 +1272,7 @@ typedef struct tagCsrConfigParam
 
     v_U16_t    pkt_err_disconn_th;
     tANI_BOOLEAN sendDeauthBeforeCon;
+    bool    enable_fatal_event;
 }tCsrConfigParam;
 
 //Tush

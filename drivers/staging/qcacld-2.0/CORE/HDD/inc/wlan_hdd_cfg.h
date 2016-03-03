@@ -1179,6 +1179,15 @@ enum
 #define CFG_FT_RESOURCE_REQ_DEFAULT                     (0)
 #endif
 
+/*
+ * Enable/Disable to initiate BUG report in case of fatal event
+ * Default: Enable
+ */
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER                 "gEnableFatalEvent"
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_MIN             (0)
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_MAX             (1)
+#define CFG_ENABLE_FATAL_EVENT_TRIGGER_DEFAULT         (1)
+
 #define CFG_TELE_BCN_TRANS_LI_NAME                   "telescopicBeaconTransListenInterval"
 #define CFG_TELE_BCN_TRANS_LI_MIN                    ( 0 )
 #define CFG_TELE_BCN_TRANS_LI_MAX                    ( 7 )
@@ -3649,6 +3658,7 @@ typedef struct
 #endif
    uint8_t                     inform_bss_rssi_raw;
    v_BOOL_t                    sendDeauthBeforeCon;
+   bool                        enable_fatal_event;
 } hdd_config_t;
 
 #ifdef WLAN_FEATURE_MBSSID
