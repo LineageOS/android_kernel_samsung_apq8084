@@ -1896,6 +1896,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 		if (resp_event->vdev_id > wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				resp_event->vdev_id);
+			vos_mem_free(params);
 			status = -EINVAL;
 			goto free_req_msg;
 		}
@@ -1904,6 +1905,7 @@ static int wma_vdev_stop_ind(tp_wma_handle wma, u_int8_t *buf)
 		if (iface->handle == NULL) {
 			WMA_LOGE("%s vdev id %d is already deleted",
 				__func__, resp_event->vdev_id);
+			vos_mem_free(params);
 			status = -EINVAL;
 			goto free_req_msg;
 		}
@@ -10762,6 +10764,7 @@ void wma_vdev_resp_timer(void *data)
 		if (tgt_req->vdev_id > wma->max_bssid) {
 			WMA_LOGE("%s: Invalid vdev_id %d", __func__,
 				tgt_req->vdev_id);
+			vos_mem_free(params);
 			vos_timer_stop(&tgt_req->event_timeout);
 			goto free_tgt_req;
 		}
@@ -10770,6 +10773,7 @@ void wma_vdev_resp_timer(void *data)
 		if (iface->handle == NULL) {
 			WMA_LOGE("%s vdev id %d is already deleted",
 				__func__, tgt_req->vdev_id);
+			vos_mem_free(params);
 			vos_timer_stop(&tgt_req->event_timeout);
 			goto free_tgt_req;
 		}
@@ -10880,6 +10884,7 @@ void wma_vdev_resp_timer(void *data)
 		if (!msg) {
 			WMA_LOGP("%s: Failed to fill vdev request for vdev_id %d",
 							__func__, tgt_req->vdev_id);
+			vos_mem_free(del_bss_params);
 			goto error0;
 		}
 
@@ -10891,6 +10896,7 @@ void wma_vdev_resp_timer(void *data)
 						(1 << PAUSE_TYPE_HOST);
 		if (wmi_unified_vdev_stop_send(wma->wmi_handle, tgt_req->vdev_id)) {
 				WMA_LOGP("%s: %d Failed to send vdev stop",	__func__, __LINE__);
+				vos_mem_free(del_bss_params);
 				wma_remove_vdev_req(wma, tgt_req->vdev_id,
 									WMA_TARGET_REQ_TYPE_VDEV_STOP);
 				goto error0;
