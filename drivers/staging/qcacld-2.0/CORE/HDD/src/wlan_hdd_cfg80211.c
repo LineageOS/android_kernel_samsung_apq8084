@@ -17506,6 +17506,7 @@ static int __wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
     /* For explicit trigger of DIS_REQ come out of BMPS for
        successfully receiving DIS_RSP from peer. */
     if ((SIR_MAC_TDLS_SETUP_RSP == action_code) ||
+        (SIR_MAC_TDLS_SETUP_CNF == action_code) ||
         (SIR_MAC_TDLS_DIS_RSP == action_code) ||
         (SIR_MAC_TDLS_DIS_REQ == action_code))
     {
@@ -17830,7 +17831,7 @@ static int __wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy,
                                 __func__, pTdlsPeer->staId, MAC_ADDR_ARRAY(peer));
                     return -EINVAL;
                 }
-
+                wlan_hdd_tdls_set_cap(pAdapter, peer, eTDLS_CAP_SUPPORTED);
                 vos_mem_set(&tdlsLinkEstablishParams,
                             sizeof(tCsrTdlsLinkEstablishParams), 0);
 
