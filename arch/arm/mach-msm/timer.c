@@ -193,8 +193,7 @@ static struct msm_clock msm_clocks[] = {
 	}
 };
 
-static DEFINE_PER_CPU(struct msm_clock_percpu_data[NR_TIMERS],
-    msm_clocks_percpu);
+static DEFINE_PER_CPU(struct msm_clock_percpu_data[NR_TIMERS], msm_clocks_percpu);
 
 static DEFINE_PER_CPU(struct msm_clock *, msm_active_clock);
 
