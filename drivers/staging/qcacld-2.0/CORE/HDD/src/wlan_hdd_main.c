@@ -7235,6 +7235,7 @@ static void __hdd_uninit(struct net_device *dev)
 	/* After uninit our adapter structure will no longer be valid */
       pAdapter->dev = NULL;
       pAdapter->magic = 0;
+      pAdapter->pHddCtx = NULL;
 
    EXIT();
 }
@@ -7669,6 +7670,33 @@ static eHalStatus hdd_smeCloseSessionCallback(void *pContext)
    }
 
    return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * hdd_close_tx_queues() - close tx queues
+ * @hdd_ctx: hdd global context
+ *
+ * Return: None
+ */
+static void hdd_close_tx_queues(hdd_context_t *hdd_ctx)
+{
+	VOS_STATUS status;
+	hdd_adapter_t *adapter;
+	hdd_adapter_list_node_t *adapter_node = NULL, *next_adapter = NULL;
+	/* Not validating hdd_ctx as it's already done by the caller */
+	ENTER();
+	status = hdd_get_front_adapter(hdd_ctx, &adapter_node);
+	while (NULL != adapter_node && VOS_STATUS_SUCCESS == status) {
+		adapter = adapter_node->pAdapter;
+		if (adapter && adapter->dev) {
+			netif_tx_disable (adapter->dev);
+			netif_carrier_off(adapter->dev);
+		}
+		status = hdd_get_next_adapter(hdd_ctx, adapter_node,
+						&next_adapter);
+		adapter_node = next_adapter;
+	}
+	EXIT();
 }
 
 VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
@@ -10505,6 +10533,7 @@ void __hdd_wlan_exit(void)
    wlan_hdd_send_status_pkg(NULL, NULL, 0, 0);
 #endif
 
+   hdd_close_tx_queues(pHddCtx);
    //Do all the cleanup before deregistering the driver
    hdd_wlan_exit(pHddCtx);
    EXIT();
