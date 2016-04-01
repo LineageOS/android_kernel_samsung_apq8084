@@ -1472,6 +1472,7 @@ struct hdd_context_s
 #endif
     /* IPv4 notifier callback for handling ARP offload on change in IP */
     struct notifier_block ipv4_notifier;
+    bool driver_being_stopped; /* Track if DRIVER STOP cmd is sent */
 };
 
 /*---------------------------------------------------------------------------

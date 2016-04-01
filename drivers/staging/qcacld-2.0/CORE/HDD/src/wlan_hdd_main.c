@@ -5208,6 +5208,9 @@ static int hdd_driver_command(hdd_adapter_t *pAdapter,
            ret = hdd_driver_rxfilter_comand_handler(command, pAdapter, false);
        } else if (strncmp(command, "RXFILTER-ADD", 12) == 0) {
            ret = hdd_driver_rxfilter_comand_handler(command, pAdapter, true);
+       } else if (strncmp(command, "STOP", 4) == 0) {
+          hddLog(LOG1, FL("STOP command"));
+          pHddCtx->driver_being_stopped = true;
        } else {
            MTRACE(vos_trace(VOS_MODULE_ID_HDD,
                             TRACE_CODE_HDD_UNSUPPORTED_IOCTL,
@@ -6878,6 +6881,8 @@ static int __hdd_open(struct net_device *dev)
        return -ENODEV;
    }
 
+   pHddCtx->driver_being_stopped = false;
+
    status = hdd_get_front_adapter (pHddCtx, &pAdapterNode);
    while ((NULL != pAdapterNode) && (VOS_STATUS_SUCCESS == status)) {
       if (test_bit(DEVICE_IFACE_OPENED, &pAdapterNode->pAdapter->event_flags)) {
@@ -7066,7 +7071,11 @@ static int kickstart_driver(bool load)
  */
 static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
 {
-	kickstart_driver(false);
+	/* Do not clean up n/w ifaces if we are in DRIVER STOP phase or else
+	 * DRIVER START will fail and Wi-Fi will not resume successfully
+	 */
+	if (hdd_ctx && !hdd_ctx->driver_being_stopped)
+		kickstart_driver(false);
 }
 
 /**
@@ -7076,10 +7085,27 @@ static inline void wlan_hdd_stop_enter_lowpower(hdd_context_t *hdd_ctx)
  * Check if hardware can enter low power mode when all the interfaces are down.
  * For static driver, hardware can enter low power mode for all types of
  * interfaces.
+ *
+ * Return: true for power save allowed and false for power save not allowed
  */
-static inline int wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
+static inline bool wlan_hdd_stop_can_enter_lowpower(hdd_adapter_t *adapter)
 {
-	return 1;
+	hdd_context_t *hdd_ctx =  WLAN_HDD_GET_CTX(adapter);
+
+	/* In static driver case, we need to distinguish between WiFi OFF and
+	 * DRIVER STOP. In both cases "ifconfig down" is happening. In OFF case,
+	 * want to allow lowest power mode and driver cleanup. In case of DRIVER
+	 * STOP do not want to allow power collapse for GO/SAP case. STOP
+	 * behavior is now identical across both DLKM and Static driver case.
+	 */
+	if (hdd_ctx && !hdd_ctx->driver_being_stopped)
+		return true;
+	else if ((WLAN_HDD_SOFTAP == adapter->device_mode) ||
+		(WLAN_HDD_MONITOR == adapter->device_mode) ||
+		(WLAN_HDD_P2P_GO == adapter->device_mode))
+		return false;
+	else
+		return true;
 }
 #endif
 
@@ -10525,6 +10551,7 @@ void __hdd_wlan_exit(void)
    }
 
    pHddCtx->isUnloadInProgress = TRUE;
+   pHddCtx->driver_being_stopped = false;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    vos_set_unload_in_progress(TRUE);
@@ -12274,6 +12301,8 @@ static void hdd_driver_exit(void)
    }
    else
    {
+      pHddCtx->driver_being_stopped = false;
+
 #ifdef QCA_PKT_PROTO_TRACE
       vos_pkt_proto_trace_close();
 #endif /* QCA_PKT_PROTO_TRACE */
