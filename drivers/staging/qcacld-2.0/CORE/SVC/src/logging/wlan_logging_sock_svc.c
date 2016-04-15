@@ -527,7 +527,6 @@ static int wlan_logging_thread(void *Arg)
 		}
 
 		if (gwlan_logging.exit) {
-			pr_err("%s: Exiting the thread\n", __func__);
 			break;
 		}
 
@@ -571,7 +570,6 @@ static int wlan_logging_thread(void *Arg)
 		}
 	}
 
-	pr_info("%s: Terminating\n", __func__);
 
 	complete_and_exit(&gwlan_logging.shutdown_comp, 0);
 
@@ -641,8 +639,6 @@ int wlan_logging_sock_activate_svc(int log_fe_to_console, int num_buf)
 	int i = 0;
 	unsigned long irq_flag;
 
-	pr_info("%s: Initalizing FEConsoleLog = %d NumBuff = %d\n",
-			__func__, log_fe_to_console, num_buf);
 
 	gapp_pid = INVALID_PID;
 
@@ -695,7 +691,6 @@ int wlan_logging_sock_activate_svc(int log_fe_to_console, int num_buf)
 
 	nl_srv_register(ANI_NL_MSG_LOG, wlan_logging_proc_sock_rx_msg);
 
-	pr_info("%s: Activated wlan_logging svc\n", __func__);
 	return 0;
 }
 
@@ -727,7 +722,6 @@ int wlan_logging_sock_deactivate_svc(void)
 	gwlan_logging.pcur_node = NULL;
 	spin_unlock_irqrestore(&gwlan_logging.spin_lock, irq_flag);
 
-	pr_info("%s: Deactivate wlan_logging svc\n", __func__);
 
 	return 0;
 }
