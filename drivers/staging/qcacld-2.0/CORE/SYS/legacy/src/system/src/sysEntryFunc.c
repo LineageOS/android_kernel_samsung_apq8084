@@ -138,6 +138,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 
     if(type == SIR_MAC_MGMT_FRAME)
     {
+            tpSirMacMgmtHdr mac_hdr;
             /*
              * Drop beacon frames in deferred state to avoid VOSS run out of
              * message wrappers.
@@ -160,33 +161,33 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
                 goto fail;
             }
 
+            mac_hdr = WDA_GET_RX_MAC_HEADER(pBd);
+            if (subType == SIR_MAC_MGMT_ASSOC_REQ) {
+                sysLog(pMac, LOG1,
+                       FL("ASSOC REQ frame allowed: da: " MAC_ADDRESS_STR ", sa: " MAC_ADDRESS_STR ", bssid: " MAC_ADDRESS_STR ", Assoc Req count so far: %d\n"),
+                       MAC_ADDR_ARRAY(mac_hdr->da),
+                       MAC_ADDR_ARRAY(mac_hdr->sa),
+                       MAC_ADDR_ARRAY(mac_hdr->bssId),
+                       pMac->sys.gSysFrameCount[type][subType]);
+            }
+
             if (subType == SIR_MAC_MGMT_DEAUTH)
             {
-                tpSirMacMgmtHdr pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
-                PELOGE(sysLog( pMac, LOGE,
-                       FL("DEAUTH frame allowed: "
-                       "da: " MAC_ADDRESS_STR ", "
-                       "sa: " MAC_ADDRESS_STR ", "
-                       "bssid: " MAC_ADDRESS_STR ", "
-                       "DEAUTH count so far: %d\n"),
-                       MAC_ADDR_ARRAY(pMacHdr->da),
-                       MAC_ADDR_ARRAY(pMacHdr->sa),
-                       MAC_ADDR_ARRAY(pMacHdr->bssId),
-                       pMac->sys.gSysFrameCount[type][subType] ););
+                sysLog(pMac, LOG1,
+                       FL("DEAUTH frame allowed: da: " MAC_ADDRESS_STR ", sa: " MAC_ADDRESS_STR ", bssid: " MAC_ADDRESS_STR ", DEAUTH count so far: %d\n"),
+                       MAC_ADDR_ARRAY(mac_hdr->da),
+                       MAC_ADDR_ARRAY(mac_hdr->sa),
+                       MAC_ADDR_ARRAY(mac_hdr->bssId),
+                       pMac->sys.gSysFrameCount[type][subType]);
             }
             if (subType == SIR_MAC_MGMT_DISASSOC)
             {
-                tpSirMacMgmtHdr pMacHdr = WDA_GET_RX_MAC_HEADER(pBd);
-                PELOGE(sysLog( pMac, LOGE,
-                       FL("DISASSOC frame allowed: "
-                       "da: " MAC_ADDRESS_STR ", "
-                       "sa: " MAC_ADDRESS_STR ", "
-                       "bssid: " MAC_ADDRESS_STR ", "
-                       "DISASSOC count so far: %d\n"),
-                       MAC_ADDR_ARRAY(pMacHdr->da),
-                       MAC_ADDR_ARRAY(pMacHdr->sa),
-                       MAC_ADDR_ARRAY(pMacHdr->bssId),
-                       pMac->sys.gSysFrameCount[type][subType] ););
+                sysLog(pMac, LOG1,
+                       FL("DISASSOC frame allowed: da: " MAC_ADDRESS_STR ", sa: " MAC_ADDRESS_STR ", bssid: " MAC_ADDRESS_STR ", DISASSOC count so far: %d\n"),
+                       MAC_ADDR_ARRAY(mac_hdr->da),
+                       MAC_ADDR_ARRAY(mac_hdr->sa),
+                       MAC_ADDR_ARRAY(mac_hdr->bssId),
+                       pMac->sys.gSysFrameCount[type][subType]);
             }
 
             //Post the message to PE Queue
