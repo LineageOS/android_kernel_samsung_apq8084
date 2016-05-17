@@ -3568,8 +3568,6 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
     if(!pmc->configStaPsEnabled)
     {
         eHalStatus status;
-
-        pmc->configStaPsEnabled = TRUE;
         status = pmcOffloadEnableStaPsHandler(pMac, sessionId);
 
         if((eHAL_STATUS_SUCCESS == status) ||
@@ -3577,8 +3575,9 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
         {
             /* Successfully Queued Enabling Sta Mode Ps Request */
             smsLog(pMac, LOG2,
-                   FL("Successfull Queued Enabling Sta Mode Ps Request"));
+                   FL("Successful Queued Enabling Sta Mode Ps Request"));
 
+            pmc->configStaPsEnabled = TRUE;
             return eHAL_STATUS_SUCCESS;
         }
         else
@@ -3610,13 +3609,9 @@ eHalStatus PmcOffloadDisableStaModePowerSave(tHalHandle hHal,
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
     eHalStatus status = eHAL_STATUS_SUCCESS;
 
-    if(pmc->configStaPsEnabled)
-    {
-        pmc->configDefStaPsEnabled = FALSE;
+    if (pmc->configStaPsEnabled) {
         status = pmcOffloadDisableStaPsHandler(pMac, sessionId);
-    }
-    else
-    {
+    } else {
         /*
          * configStaPsEnabled is the master flag
          * to enable sta mode power save
@@ -4127,13 +4122,6 @@ eHalStatus PmcOffloadEnableDeferredStaModePowerSave(tHalHandle hHal,
     tpPsOffloadPerSessionInfo pmc = &pMac->pmcOffloadInfo.pmc[sessionId];
     eHalStatus status = eHAL_STATUS_FAILURE;
     tANI_U32 timer_value;
-
-    if (!pmc->configStaPsEnabled)
-    {
-        smsLog(pMac, LOGE,
-               FL("STA Mode Config PowerSave is not enabled"));
-        return status;
-    }
 
     if (!pMac->pmcOffloadInfo.staPsEnabled)
     {
