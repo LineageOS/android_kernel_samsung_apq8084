@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -830,6 +830,7 @@ static inline int hif_pm_runtime_put(HIF_DEVICE *device) { return 0; }
 int hif_pm_runtime_prevent_suspend(void *ol_sc);
 int hif_pm_runtime_allow_suspend(void *ol_sc);
 int hif_pm_runtime_prevent_suspend_timeout(void *ol_sc, unsigned int delay);
+void hif_request_runtime_pm_resume(void *ol_sc);
 #ifdef __cplusplus
 }
 #endif
