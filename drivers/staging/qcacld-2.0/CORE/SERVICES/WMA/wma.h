@@ -790,6 +790,7 @@ typedef struct {
 
 	uint32_t wow_wakeup_enable_mask;
 	uint32_t wow_wakeup_disable_mask;
+	tSirAddonPsReq psSetting;
 }t_wma_handle, *tp_wma_handle;
 
 struct wma_target_cap {
