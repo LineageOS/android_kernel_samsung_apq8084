@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2016 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -321,6 +321,11 @@ ol_tx_classify(
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
 
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
+    if (!dest_addr) {
+       VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                 FL("Invalid dest_addr");
+        return NULL;
+    }
     if (IEEE80211_IS_MULTICAST(dest_addr)) {
         txq = &vdev->txqs[OL_TX_VDEV_MCAST_BCAST];
         tx_msdu_info->htt.info.ext_tid = HTT_TX_EXT_TID_NON_QOS_MCAST_BCAST;
@@ -531,6 +536,11 @@ ol_tx_classify_mgmt(
 
     TX_SCHED_DEBUG_PRINT("Enter %s\n", __func__);
     dest_addr = ol_tx_dest_addr_find(pdev, tx_nbuf);
+    if (!dest_addr) {
+       VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+                 FL("Invalid dest_addr");
+        return NULL;
+    }
     if (IEEE80211_IS_MULTICAST(dest_addr)) {
         /*
          * AP:  beacons are broadcast,
