@@ -338,16 +338,17 @@ void vos_pkt_trace_buf_dump
    v_U32_t slot, idx;
 
    spin_lock_bh(&trace_buffer_lock);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP START Current Timestamp %u",
               (unsigned int)vos_timer_get_system_time());
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "ORDER :        TIME : EVT");
+
    if (VOS_PKT_TRAC_MAX_TRACE_BUF > trace_buffer_order)
    {
       for (slot = 0 ; slot < trace_buffer_order; slot++)
       {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    "%5d :%12u : %s",
                    trace_buffer[slot].order,
                    (unsigned int)trace_buffer[slot].event_time,
@@ -359,7 +360,7 @@ void vos_pkt_trace_buf_dump
       for (idx = 0 ; idx < VOS_PKT_TRAC_MAX_TRACE_BUF; idx++)
       {
          slot = (trace_buffer_order + idx) % VOS_PKT_TRAC_MAX_TRACE_BUF;
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                    "%5d :%12u : %s",
                    trace_buffer[slot].order,
                    (unsigned int)trace_buffer[slot].event_time,
@@ -367,7 +368,7 @@ void vos_pkt_trace_buf_dump
       }
    }
 
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
              "PACKET TRACE DUMP END");
    spin_unlock_bh(&trace_buffer_lock);
 
