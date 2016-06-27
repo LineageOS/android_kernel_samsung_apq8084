@@ -2287,7 +2287,7 @@ err_vosclose:
        nl_srv_exit();
 #endif /* WLAN_KD_READY_NOTIFIER */
        /* Free up dynamically allocated members inside HDD Adapter */
-       kfree(pHddCtx->cfg_ini);
+       vos_mem_free(pHddCtx->cfg_ini);
        pHddCtx->cfg_ini= NULL;
 
        wiphy_unregister(pHddCtx->wiphy);
