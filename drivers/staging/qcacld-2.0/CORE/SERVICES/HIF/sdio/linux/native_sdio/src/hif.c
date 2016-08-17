@@ -1118,8 +1118,7 @@ static int enable_task(void *param)
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: call  from resume_task\n"));
 
         /* start  up inform DRV layer */
-    if (device &&
-        device->claimedContext &&
+    if (device->claimedContext &&
         osdrvCallbacks.devicePowerChangeHandler &&
         osdrvCallbacks.devicePowerChangeHandler(device->claimedContext, HIF_DEVICE_POWER_UP) != A_OK)
     {
@@ -1631,6 +1630,11 @@ static A_STATUS hifEnableFunc(HIF_DEVICE *device, struct sdio_func *func)
 
     AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: +hifEnableFunc\n"));
     device = getHifDevice(func);
+
+    if (!device) {
+        AR_DEBUG_PRINTF(ATH_DEBUG_ERR, ("HIF device is NULL\n"));
+        return A_EINVAL;
+    }
 
     if (device->is_disabled) {
         int setAsyncIRQ = 0;
