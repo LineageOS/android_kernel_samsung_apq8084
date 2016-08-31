@@ -28,6 +28,10 @@
 #include <linux/earlysuspend.h>
 #endif
 
+#ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#endif
+
 #ifdef CONFIG_INPUT_BOOSTER
 #include <linux/input/input_booster.h>
 #endif
@@ -43,10 +47,15 @@
 #define DEFAULT_DISABLE	0
 
 /* feature define */
+#ifdef CONFIG_POWERSUSPEND
+#undef USE_OPEN_CLOSE
+#undef USE_SENSOR_SLEEP
+#else
 #define USE_OPEN_CLOSE	/* Use when CONFIG_HAS_EARLYSUSPEND is disabled */
+#define USE_SENSOR_SLEEP
+#endif
 #define REPORT_2D_W
 #define REDUCE_I2C_DATA_LENGTH
-#define USE_SENSOR_SLEEP
 
 
 
@@ -997,6 +1006,8 @@ struct synaptics_rmi4_data {
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	struct early_suspend early_suspend;
+#elif defined(CONFIG_POWERSUSPEND)
+	struct power_suspend power_suspend;
 #endif
 	const char *firmware_name;
 
