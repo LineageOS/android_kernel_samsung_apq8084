@@ -437,6 +437,7 @@ static int android_oom_handler(struct notifier_block *nb,
 	nr_cma_active_file = global_page_state(NR_CMA_ACTIVE_FILE);
 	other_file = global_page_state(NR_FILE_PAGES) -
 					global_page_state(NR_SHMEM) -
+					global_page_state(NR_UNEVICTABLE) -
 					total_swapcache_pages() -
 					nr_cma_inactive_file -
 					nr_cma_active_file;
