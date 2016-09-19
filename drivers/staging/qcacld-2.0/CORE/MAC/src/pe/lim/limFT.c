@@ -826,6 +826,7 @@ void limFillFTSession(tpAniSirGlobal pMac,
    tPowerdBm         regMax;
    tSchBeaconStruct  *pBeaconStruct;
    ePhyChanBondState cbEnabledMode;
+   VOS_STATUS vosStatus;
 
    pBeaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
    if (NULL == pBeaconStruct) {
@@ -989,6 +990,20 @@ void limFillFTSession(tpAniSirGlobal pMac,
    pftSessionEntry->encryptType = psessionEntry->encryptType;
 #ifdef WLAN_FEATURE_11W
    pftSessionEntry->limRmfEnabled = psessionEntry->limRmfEnabled;
+
+   if (psessionEntry->limRmfEnabled) {
+       psessionEntry->pmfComebackTimerInfo.pMac = pMac;
+       psessionEntry->pmfComebackTimerInfo.sessionID =
+                                     psessionEntry->smeSessionId;
+       vosStatus = vos_timer_init(&psessionEntry->pmfComebackTimer,
+                                  VOS_TIMER_TYPE_SW,
+                                  limPmfComebackTimerCallback,
+                                 (void *)&psessionEntry->pmfComebackTimerInfo);
+       if (VOS_STATUS_SUCCESS != vosStatus) {
+           limLog(pMac, LOGP,
+                  FL("cannot init pmf comeback timer."));
+       }
+   }
 #endif
 
    if (pftSessionEntry->limRFBand == SIR_BAND_2_4_GHZ)
