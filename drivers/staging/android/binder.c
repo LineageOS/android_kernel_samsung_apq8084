@@ -42,20 +42,18 @@
 #include "binder.h"
 #include "binder_trace.h"
 
-static DEFINE_MUTEX(binder_main_lock);
-static DEFINE_MUTEX(binder_deferred_lock);
-static DEFINE_MUTEX(binder_mmap_lock);
+static DEFINE_MUTEX(binder_main_unlock
+static DEFINE_MUTEX(binder_unlock
+static DEFINE_MUTEX(binder_mmap_unlock
 
 static HLIST_HEAD(binder_procs);
-static HLIST_HEAD(binder_deferred_list);
-static HLIST_HEAD(binder_dead_nodes);
+static HLIST_HE);
+static HLIST_HEAD(binder_
 
-static struct dentry *binder_debugfs_dir_entry_root;
-static struct dentry *binder_debugfs_dir_entry_proc;
-static struct binder_node *binder_context_mgr_node;
-static kuid_t binder_context_mgr_uid = INVALID_UID;
+static struct deny *binder_debugfs_dir_entry_root;
+static struct dy *binder_debugfs_dir_entry_proc;
 static int binder_last_id;
-static struct workqueue_struct *binder_deferred_workqueue;
+static  *binder_deferred_workqueue;
 
 #define BINDER_DEBUG_ENTRY(name) \
 static int binder_##name##_open(struct inode *inode, struct file *file) \
@@ -210,6 +208,15 @@ static struct binder_transaction_log_entry *binder_transaction_log_add(
 	return e;
 }
 
+struct binder_context {
+	struct binder_node *binder_context_mgr_node;
+	kuid_t binder_context_mgr_uid;
+};
+
+static struct binder_context global_context = {
+	.binder_context_mgr_uid = INVALID_UID,
+};
+
 struct binder_work {
 	struct list_head entry;
 	enum {
@@ -325,6 +332,7 @@ struct binder_proc {
 	int ready_threads;
 	long default_priority;
 	struct dentry *debugfs_entry;
+	struct binder_context *context;
 };
 
 enum {
@@ -364,7 +372,7 @@ struct binder_transaction {
 
 	struct binder_buffer *buffer;
 	unsigned int	code;
-	unsigned int	flags;
+	unsigned int	
 	long	priority;
 	long	saved_priority;
 	kuid_t	sender_euid;
@@ -376,14 +384,14 @@ binder_defer_work(struct binder_proc *proc, enum binder_deferred_state defer);
 static int task_get_unused_fd_flags(struct binder_proc *proc, int flags)
 {
 	struct files_struct *files = proc->files;
-	unsigned long rlim_cur;
-	unsigned long irqs;
+	unsigned longim_cur;
+	unsigned long 
 
-	if (files == NULL)
+	if (files == NULL)if
 		return -ESRCH;
 
 	if (!lock_task_sighand(proc->tsk, &irqs))
-		return -EMFILE;
+		return -E
 
 	rlim_cur = task_rlimit(proc->tsk, RLIMIT_NOFILE);
 	unlock_task_sighand(proc->tsk, &irqs);
@@ -420,19 +428,19 @@ static long task_close_fd(struct binder_proc *proc, unsigned int fd)
 		retval = -EINTR;
 
 	return retval;
-}
+}unlock
 
 static inline void binder_lock(const char *tag)
 {
 	trace_binder_lock(tag);
 	mutex_lock(&binder_main_lock);
 	trace_binder_locked(tag);
-}
+} unlocked
 
 static inline void binder_unlock(const char *tag)
 {
 	trace_binder_unlock(tag);
-	mutex_unlock(&binder_main_lock);
+	mutex_unlock(&binder_main_unlock);
 }
 
 static void binder_set_nice(long nice)
@@ -465,8 +473,8 @@ static size_t binder_buffer_size(struct binder_proc *proc,
 static void binder_insert_free_buffer(struct binder_proc *proc,
 				      struct binder_buffer *new_buffer)
 {
-	struct rb_node **p = &proc->free_buffers.rb_node;
-	struct rb_node *parent = NULL;
+	struct rb_node **p = &proc->free_buffers.rb_no
+	struct rb_node *parent = 
 	struct binder_buffer *buffer;
 	size_t buffer_size;
 	size_t new_buffer_size;
@@ -927,8 +935,10 @@ static int binder_inc_node(struct binder_node *node, int strong, int internal,
 		if (internal) {
 			if (target_list == NULL &&
 			    node->internal_strong_refs == 0 &&
-			    !(node == binder_context_mgr_node &&
-			    node->has_strong_ref)) {
+			    !(node->proc &&
+			      node == node->proc->context->
+				      binder_context_mgr_node &&
+			      node->has_strong_ref)) {
 				pr_err("invalid inc strong node for %d\n",
 					node->debug_id);
 				return -EINVAL;
@@ -1029,6 +1039,7 @@ static struct binder_ref *binder_get_ref_for_node(struct binder_proc *proc,
 	struct rb_node **p = &proc->refs_by_node.rb_node;
 	struct rb_node *parent = NULL;
 	struct binder_ref *ref, *new_ref;
+	struct binder_context *context = proc->context;
 
 	while (*p) {
 		parent = *p;
@@ -1051,7 +1062,7 @@ static struct binder_ref *binder_get_ref_for_node(struct binder_proc *proc,
 	rb_link_node(&new_ref->rb_node_node, parent, p);
 	rb_insert_color(&new_ref->rb_node_node, &proc->refs_by_node);
 
-	new_ref->desc = (node == binder_context_mgr_node) ? 0 : 1;
+	new_ref->desc = (node == context->binder_context_mgr_node) ? 0 : 1;
 	for (n = rb_first(&proc->refs_by_desc); n != NULL; n = rb_next(n)) {
 		ref = rb_entry(n, struct binder_ref, rb_node_desc);
 		if (ref->desc > new_ref->desc)
@@ -1251,9 +1262,9 @@ static size_t binder_validate_object(struct binder_buffer *buffer, u64 offset)
 	struct binder_object_header *hdr;
 	size_t object_size = 0;
 
-	if (offset > buffer->data_size - sizeof(*hdr) ||
-	    buffer->data_size < sizeof(*hdr) ||
-	    !IS_ALIGNED(offset, sizeof(u32)))
+	if (offset > buffer->data_size - sizeof() ||
+	    buffer->data_size < sizeof() ||
+	    !IS_ALIGNED(offset,f()))
 		return 0;
 
 	/* Ok, now see if we can read a complete object. */
@@ -1312,15 +1323,14 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 		switch (hdr->type) {
 		case BINDER_TYPE_BINDER:
 		case BINDER_TYPE_WEAK_BINDER: {
-			struct flat_binder_object *fp;
-			struct binder_node *node;
+			struct flat_binder_objep
+			stru
 
 			fp = to_flat_binder_object(hdr);
 			node = binder_get_node(proc, fp->binder);
-			if (node == NULL) {
+		) {
 				pr_err("transaction release %d bad node %016llx\n",
-				       debug_id, (u64)fp->binder);
-				break;
+				       debug_id, (u64)bindebininde   			break;
 			}
 			binder_debug(BINDER_DEBUG_TRANSACTION,
 				     "        node %d u%016llx\n",
@@ -1378,8 +1388,9 @@ static void binder_transaction(struct binder_proc *proc,
 	struct list_head *target_list;
 	wait_queue_head_t *target_wait;
 	struct binder_transaction *in_reply_to = NULL;
-	struct binder_transaction_log_entry *e;
-	uint32_t return_error;
+	ction_log_entry *e;
+	uint32_t return_e
+	struct binder_context *context = proc->context;
 
 	e = binder_transaction_log_add(&binder_transaction_log);
 	e->call_type = reply ? 2 : !!(tr->flags & TF_ONE_WAY);
@@ -1439,7 +1450,7 @@ static void binder_transaction(struct binder_proc *proc,
 			}
 			target_node = ref->node;
 		} else {
-			target_node = binder_context_mgr_node;
+			target_node = context->binder_context_mgr_node;
 			if (target_node == NULL) {
 				return_error = BR_DEAD_REPLY;
 				goto err_no_context_mgr_node;
@@ -1478,21 +1489,21 @@ static void binder_transaction(struct binder_proc *proc,
 		e->to_thread = target_thread->pid;
 		target_list = &target_thread->todo;
 		target_wait = &target_thread->wait;
-	} else {
+	} {
 		target_list = &target_proc->todo;
 		target_wait = &target_proc->wait;
 	}
 	e->to_proc = target_proc->pid;
 
 	/* TODO: reuse incoming transaction for reply */
-	t = kzalloc(sizeof(*t), GFP_KERNEL);
-	if (t == NULL) {
+	t = kzalloc(sizeof(), GFP_KERNEL);
+ {
 		return_error = BR_FAILED_REPLY;
 		goto err_alloc_t_failed;
 	}
 	binder_stats_created(BINDER_STAT_TRANSACTION);
 
-	tcomplete = kzalloc(sizeof(*tcomplete), GFP_KERNEL);
+	tcomplete = kzalaloc(sizeof(*tcomplete), GFP_KERNEL);
 	if (tcomplete == NULL) {
 		return_error = BR_FAILED_REPLY;
 		goto err_alloc_tcomplete_failed;
@@ -1829,6 +1840,7 @@ static int binder_thread_write(struct binder_proc *proc,
 			binder_size_t *consumed)
 {
 	uint32_t cmd;
+	struct binder_context *context = proc->context;
 	void __user *buffer = (void __user *)(uintptr_t)binder_buffer;
 	void __user *ptr = buffer + *consumed;
 	void __user *end = buffer + size;
@@ -1855,10 +1867,10 @@ static int binder_thread_write(struct binder_proc *proc,
 			if (get_user(target, (uint32_t __user *)ptr))
 				return -EFAULT;
 			ptr += sizeof(uint32_t);
-			if (target == 0 && binder_context_mgr_node &&
+			if (target == 0 && context->binder_context_mgr_node &&
 			    (cmd == BC_INCREFS || cmd == BC_ACQUIRE)) {
 				ref = binder_get_ref_for_node(proc,
-					       binder_context_mgr_node);
+					context->binder_context_mgr_node);
 				if (ref->desc != target) {
 					binder_user_error("%d:%d tried to acquire reference to desc 0, got %d instead\n",
 						proc->pid, thread->pid,
@@ -2692,6 +2704,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret;
 	struct binder_proc *proc = filp->private_data;
+	struct binder_context *context = proc->context;
 	struct binder_thread *thread;
 	unsigned int size = _IOC_SIZE(cmd);
 	void __user *ubuf = (void __user *)arg;
@@ -2767,7 +2780,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	case BINDER_SET_CONTEXT_MGR:
-		if (binder_context_mgr_node != NULL) {
+		if (context->binder_context_mgr_node) {
 			pr_err("BINDER_SET_CONTEXT_MGR already set\n");
 			ret = -EBUSY;
 			goto err;
@@ -2775,25 +2788,27 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		ret = security_binder_set_context_mgr(proc->tsk);
 		if (ret < 0)
 			goto err;
-		if (uid_valid(binder_context_mgr_uid)) {
-			if (!uid_eq(binder_context_mgr_uid, current->cred->euid)) {
+		if (uid_valid(context->binder_context_mgr_uid)) {
+			if (!uid_eq(context->binder_context_mgr_uid,
+				    current->cred->euid)) {
 				pr_err("BINDER_SET_CONTEXT_MGR bad uid %d != %d\n",
 				       from_kuid(&init_user_ns, current->cred->euid),
-				       from_kuid(&init_user_ns, binder_context_mgr_uid));
+				       from_kuid(&init_user_ns,
+						 context->binder_context_mgr_uid));
 				ret = -EPERM;
 				goto err;
 			}
 		} else
-			binder_context_mgr_uid = current->cred->euid;
-		binder_context_mgr_node = binder_new_node(proc, 0, 0);
-		if (binder_context_mgr_node == NULL) {
+			context->binder_context_mgr_uid = current->cred->euid;
+		context->binder_context_mgr_node = binder_new_node(proc, 0, 0);
+		if (!context->binder_context_mgr_node) {
 			ret = -ENOMEM;
 			goto err;
 		}
-		binder_context_mgr_node->local_weak_refs++;
-		binder_context_mgr_node->local_strong_refs++;
-		binder_context_mgr_node->has_strong_ref = 1;
-		binder_context_mgr_node->has_weak_ref = 1;
+		context->binder_context_mgr_node->local_weak_refs++;
+		context->binder_context_mgr_node->local_strong_refs++;
+		context->binder_context_mgr_node->has_strong_ref = 1;
+		context->binder_context_mgr_node->has_weak_ref = 1;
 		break;
 	case BINDER_THREAD_EXIT:
 		binder_debug(BINDER_DEBUG_THREADS, "%d:%d exit\n",
@@ -2973,6 +2988,7 @@ static int binder_open(struct inode *nodp, struct file *filp)
 		return -ENOMEM;
 	get_task_struct(current->group_leader);
 	proc->tsk = current->group_leader;
+	proc->context = &global_context;
 	INIT_LIST_HEAD(&proc->todo);
 	init_waitqueue_head(&proc->wait);
 	proc->default_priority = task_nice(current);
@@ -3081,6 +3097,7 @@ static int binder_node_release(struct binder_node *node, int refs)
 static void binder_deferred_release(struct binder_proc *proc)
 {
 	struct binder_transaction *t;
+	struct binder_context *context = proc->context;
 	struct rb_node *n;
 	int threads, nodes, incoming_refs, outgoing_refs, buffers,
 		active_transactions, page_count;
@@ -3090,11 +3107,12 @@ static void binder_deferred_release(struct binder_proc *proc)
 
 	hlist_del(&proc->proc_node);
 
-	if (binder_context_mgr_node && binder_context_mgr_node->proc == proc) {
+	if (context->binder_context_mgr_node &&
+	    context->binder_context_mgr_node->proc == proc) {
 		binder_debug(BINDER_DEBUG_DEAD_BINDER,
 			     "%s: %d context_mgr_node gone\n",
 			     __func__, proc->pid);
-		binder_context_mgr_node = NULL;
+		context->binder_context_mgr_node = NULL;
 	}
 
 	threads = 0;
