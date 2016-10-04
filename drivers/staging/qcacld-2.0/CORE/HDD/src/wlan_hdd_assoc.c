@@ -3316,6 +3316,10 @@ hdd_smeRoamCallback(void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U32 roamId,
                 pAdapter->hdd_stats.hddTxRxStats.netq_state_off = TRUE;
                 break;
             }
+	case eCSR_ROAM_LOSTLINK_DETECTED:
+            if(roamResult != eCSR_ROAM_RESULT_DISASSOC_IND) {
+                break;
+            } /* else fall through */
         case eCSR_ROAM_DISASSOCIATED:
             {
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
