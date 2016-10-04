@@ -29,6 +29,7 @@ enum driver_chip {
 #define VIBRATION_ON		1
 #define VIBRATION_OFF		0
 
+#define DEFAULT_INTENSITY	5000
 #define MAX_INTENSITY		10000
 
 #define MOTOR_STRENGTH			98/*MOTOR_STRENGTH 98 %*/
