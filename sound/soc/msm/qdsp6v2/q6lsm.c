@@ -961,7 +961,7 @@ int q6lsm_snd_model_buf_alloc(struct lsm_client *client, size_t len)
 	size_t pad_zero = 0, total_mem = 0;
 
 	if (!client || len <= LSM_ALIGN_BOUNDARY) {
-		pr_err("%s: client %p len %zu\n",
+		pr_err("%s: client %pK len %zu\n",
 			__func__, client, len);
 		return rc;
 	}
