@@ -1134,7 +1134,8 @@ __limIbssSearchAndDeletePeer(tpAniSirGlobal pMac,
 					pPrevNode = pMac->lim.gLimIbssPeerList;
 				} else
 					pPrevNode->next = pTempNode->next;
-
+				if (pTempNode->beacon)
+					vos_mem_free(pTempNode->beacon);
 				vos_mem_free(pTempNode);
 				pMac->lim.gLimNumIbssPeers--;
 
@@ -1641,6 +1642,8 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                 else
                     pPrevNode->next = pTempNode->next;
 
+                if (pTempNode->beacon)
+                    vos_mem_free(pTempNode->beacon);
                 vos_mem_free(pTempNode);
                 pMac->lim.gLimNumIbssPeers--;
 
