@@ -829,7 +829,7 @@ int mdss_mdp_video_start(struct mdss_mdp_ctl *ctl)
 			pr_err("Intf %d already in use\n", ctl->intf_num);
 			return -EBUSY;
 		}
-		pr_debug("video Intf #%d base=%p", ctx->intf_num, ctx->base);
+		pr_debug("video Intf #%d base=%pK", ctx->intf_num, ctx->base);
 		ctx->ref_cnt++;
 	} else {
 		pr_err("Invalid intf number: %d\n", ctl->intf_num);
