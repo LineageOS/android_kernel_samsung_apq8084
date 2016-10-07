@@ -546,9 +546,9 @@ void mdss_dump_reg(char __iomem *base, int len)
 		x8 = readl_relaxed(addr+0x8);
 		xc = readl_relaxed(addr+0xc);
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
-		pr_err("%04x : %08x %08x %08x %08x\n", i * 16, x0, x4, x8, xc);
+		pr_info("%04x : %08x %08x %08x %08x\n", i * 16, x0, x4, x8, xc);
 #else
-		pr_info("%p : %08x %08x %08x %08x\n", addr, x0, x4, x8, xc);
+		pr_info("%pK : %08x %08x %08x %08x\n", addr, x0, x4, x8, xc);
 #endif
 		addr += 16;
 	}
@@ -671,7 +671,7 @@ int mdss_misr_set(struct mdss_data_type *mdata,
 	bool use_mdp_up_misr = false;
 
 	if (!mdata || !req || !ctl) {
-		pr_err("Invalid input params: mdata = %p req = %p ctl = %p",
+		pr_err("Invalid input params: mdata = %pK req = %pK ctl = %pK",
 			mdata, req, ctl);
 		return -EINVAL;
 	}
