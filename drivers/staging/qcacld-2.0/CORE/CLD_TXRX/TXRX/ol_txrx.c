@@ -2264,6 +2264,8 @@ ol_txrx_ipa_uc_op_response(
 {
    if (pdev->ipa_uc_op_cb) {
       pdev->ipa_uc_op_cb(op_msg, pdev->osif_dev);
+   } else {
+      adf_os_mem_free(op_msg);
    }
 }
 
