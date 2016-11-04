@@ -309,6 +309,10 @@ typedef struct tagCsrScanRequest
     tANI_BOOLEAN p2pSearch;
     tANI_BOOLEAN skipDfsChnlInP2pSearch;
     tANI_BOOLEAN bcnRptReqScan;     //is Scan issued by Beacon Report Request
+
+    uint32_t enable_scan_randomization;
+    uint8_t mac_addr[VOS_MAC_ADDR_SIZE];
+    uint8_t mac_addr_mask[VOS_MAC_ADDR_SIZE];
 }tCsrScanRequest;
 
 typedef struct tagCsrBGScanRequest
