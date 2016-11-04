@@ -5895,6 +5895,14 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
                 pMsg->backgroundScanMode = eSIR_ROAMING_SCAN;
             }
 
+            pMsg->enable_scan_randomization =
+                                       pScanReq->enable_scan_randomization;
+            if (pMsg->enable_scan_randomization) {
+                vos_mem_copy(pMsg->mac_addr, pScanReq->mac_addr,
+                             VOS_MAC_ADDR_SIZE);
+                vos_mem_copy(pMsg->mac_addr_mask, pScanReq->mac_addr_mask,
+                             VOS_MAC_ADDR_SIZE);
+            }
         }while(0);
         smsLog(pMac, LOG1, FL("domainIdCurrent %d scanType %d bssType %d requestType %d numChannels %d  "),
                pMac->scan.domainIdCurrent, pMsg->scanType, pMsg->bssType,
