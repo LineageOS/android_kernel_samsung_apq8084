@@ -5735,7 +5735,8 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
 
     msgLen = (tANI_U16)(sizeof( tSirSmeScanReq ) - sizeof( pMsg->channelList.channelNumber ) +
                         ( sizeof( pMsg->channelList.channelNumber ) * pScanReq->ChannelInfo.numOfChannels )) +
-                   ( pScanReq->uIEFieldLen ) ;
+                   ( pScanReq->uIEFieldLen ) +
+                   pScanReq->num_vendor_oui * sizeof(struct vendor_oui);
 
     pMsg = vos_mem_malloc(msgLen);
     if ( NULL == pMsg )
@@ -5903,6 +5904,28 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tANI_U16 sessionId,
                 vos_mem_copy(pMsg->mac_addr_mask, pScanReq->mac_addr_mask,
                              VOS_MAC_ADDR_SIZE);
             }
+
+            pMsg->ie_whitelist = pScanReq->ie_whitelist;
+            if (pMsg->ie_whitelist)
+                vos_mem_copy(pMsg->probe_req_ie_bitmap,
+                             pScanReq->probe_req_ie_bitmap,
+                             PROBE_REQ_BITMAP_LEN * sizeof(uint32_t));
+            pMsg->num_vendor_oui = pScanReq->num_vendor_oui;
+            pMsg->oui_field_len = pScanReq->num_vendor_oui *
+                                  sizeof(struct vendor_oui);
+            pMsg->oui_field_offset = (tANI_U16)(sizeof( tSirSmeScanReq ) -
+                                   sizeof( pMsg->channelList.channelNumber ) +
+                                   (sizeof( pMsg->channelList.channelNumber ) *
+                                   pScanReq->ChannelInfo.numOfChannels )) +
+                                   pScanReq->uIEFieldLen;
+
+            if (pScanReq->num_vendor_oui != 0)
+            {
+                vos_mem_copy((tANI_U8 *)pMsg + pMsg->oui_field_offset,
+                             (uint8_t*)(pScanReq->voui),
+                             pMsg->oui_field_len);
+            }
+
         }while(0);
         smsLog(pMac, LOG1, FL("domainIdCurrent %d scanType %d bssType %d requestType %d numChannels %d  "),
                pMac->scan.domainIdCurrent, pMsg->scanType, pMsg->bssType,
@@ -6366,6 +6389,7 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             pDstReq->pIEField = NULL;
             pDstReq->ChannelInfo.ChannelList = NULL;
             pDstReq->SSIDs.SSIDList = NULL;
+            pDstReq->voui = NULL;
 
             if(pSrcReq->uIEFieldLen == 0)
             {
@@ -6541,6 +6565,35 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
             pDstReq->p2pSearch = pSrcReq->p2pSearch;
             pDstReq->skipDfsChnlInP2pSearch = pSrcReq->skipDfsChnlInP2pSearch;
 
+            if (pSrcReq->num_vendor_oui == 0)
+            {
+                pDstReq->num_vendor_oui = 0;
+                pDstReq->voui = NULL;
+            }
+            else
+            {
+                pDstReq->voui = vos_mem_malloc(pSrcReq->num_vendor_oui *
+                                         sizeof(*pDstReq->voui));
+                if (NULL == pDstReq->voui)
+                        status = eHAL_STATUS_FAILURE;
+                else
+                        status = eHAL_STATUS_SUCCESS;
+
+                if (HAL_STATUS_SUCCESS(status))
+                {
+                    pDstReq->num_vendor_oui = pSrcReq->num_vendor_oui;
+                    vos_mem_copy(pDstReq->voui,
+                                 pSrcReq->voui,
+                                 pSrcReq->num_vendor_oui *
+                                 sizeof(*pDstReq->voui));
+                }
+                else
+                {
+                    pDstReq->num_vendor_oui = 0;
+                    smsLog(pMac, LOGE, FL("No memory for voui"));
+                    break;
+                }
+            }
         }
     }while(0);
 
@@ -6574,6 +6627,13 @@ eHalStatus csrScanFreeRequest(tpAniSirGlobal pMac, tCsrScanRequest *pReq)
         pReq->SSIDs.SSIDList = NULL;
     }
     pReq->SSIDs.numOfSSIDs = 0;
+
+    if(pReq->voui)
+    {
+        vos_mem_free(pReq->voui);
+        pReq->voui = NULL;
+    }
+    pReq->num_vendor_oui = 0;
 
     return eHAL_STATUS_SUCCESS;
 }
