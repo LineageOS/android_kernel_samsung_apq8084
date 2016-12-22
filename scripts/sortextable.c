@@ -60,7 +60,7 @@ fail_file(void)
 	longjmp(jmpenv, SJ_FAIL);
 }
 
-static void __attribute__((noreturn))
+static void __attribute__((noreturn,used))
 succeed_file(void)
 {
 	cleanup();
