@@ -28,7 +28,7 @@ struct msm_pm_platform_data {
 				staying in the low power mode saves power */
 };
 
-static struct msm_pm_platform_data msm_pm_sleep_modes[] = {
+static struct msm_pm_platform_data msm_pm_sleep_modes[] __refdata = {
 	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_SUSPEND)] = {
 		.idle_supported = 0,
 		.suspend_supported = 1,

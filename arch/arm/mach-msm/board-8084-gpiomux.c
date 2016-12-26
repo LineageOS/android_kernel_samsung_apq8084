@@ -262,7 +262,7 @@ static struct gpiomux_setting synaptics_int_sus_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
-static struct gpiomux_setting gpio_uart_config = {
+static struct gpiomux_setting gpio_uart_config __initdata = {
 	.func = GPIOMUX_FUNC_2,
 	.drv  = GPIOMUX_DRV_16MA,
 	.pull = GPIOMUX_PULL_NONE,
