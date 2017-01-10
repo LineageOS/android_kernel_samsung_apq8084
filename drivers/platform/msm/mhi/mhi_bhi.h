@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,7 +13,7 @@
 #define _MHI_BHI_H
 #include "mhi.h"
 
-/* BHI Offsets */
+/** BHI Offsets */
 #define BHI_BHIVERSION_MINOR                               (0x00)
 #define BHI_BHIVERSION_MAJOR                               (0x04)
 #define BHI_IMGADDR_LOW                                    (0x08)
@@ -50,6 +50,11 @@
 #define BHI_POLL_SLEEP_TIME 1000
 #define BHI_POLL_NR_RETRIES 1
 
-int bhi_probe(struct mhi_pcie_dev_info *mhi_pcie_device);
+
+int bhi_probe(mhi_pcie_dev_info *mhi_pcie_device);
+int bhi_open(struct inode *mhi_inode, struct file *file_handle);
+int bhi_release(struct inode *mhi_inode, struct file *file_handle);
+ssize_t bhi_write(struct file *file, const char __user *buf,
+		size_t count, loff_t *offp);
 
 #endif

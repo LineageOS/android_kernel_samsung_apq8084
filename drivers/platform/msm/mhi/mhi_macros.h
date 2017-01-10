@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,10 +13,8 @@
 #define _H_MHI_MACROS
 
 #define MHI_IPC_LOG_PAGES (50)
-#define MHI_LOG_SIZE 0x1000
 #define MHI_LINK_STABILITY_WAIT_MS 100
 #define MHI_MAX_LINK_RETRIES 9
-#define DT_WAIT_RETRIES 30
 #define MHI_MAX_SUSPEND_RETRIES 1000
 #define MHI_VERSION 0x01000000
 #define ALIGNMENT_OFFSET 0xFFF
@@ -27,7 +25,7 @@
 #define MHI_EPID 4
 #define MHI_MAX_RESUME_TIMEOUT 5000
 #define MHI_MAX_SUSPEND_TIMEOUT 5000
-#define MHI_MAX_CMD_TIMEOUT 500
+#define MHI_MAX_INIT_M0_TIMEOUT 1000
 
 #define MAX_NR_MSI 4
 
@@ -56,8 +54,6 @@
 #define MHI_M1_ENTRY_DELAY_MS 100
 #define MHI_XFER_DB_INTERVAL 8
 #define MHI_EV_DB_INTERVAL 32
-
-#define MHI_HANDLE_MAGIC 0x12344321
 /* PCIe Device Info */
 
 #define MHI_PCIE_DEVICE_BAR0_OFFSET_LOW (16)
@@ -66,13 +62,12 @@
 #define MHI_PCIE_DEVICE_ID_OFFSET (2)
 
 #define IS_HARDWARE_CHANNEL(_CHAN_NR) \
-	(((enum MHI_CLIENT_CHANNEL)(_CHAN_NR) > \
-	MHI_CLIENT_RESERVED_1_UPPER) && \
-	 ((enum MHI_CLIENT_CHANNEL)(_CHAN_NR) < MHI_CLIENT_RESERVED_2_LOWER))
+	(((MHI_CLIENT_CHANNEL)(_CHAN_NR) > MHI_CLIENT_RESERVED_1_UPPER) && \
+	 ((MHI_CLIENT_CHANNEL)(_CHAN_NR) < MHI_CLIENT_RESERVED_2_LOWER))
 
 #define IS_SOFTWARE_CHANNEL(_CHAN_NR) \
-	(((enum MHI_CLIENT_CHANNEL)(_CHAN_NR) >= 0) && \
-	 ((enum MHI_CLIENT_CHANNEL)(_CHAN_NR) < MHI_CLIENT_RESERVED_1_LOWER))
+	(((MHI_CLIENT_CHANNEL)(_CHAN_NR) >= 0) && \
+	 ((MHI_CLIENT_CHANNEL)(_CHAN_NR) < MHI_CLIENT_RESERVED_1_LOWER))
 
 #define IRQ_TO_MSI(_MHI_DEV_CTXT, _IRQ_NR) \
 	((_IRQ_NR) - (_MHI_DEV_CTXT)->dev_info->core.irq_base)
@@ -88,7 +83,7 @@
 
 #define MHI_HW_INTMOD_VAL_MS 2
 /* Timeout Values */
-#define MHI_READY_STATUS_TIMEOUT_MS 50
+#define MHI_READY_STATUS_TIMEOUT_MS 500
 #define MHI_THREAD_SLEEP_TIMEOUT_MS 20
 #define MHI_RESUME_WAKE_RETRIES 20
 
@@ -116,13 +111,13 @@
 #define EV_TRB_CODE
 #define MHI_EV_TRB_CODE__MASK (0xFF)
 #define MHI_EV_TRB_CODE__SHIFT (24)
-#define MHI_EV_READ_CODE(_FIELD, _PKT) (((_PKT->type).xfer_details >> \
+#define MHI_EV_READ_CODE(_FIELD, _PKT) ((((_PKT)->type).xfer_details >> \
 			MHI_##_FIELD ## __SHIFT) & \
 		MHI_ ##_FIELD ## __MASK)
 #define EV_LEN
 #define MHI_EV_LEN__MASK (0xFFFF)
 #define MHI_EV_LEN__SHIFT (0)
-#define MHI_EV_READ_LEN(_FIELD, _PKT) (((_PKT->xfer_event_pkt).xfer_details >> \
+#define MHI_EV_READ_LEN(_FIELD, _PKT) ((((_PKT)->xfer_event_pkt).xfer_details >> \
 			MHI_##_FIELD ## __SHIFT) & \
 		MHI_ ##_FIELD ## __MASK)
 
@@ -208,6 +203,103 @@
 #define HIGH_WORD(_x) ((u32)((((u64)(_x)) >> 32) & 0xFFFFFFFF))
 #define LOW_WORD(_x) ((u32)(((u64)(_x)) & 0xFFFFFFFF))
 
+#define MHI_REG_WRITE(_base, _offset, _val) \
+	do { \
+		u32 addr; \
+		(addr) = (u32)(_base) + (u32)(_offset); \
+		timestamp_log(addr); \
+		*(volatile u32 *)(addr) = (_val); \
+		wmb(); \
+		PULSE_L1_EXIT(0);				\
+		mhi_log(MHI_MSG_INFO, "d.s 0x%x %%LONG 0x%x\n", \
+				(u32)(_offset),\
+				(u32)(_val)); \
+	} while (0)
+
+#define MHI_REG_WRITE_FIELD(_base, _offset, _mask, _shift, _val) \
+	do { \
+		u32 reg_val; \
+		MHI_REG_READ(_base, _offset, reg_val); \
+		reg_val &= ~(_mask); \
+		reg_val = reg_val | ((u32)(_val) << ((u32)(_shift))); \
+		MHI_REG_WRITE(_base, _offset, reg_val); \
+	} while (0)
+
+#define MHI_REG_READ(_base, _offset, _dest) \
+	do { \
+		u32 addr; \
+		(addr) = (u32)(_base) + (u32)(_offset); \
+		timestamp_log(addr); \
+		(_dest) = *(volatile u32 *)(addr); \
+	} while (0)
+
+#define MHI_REG_READ_FIELD(_base, _offset, _mask, _shift, _dest) \
+	do { \
+		MHI_REG_READ(_base, _offset, (_dest)); \
+		(_dest) &= (u32)(_mask); \
+		(_dest) >>= (u32)(_shift); \
+	} while (0)
+
+#define MHI_READ_FIELD(_val, _mask, _shift) \
+	do { \
+		_val &= (u32)(_mask); \
+		_val >>= (u32)(_shift); \
+	} while (0)
+
+#define MHI_WRITE_DB(_mhi_dev_ctxt, _addr, _index, _val)			\
+{										\
+	u32 word;								\
+	u32 offset = _index * sizeof(u64);					\
+	mhi_log(MHI_MSG_VERBOSE,						\
+			"db.set addr: 0x%llX offset 0x%x val:0x%llX\n",		\
+			(u64)_addr, (unsigned int)_index, (u64)_val);		\
+	wmb();									\
+	if (mhi_dev_ctxt->channel_db_addr == (_addr)) {				\
+		(_mhi_dev_ctxt)->mhi_ctrl_seg->mhi_cc_list[_index].mhi_trb_write_ptr = (_val);  \
+	} else if (mhi_dev_ctxt->event_db_addr == (_addr)) {				     \
+		(_mhi_dev_ctxt)->mhi_ctrl_seg->mhi_ec_list[_index].mhi_event_write_ptr = (_val);\
+	}									\
+	if (_addr == mhi_dev_ctxt->channel_db_addr) {				\
+		if (IS_HARDWARE_CHANNEL(_index) && mhi_dev_ctxt->uldl_enabled && \
+					!mhi_dev_ctxt->db_mode[_index])  {	\
+		}  else {							\
+			wmb();							\
+			word = HIGH_WORD((u64)(_val));				\
+			pcie_write(_addr, offset + 4, word);			\
+			word = LOW_WORD((u64)(_val));	     \
+			pcie_write(_addr, offset, word);     \
+			wmb();				     \
+			mhi_dev_ctxt->db_mode[_index] = 0;   \
+		}					     \
+	} else if (_addr == mhi_dev_ctxt->event_db_addr) {   \
+		if (IS_SOFTWARE_CHANNEL(_index) || !mhi_dev_ctxt->uldl_enabled) {\
+			wmb();				     \
+			word = HIGH_WORD((u64)(_val));       \
+			pcie_write(_addr, offset + 4, word); \
+			wmb();				     \
+			word = LOW_WORD((u64)(_val));	     \
+			pcie_write(_addr, offset, word);     \
+			wmb();				     \
+			mhi_dev_ctxt->db_mode[_index] = 0;   \
+		}					     \
+	} else {					     \
+		wmb();				     \
+		word = HIGH_WORD((u64)(_val));       \
+		pcie_write(_addr, offset + 4, word); \
+		wmb();				     \
+		word = LOW_WORD((u64)(_val));	     \
+		pcie_write(_addr, offset, word);     \
+		wmb();				     \
+		mhi_dev_ctxt->db_mode[_index] = 0;   \
+	}					     \
+}
+
+#define PULSE_L1_EXIT(_dev) msm_pcie_pm_control(MSM_PCIE_REQ_EXIT_L1,	\
+			mhi_devices.device_list[_dev].pcie_device->bus->number, \
+			mhi_devices.device_list[_dev].pcie_device, \
+			NULL, \
+			0)
+
 #define EVENT_RING_MSI_VEC
 #define MHI_EVENT_RING_MSI_VEC__MASK (0xf)
 #define MHI_EVENT_RING_MSI_VEC__SHIFT (2)
@@ -248,10 +340,4 @@
 #define MHI_GET_EV_CTXT(_FIELD, _CTXT) \
 	(((_CTXT)->mhi_intmodt >> MHI_##_FIELD ## __SHIFT) & \
 				 MHI_##_FIELD ## __MASK)
-
-#define MHI_READ_FIELD(_val, _mask, _shift) \
-	do { \
-		_val &= (u32)(_mask); \
-		_val >>= (u32)(_shift); \
-	} while (0)
 #endif
