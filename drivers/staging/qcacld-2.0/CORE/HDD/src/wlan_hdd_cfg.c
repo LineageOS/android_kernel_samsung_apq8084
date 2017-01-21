@@ -4988,22 +4988,27 @@ VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
 {
    struct file *fp = NULL;
    char buf[17];
+   VOS_STATUS vos_status = VOS_STATUS_E_FAILURE;
 
    fp = filp_open("/efs/wifi/.mac.info", O_RDONLY, 0);
    if (!IS_ERR(fp)) {
       kernel_read(fp, 0, buf, 17);
       filp_close(fp, NULL);
 
-      sscanf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+      if (sscanf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
          (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
          (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[1],
          (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[2],
          (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[3],
          (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[4],
-         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]);
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]) == 6) {
+            vos_status = VOS_STATUS_SUCCESS;
+         } else {
+            vos_status = VOS_STATUS_E_INVAL;
+         }
    }
 
-   return VOS_STATUS_SUCCESS;
+   return vos_status;
 }
 
 static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTable, unsigned long entries)
