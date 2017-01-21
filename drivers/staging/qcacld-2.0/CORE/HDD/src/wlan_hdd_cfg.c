@@ -59,6 +59,8 @@
 #include <csrApi.h>
 #include <pmcApi.h>
 #include <wlan_hdd_misc.h>
+#include <linux/fcntl.h>
+#include <linux/fs.h>
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
 static void
@@ -4978,121 +4980,30 @@ static int parseHexDigit(char c)
   return 0;
 }
 
-/* convert string to 6 bytes mac address
- * 00AA00BB00CC -> 0x00 0xAA 0x00 0xBB 0x00 0xCC
- */
-static void update_mac_from_string(hdd_context_t *pHddCtx, tCfgIniEntry *macTable, int num)
-{
-   int i = 0, j = 0, res = 0;
-   char *candidate = NULL;
-   v_MACADDR_t macaddr[VOS_MAX_CONCURRENCY_PERSONA];
-
-   memset(macaddr, 0, sizeof(macaddr));
-
-   for (i = 0; i < num; i++)
-   {
-      candidate = macTable[i].value;
-      for (j = 0; j < VOS_MAC_ADDR_SIZE; j++) {
-         res = hex2bin(&macaddr[i].bytes[j], &candidate[(j<<1)], 1);
-         if (res < 0)
-            break;
-      }
-      if (res == 0 && !vos_is_macaddr_zero(&macaddr[i])) {
-         vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[i].bytes[0],
-                      (v_U8_t *)&macaddr[i].bytes[0], VOS_MAC_ADDR_SIZE);
-      }
-   }
-}
-
 /*
  * This function tries to update mac address from cfg file.
  * It overwrites the MAC address if config file exist.
  */
 VOS_STATUS hdd_update_mac_config(hdd_context_t *pHddCtx)
 {
-   int status, i = 0;
-   const struct firmware *fw = NULL;
-   char *line, *buffer = NULL;
-   char *name, *value;
-   tCfgIniEntry macTable[VOS_MAX_CONCURRENCY_PERSONA];
-   tSirMacAddr customMacAddr;
+   struct file *fp = NULL;
+   char buf[17];
 
-   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+   fp = filp_open("/efs/wifi/.mac.info", O_RDONLY, 0);
+   if (!IS_ERR(fp)) {
+      kernel_read(fp, 0, buf, 17);
+      filp_close(fp, NULL);
 
-   memset(macTable, 0, sizeof(macTable));
-   status = request_firmware(&fw, WLAN_MAC_FILE, pHddCtx->parent_dev);
-
-   if (status)
-   {
-      hddLog(VOS_TRACE_LEVEL_WARN, "%s: request_firmware failed %d",
-             __func__, status);
-      vos_status = VOS_STATUS_E_FAILURE;
-      return vos_status;
-   }
-   if (!fw || !fw->data || !fw->size)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: invalid firmware", __func__);
-      vos_status = VOS_STATUS_E_INVAL;
-      goto config_exit;
+      sscanf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[1],
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[2],
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[3],
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[4],
+         (unsigned int *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[5]);
    }
 
-   buffer = (char *)fw->data;
-
-   /* data format:
-    * Intf0MacAddress=00AA00BB00CC
-    * Intf1MacAddress=00AA00BB00CD
-    * END
-    */
-   while (buffer != NULL)
-   {
-      line = get_next_line(buffer);
-      buffer = i_trim(buffer);
-
-      if (strlen((char *)buffer) == 0 || *buffer == '#') {
-         buffer = line;
-         continue;
-      }
-      if (strncmp(buffer, "END", 3) == 0)
-         break;
-
-      name = buffer;
-      buffer = strchr(buffer, '=');
-      if (buffer) {
-         *buffer++ = '\0';
-         i_trim(name);
-         if (strlen(name) != 0) {
-            buffer = i_trim(buffer);
-            if (strlen(buffer) == 12) {
-               value = buffer;
-               macTable[i].name = name;
-               macTable[i++].value = value;
-               if (i >= VOS_MAX_CONCURRENCY_PERSONA)
-                  break;
-            }
-         }
-      }
-      buffer = line;
-   }
-   if (i <= VOS_MAX_CONCURRENCY_PERSONA) {
-      hddLog(VOS_TRACE_LEVEL_INFO, "%s: %d Mac addresses provided", __func__, i);
-   }
-   else {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: invalid number of Mac address provided, nMac = %d",
-             __func__, i);
-      vos_status = VOS_STATUS_E_INVAL;
-      goto config_exit;
-   }
-
-   update_mac_from_string(pHddCtx, &macTable[0], i);
-
-   vos_mem_copy(&customMacAddr,
-                     &pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
-                     sizeof(tSirMacAddr));
-   sme_SetCustomMacAddr(customMacAddr);
-
-config_exit:
-   release_firmware(fw);
-   return vos_status;
+   return VOS_STATUS_SUCCESS;
 }
 
 static VOS_STATUS hdd_apply_cfg_ini( hdd_context_t *pHddCtx, tCfgIniEntry* iniTable, unsigned long entries)
