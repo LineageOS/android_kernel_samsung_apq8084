@@ -265,18 +265,14 @@ static ssize_t scenario_show(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
 {
-	int buffer_pos = 0;
+	int scenario = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
-	buffer_pos += snprintf(buf, 256, "Current APP : ");
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf + buffer_pos, 256, "DSI%d : %s ", mdnie_tune_state->index, mdnie_app_name[mdnie_tune_state->mdnie_app]);
+		scenario = mdnie_tune_state->mdnie_app;
 	}
-	buffer_pos += snprintf(buf + buffer_pos, 256, "\n");
 
-	DPRINT("%s \n", buf);
-
-	return buffer_pos;
+	return snprintf(buf, 256, "%d\n", scenario);
 }
 
 /* app_id : App give self_app_id to mdnie driver.
@@ -338,18 +334,14 @@ static ssize_t outdoor_show(struct device *dev,
 					      struct device_attribute *attr,
 					      char *buf)
 {
-	int buffer_pos = 0;
+	int outdoor = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
-	buffer_pos += snprintf(buf, 256, "Current outdoor Mode : ");
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf + buffer_pos, 256, "DSI%d : %s ", mdnie_tune_state->index, outdoor_name[mdnie_tune_state->outdoor]);
+		outdoor = mdnie_tune_state->outdoor;
 	}
-	buffer_pos += snprintf(buf + buffer_pos, 256, "\n");
 
-	DPRINT("%s \n", buf);
-
-	return buffer_pos;
+	return snprintf(buf, 256, "%d\n", outdoor);
 }
 
 static ssize_t outdoor_store(struct device *dev,
@@ -383,18 +375,14 @@ static ssize_t bypass_show(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
 {
-	int buffer_pos = 0;
+	int bypass = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
-	buffer_pos += snprintf(buf, 256, "Current MDNIE bypass : ");
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf + buffer_pos, 256, "DSI%d : %s ", mdnie_tune_state->index, mdnie_tune_state->mdnie_bypass ? "ENABLE" : "DISABLE");
+		bypass = mdnie_tune_state->mdnie_bypass;
 	}
-	buffer_pos += snprintf(buf + buffer_pos, 256, "\n");
 
-	DPRINT("%s \n", buf);
-
-	return buffer_pos;
+	return snprintf(buf, 256, "%d\n", bypass);
 }
 
 static ssize_t bypass_store(struct device *dev,
@@ -521,7 +509,7 @@ static ssize_t sensorRGB_show(struct device *dev,
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf, 256, "%d %d %d ", mdnie_tune_state->scr_white_red, mdnie_tune_state->scr_white_green, mdnie_tune_state->scr_white_blue);
+		buffer_pos += snprintf(buf, 256, "%d %d %d\n", mdnie_tune_state->scr_white_red, mdnie_tune_state->scr_white_green, mdnie_tune_state->scr_white_blue);
 	}
 	return buffer_pos;
 }
@@ -628,18 +616,14 @@ static ssize_t cabc_show(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
 {
-	int buffer_pos = 0;
+	int cabc = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
-	buffer_pos += snprintf(buf, 256, "Current CABC bypass : ");
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf + buffer_pos, 256, "DSI%d : %s ", mdnie_tune_state->index, mdnie_tune_state->cabc_bypass ? "ENABLE" : "DISABLE");
+		cabc = mdnie_tune_state->cabc_bypass;
 	}
-	buffer_pos += snprintf(buf + buffer_pos, 256, "\n");
 
-	DPRINT("%s \n", buf);
-
-	return buffer_pos;
+	return snprintf(buf, 256, "%d\n", cabc);
 }
 
 static ssize_t cabc_store(struct device *dev,
@@ -669,13 +653,14 @@ static ssize_t hmt_color_temperature_show(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
 {
+	int hmt_color_temperature = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		DPRINT("Current color temperature : %d\n", mdnie_tune_state->hmt_color_temperature);
+		hmt_color_temperature = mdnie_tune_state->hmt_color_temperature;
 	}
 
-	return snprintf(buf, 256, "Current color temperature : %d\n", mdnie_tune_state->hmt_color_temperature);
+	return snprintf(buf, 256, "%d\n", hmt_color_temperature);
 }
 
 static ssize_t hmt_color_temperature_store(struct device *dev,
