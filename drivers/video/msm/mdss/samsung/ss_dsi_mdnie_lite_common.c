@@ -223,18 +223,14 @@ int update_dsi_tcon_mdnie_register(struct samsung_display_driver_data *vdd)
 static ssize_t mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int buffer_pos = 0;
+	int mode = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 
-	buffer_pos += snprintf(buf, 256, "Current Mode : ");
 	list_for_each_entry_reverse(mdnie_tune_state, &mdnie_list , used_list) {
-		buffer_pos += snprintf(buf + buffer_pos, 256, "DSI%d : %s ", mdnie_tune_state->index, mdnie_mode_name[mdnie_tune_state->mdnie_mode]);
+		mode = mdnie_tune_state->mdnie_mode;
 	}
-	buffer_pos += snprintf(buf + buffer_pos, 256, "\n");
 
-	DPRINT("%s \n", buf);
-
-	return buffer_pos;
+	return snprintf(buf, 256, "%d\n", mode);
 }
 
 static ssize_t mode_store(struct device *dev,
