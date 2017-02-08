@@ -205,7 +205,6 @@ struct link_free {
 struct zs_pool {
 	struct size_class size_class[ZS_SIZE_CLASSES];
 
-	struct zs_ops *ops;
 	gfp_t flags;	/* allocation flags used when growing pool */
 };
 
@@ -237,22 +236,6 @@ struct mapping_area {
 #endif
 	char *vm_addr; /* address of kmap_atomic()'ed pages */
 	enum zs_mapmode vm_mm; /* mapping mode */
-};
-
-/* default page alloc/free ops */
-struct page *zs_alloc_page(gfp_t flags)
-{
-	return alloc_page(flags);
-}
-
-void zs_free_page(struct page *page)
-{
-	__free_page(page);
-}
-
-struct zs_ops zs_default_ops = {
-	.alloc = zs_alloc_page,
-	.free = zs_free_page
 };
 
 /* per-cpu VM mapping areas for zspage accesses that cross page boundaries */
@@ -490,7 +473,7 @@ static void reset_page(struct page *page)
 	page_mapcount_reset(page);
 }
 
-static void free_zspage(struct zs_ops *ops, struct page *first_page)
+static void free_zspage(struct page *first_page)
 {
 	struct page *nextp, *tmp, *head_extra;
 
@@ -500,7 +483,7 @@ static void free_zspage(struct zs_ops *ops, struct page *first_page)
 	head_extra = (struct page *)page_private(first_page);
 
 	reset_page(first_page);
-	ops->free(first_page);
+	__free_page(first_page);
 
 	/* zspage with only 1 system page */
 	if (!head_extra)
@@ -509,10 +492,10 @@ static void free_zspage(struct zs_ops *ops, struct page *first_page)
 	list_for_each_entry_safe(nextp, tmp, &head_extra->lru, lru) {
 		list_del(&nextp->lru);
 		reset_page(nextp);
-		ops->free(nextp);
+		__free_page(nextp);
 	}
 	reset_page(head_extra);
-	ops->free(nextp);
+	__free_page(nextp);
 }
 
 /* Initialize a newly allocated zspage */
@@ -564,8 +547,7 @@ static void init_zspage(struct page *first_page, struct size_class *class)
 /*
  * Allocate a zspage for the given size class
  */
-static struct page *alloc_zspage(struct zs_ops *ops, struct size_class *class,
-				gfp_t flags)
+static struct page *alloc_zspage(struct size_class *class, gfp_t flags)
 {
 	int i, error;
 	struct page *first_page = NULL, *uninitialized_var(prev_page);
@@ -585,7 +567,7 @@ static struct page *alloc_zspage(struct zs_ops *ops, struct size_class *class,
 	for (i = 0; i < class->pages_per_zspage; i++) {
 		struct page *page;
 
-		page = ops->alloc(flags);
+		page = alloc_page(flags);
 		if (!page)
 			goto cleanup;
 
@@ -617,7 +599,7 @@ static struct page *alloc_zspage(struct zs_ops *ops, struct size_class *class,
 
 cleanup:
 	if (unlikely(error) && first_page) {
-		free_zspage(ops, first_page);
+		free_zspage(first_page);
 		first_page = NULL;
 	}
 
@@ -822,7 +804,6 @@ fail:
 /**
  * zs_create_pool - Creates an allocation pool to work from.
  * @flags: allocation flags used to allocate pool metadata
- * @ops: allocation/free callbacks for expanding the pool
  *
  * This function must be called before anything when using
  * the zsmalloc allocator.
@@ -830,7 +811,7 @@ fail:
  * On success, a pointer to the newly created pool is returned,
  * otherwise NULL.
  */
-struct zs_pool *zs_create_pool(gfp_t flags, struct zs_ops *ops)
+struct zs_pool *zs_create_pool(gfp_t flags)
 {
 	int i, ovhd_size;
 	struct zs_pool *pool;
@@ -856,10 +837,6 @@ struct zs_pool *zs_create_pool(gfp_t flags, struct zs_ops *ops)
 
 	}
 
-	if (ops)
-		pool->ops = ops;
-	else
-		pool->ops = &zs_default_ops;
 	pool->flags = flags;
 
 	return pool;
@@ -895,7 +872,7 @@ EXPORT_SYMBOL_GPL(zs_destroy_pool);
  * otherwise 0.
  * Allocation requests with size > ZS_MAX_ALLOC_SIZE will fail.
  */
-unsigned long zs_malloc(struct zs_pool *pool, size_t size, gfp_t flags)
+unsigned long zs_malloc(struct zs_pool *pool, size_t size)
 {
 	unsigned long obj;
 	struct link_free *link;
@@ -917,7 +894,7 @@ unsigned long zs_malloc(struct zs_pool *pool, size_t size, gfp_t flags)
 
 	if (!first_page) {
 		spin_unlock(&class->lock);
-		first_page = alloc_zspage(pool->ops, class, flags);
+		first_page = alloc_zspage(class, pool->flags);
 		if (unlikely(!first_page))
 			return 0;
 
@@ -983,7 +960,7 @@ void zs_free(struct zs_pool *pool, unsigned long obj)
 	spin_unlock(&class->lock);
 
 	if (fullness == ZS_EMPTY)
-		free_zspage(pool->ops, first_page);
+		free_zspage(first_page);
 }
 EXPORT_SYMBOL_GPL(zs_free);
 
