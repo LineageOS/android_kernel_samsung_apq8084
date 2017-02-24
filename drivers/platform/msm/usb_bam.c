@@ -225,12 +225,11 @@ void msm_bam_set_hsic_host_dev(struct device *dev)
 	if (dev) {
 		/* Hold the device until allowing lpm */
 		info[HSIC_BAM].in_lpm = false;
-		pr_debug("%s: Getting hsic device %x\n", __func__,
-			(int)dev);
+		pr_debug("%s: Getting hsic device %pK\n", __func__, dev);
 		pm_runtime_get(dev);
 	} else if (host_info[HSIC_BAM].dev) {
-		pr_debug("%s: Putting hsic device %x\n", __func__,
-			(int)host_info[HSIC_BAM].dev);
+		pr_debug("%s: Putting hsic device %pK\n", __func__,
+			host_info[HSIC_BAM].dev);
 		/* Just free previous device*/
 		info[HSIC_BAM].in_lpm = true;
 		pm_runtime_put(host_info[HSIC_BAM].dev);
@@ -779,8 +778,8 @@ static bool _hsic_host_bam_resume_core(void)
 
 	/* Exit from "full suspend" in case of hsic host */
 	if (host_info[HSIC_BAM].dev && info[HSIC_BAM].in_lpm) {
-		pr_debug("%s: Getting hsic device %x\n", __func__,
-			(int)host_info[HSIC_BAM].dev);
+		pr_debug("%s: Getting hsic device %pK\n", __func__,
+			host_info[HSIC_BAM].dev);
 		pm_runtime_get(host_info[HSIC_BAM].dev);
 		info[HSIC_BAM].in_lpm = false;
 		return true;
@@ -832,8 +831,8 @@ static void _hsic_host_bam_suspend_core(void)
 	pr_debug("%s: enter\n", __func__);
 
 	if (host_info[HSIC_BAM].dev && !info[HSIC_BAM].in_lpm) {
-		pr_debug("%s: Putting hsic host device %x\n", __func__,
-			(int)host_info[HSIC_BAM].dev);
+		pr_debug("%s: Putting hsic host device %pK\n", __func__,
+			host_info[HSIC_BAM].dev);
 		pm_runtime_put(host_info[HSIC_BAM].dev);
 		info[HSIC_BAM].in_lpm = true;
 	}
@@ -1647,7 +1646,7 @@ static int check_pipes_empty(u8 src_idx, u8 dst_idx)
 	/* If we have any remaints in the pipes we don't go to sleep */
 	prod_pipe = ctx.usb_bam_sps.sps_pipes[src_idx];
 	cons_pipe = ctx.usb_bam_sps.sps_pipes[dst_idx];
-	pr_debug("prod_pipe=%p, cons_pipe=%p", prod_pipe, cons_pipe);
+	pr_debug("prod_pipe=%pK, cons_pipe=%pK", prod_pipe, cons_pipe);
 
 	if (!prod_pipe || sps_is_pipe_empty(prod_pipe, &prod_empty) ||
 		!cons_pipe || sps_is_pipe_empty(cons_pipe, &cons_empty)) {
@@ -1971,8 +1970,8 @@ bool msm_bam_host_lpm_ok(enum usb_bam bam_type)
 		    ctx.is_bam_inactivity[bam_type] && info[bam_type].in_lpm) {
 
 			/* HSIC host will go now to lpm */
-			pr_debug("%s: vote for suspend hsic %x\n",
-				__func__, (int)host_info[bam_type].dev);
+			pr_debug("%s: vote for suspend hsic %pK\n",
+				__func__, host_info[bam_type].dev);
 
 			for (i = 0; i < ctx.max_connections; i++) {
 				pipe_iter =
@@ -2303,8 +2302,8 @@ static void usb_bam_work(struct work_struct *w)
 			    pipe_iter->dir ==
 				PEER_PERIPHERAL_TO_USB &&
 				pipe_iter->enabled) {
-				pr_debug("%s: Register wakeup on pipe %x\n",
-					__func__, (int)pipe_iter);
+				pr_debug("%s: Register wakeup on pipe %pK\n",
+					__func__, pipe_iter);
 				__usb_bam_register_wake_cb(i,
 					pipe_iter->activity_notify,
 					pipe_iter->priv,

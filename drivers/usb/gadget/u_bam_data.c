@@ -139,7 +139,7 @@ static int bam_data_alloc_requests(struct usb_ep *ep, struct list_head *head,
 	int i;
 	struct usb_request *req;
 
-	pr_debug("%s: ep:%p head:%p num:%d cb:%p", __func__,
+	pr_debug("%s: ep:%pK head:%pK num:%d cb:%pK", __func__,
 			ep, head, num, cb);
 
 	for (i = 0; i < num; i++) {
@@ -169,7 +169,7 @@ static void bam_data_write_done(void *p, struct sk_buff *skb)
 	spin_lock_irqsave(&port->port_lock_ul, flags);
 	d->pending_with_bam--;
 
-	pr_debug("%s: port:%p d:%p pbam:%u, pno:%d\n", __func__,
+	pr_debug("%s: port:%pK d:%pK pbam:%u, pno:%d\n", __func__,
 			port, d, d->pending_with_bam, port->port_num);
 
 	spin_unlock_irqrestore(&port->port_lock_ul, flags);
@@ -381,7 +381,7 @@ static void bam_data_write_toipa(struct work_struct *w)
 
 		d->pending_with_bam++;
 
-		pr_debug("%s: port:%p d:%p pbam:%u pno:%d\n", __func__,
+		pr_debug("%s: port:%pK d:%pK pbam:%u pno:%d\n", __func__,
 				port, d, d->pending_with_bam, port->port_num);
 
 		spin_unlock_irqrestore(&port->port_lock_ul, flags);
@@ -554,7 +554,7 @@ static void bam2bam_data_disconnect_work(struct work_struct *w)
 	}
 
 	port->is_connected = false;
-	pr_debug("Disconnect workqueue done (port %p)\n", port);
+	pr_debug("Disconnect workqueue done (port %pK)\n", port);
 }
 /*
  * This function configured data fifo based on index passed to get bam2bam
@@ -1019,14 +1019,14 @@ int bam_data_connect(struct data_port *gr, u8 port_num,
 
 	ret = usb_ep_enable(gr->in);
 	if (ret) {
-		pr_err("usb_ep_enable failed eptype:IN ep:%p", gr->in);
+		pr_err("usb_ep_enable failed eptype:IN ep:%pK", gr->in);
 		goto exit;
 	}
 	gr->in->driver_data = port;
 
 	ret = usb_ep_enable(gr->out);
 	if (ret) {
-		pr_err("usb_ep_enable failed eptype:OUT ep:%p", gr->out);
+		pr_err("usb_ep_enable failed eptype:OUT ep:%pK", gr->out);
 		gr->in->driver_data = 0;
 		goto exit;
 	}

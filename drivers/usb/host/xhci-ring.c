@@ -688,8 +688,8 @@ void xhci_queue_new_dequeue_state(struct xhci_hcd *xhci,
 {
 	struct xhci_virt_ep *ep = &xhci->devs[slot_id]->eps[ep_index];
 
-	xhci_dbg(xhci, "Set TR Deq Ptr cmd, new deq seg = %p (0x%llx dma), "
-			"new deq ptr = %p (0x%llx dma), new cycle = %u\n",
+	xhci_dbg(xhci, "Set TR Deq Ptr cmd, new deq seg = %pK (0x%llx dma), "
+			"new deq ptr = %pK (0x%llx dma), new cycle = %u\n",
 			deq_state->new_deq_seg,
 			(unsigned long long)deq_state->new_deq_seg->dma,
 			deq_state->new_deq_ptr,
@@ -1292,7 +1292,7 @@ static void xhci_cmd_to_noop(struct xhci_hcd *xhci, struct xhci_cd *cur_cd)
 			xhci->cmd_ring->dequeue, &cycle_state);
 
 	if (!cur_seg) {
-		xhci_warn(xhci, "Command ring mismatch, dequeue = %p %llx (dma)\n",
+		xhci_warn(xhci, "Command ring mismatch, dequeue = %pK %llx (dma)\n",
 				xhci->cmd_ring->dequeue,
 				(unsigned long long)
 				xhci_trb_virt_to_dma(xhci->cmd_ring->deq_seg,

@@ -37,7 +37,7 @@ void xhci_dbg_regs(struct xhci_hcd *xhci)
 	xhci_dbg(xhci, "// xHCI capability registers at %pK:\n",
 			xhci->cap_regs);
 	temp = xhci_readl(xhci, &xhci->cap_regs->hc_capbase);
-	xhci_dbg(xhci, "// @%p = 0x%x (CAPLENGTH AND HCIVERSION)\n",
+	xhci_dbg(xhci, "// @%pK = 0x%x (CAPLENGTH AND HCIVERSION)\n",
 			&xhci->cap_regs->hc_capbase, temp);
 	xhci_dbg(xhci, "//   CAPLENGTH: 0x%x\n",
 			(unsigned int) HC_LENGTH(temp));
@@ -49,13 +49,13 @@ void xhci_dbg_regs(struct xhci_hcd *xhci)
 	xhci_dbg(xhci, "// xHCI operational registers at %pK:\n", xhci->op_regs);
 
 	temp = xhci_readl(xhci, &xhci->cap_regs->run_regs_off);
-	xhci_dbg(xhci, "// @%p = 0x%x RTSOFF\n",
+	xhci_dbg(xhci, "// @%pK = 0x%x RTSOFF\n",
 			&xhci->cap_regs->run_regs_off,
 			(unsigned int) temp & RTSOFF_MASK);
 	xhci_dbg(xhci, "// xHCI runtime registers at %pK:\n", xhci->run_regs);
 
 	temp = xhci_readl(xhci, &xhci->cap_regs->db_off);
-	xhci_dbg(xhci, "// @%p = 0x%x DBOFF\n", &xhci->cap_regs->db_off, temp);
+	xhci_dbg(xhci, "// @%pK = 0x%x DBOFF\n", &xhci->cap_regs->db_off, temp);
 	xhci_dbg(xhci, "// Doorbell array at %pK:\n", xhci->dba);
 }
 
@@ -192,12 +192,12 @@ void xhci_print_ir_set(struct xhci_hcd *xhci, int set_num)
 
 	addr = &ir_set->irq_control;
 	temp = xhci_readl(xhci, addr);
-	xhci_dbg(xhci, "  %p: ir_set.control = 0x%x\n", addr,
+	xhci_dbg(xhci, "  %pK: ir_set.control = 0x%x\n", addr,
 			(unsigned int)temp);
 
 	addr = &ir_set->erst_size;
 	temp = xhci_readl(xhci, addr);
-	xhci_dbg(xhci, "  %p: ir_set.erst_size = 0x%x\n", addr,
+	xhci_dbg(xhci, "  %pK: ir_set.erst_size = 0x%x\n", addr,
 			(unsigned int)temp);
 
 	addr = &ir_set->rsvd;
@@ -224,7 +224,7 @@ void xhci_print_run_regs(struct xhci_hcd *xhci)
 
 	xhci_dbg(xhci, "xHCI runtime registers at %pK:\n", xhci->run_regs);
 	temp = xhci_readl(xhci, &xhci->run_regs->microframe_index);
-	xhci_dbg(xhci, "  %p: Microframe index = 0x%x\n",
+	xhci_dbg(xhci, "  %pK: Microframe index = 0x%x\n",
 			&xhci->run_regs->microframe_index,
 			(unsigned int) temp);
 	for (i = 0; i < 7; ++i) {

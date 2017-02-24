@@ -4524,7 +4524,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 		goto devote_bus_bw;
 	}
-	dev_info(&pdev->dev, "OTG regs = %p\n", motg->regs);
+	dev_info(&pdev->dev, "OTG regs = %pK\n", motg->regs);
 
 	if (pdata->enable_sec_phy) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);

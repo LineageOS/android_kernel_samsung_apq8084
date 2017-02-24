@@ -838,7 +838,7 @@ static int qh_schedule(struct ehci_hcd *ehci, struct ehci_qh *qh)
 			: cpu_to_hc32(ehci, QH_SMASK);
 		hw->hw_info2 |= c_mask;
 	} else
-		ehci_dbg (ehci, "reused qh %p schedule\n", qh);
+		ehci_dbg (ehci, "reused qh %pK schedule\n", qh);
 
 done:
 	return status;
@@ -1385,7 +1385,7 @@ iso_stream_schedule (
 
 		/* Is the schedule already full? */
 		if (unlikely(start < period)) {
-			ehci_dbg(ehci, "iso sched full %p (%u-%u < %u mod %u)\n",
+			ehci_dbg(ehci, "iso sched full %pK (%u-%u < %u mod %u)\n",
 					urb, stream->next_uframe, base,
 					period, mod);
 			status = -ENOSPC;
@@ -1405,7 +1405,7 @@ iso_stream_schedule (
 			 * no matter what.
 			 */
 			else if (start + span - period < now2) {
-				ehci_dbg(ehci, "iso underrun %p (%u+%u < %u)\n",
+				ehci_dbg(ehci, "iso underrun %pK (%u+%u < %u)\n",
 						urb, start + base,
 						span - period, now2 + base);
 			}

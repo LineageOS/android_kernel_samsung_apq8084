@@ -543,7 +543,7 @@ static int xhci_test_radix_tree(struct xhci_hcd *xhci,
 			if (cur_ring != mapped_ring) {
 				xhci_warn(xhci, "WARN: DMA address 0x%08llx "
 						"didn't map to stream ID %u; "
-						"mapped to ring %p\n",
+						"mapped to ring %pK\n",
 						(unsigned long long) addr,
 						cur_stream,
 						mapped_ring);
@@ -563,7 +563,7 @@ static int xhci_test_radix_tree(struct xhci_hcd *xhci,
 		if (mapped_ring == cur_ring) {
 			xhci_warn(xhci, "WARN: Bad DMA address 0x%08llx "
 					"mapped to valid stream ID %u; "
-					"mapped ring = %p\n",
+					"mapped ring = %pK\n",
 					(unsigned long long) addr,
 					cur_stream,
 					mapped_ring);
