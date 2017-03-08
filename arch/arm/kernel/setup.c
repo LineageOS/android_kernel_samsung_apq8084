@@ -636,13 +636,20 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+#ifdef CONFIG_SEC_LENTIS_PROJECT
+#define BOARD_REV	"androidboot.revision"
+#else
+#define BOARD_REV	"board_rev"
+#endif
+
 static int __init msm_hw_rev_setup(char *p)
 {
 	system_rev = memparse(p, NULL);
-	printk("androidboot.revision %x\n", system_rev);
+
+	printk(BOARD_REV " %x\n", system_rev);
 	return 0;
 }
-early_param("androidboot.revision", msm_hw_rev_setup);
+early_param(BOARD_REV, msm_hw_rev_setup);
 
 static void __init request_standard_resources(struct machine_desc *mdesc)
 {
