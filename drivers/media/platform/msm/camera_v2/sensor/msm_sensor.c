@@ -579,11 +579,12 @@ static long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	case VIDIOC_MSM_SENSOR_GET_AF_STATUS:
 		return msm_sensor_get_af_status(s_ctrl, argp);
 	case VIDIOC_MSM_SENSOR_RELEASE:
-    	pr_warn("%s : msm_sensor_stop_stream", __func__);
+		pr_warn("%s : msm_sensor_stop_stream", __func__);
 		msm_sensor_stop_stream(s_ctrl);
 		return 0;
 	case MSM_SD_SHUTDOWN:
 		pr_err("%s:%d MSM_SD_SHUTDOWN\n", __func__, __LINE__);
+		msm_sensor_stop_stream(s_ctrl);
 		return 0;
 	default:
 		return -ENOIOCTLCMD;
