@@ -49,6 +49,7 @@ static int rmnet_index;
 static bool egress_set, a7_ul_flt_set;
 
 u32 apps_to_ipa_hdl, ipa_to_apps_hdl; /* get handler from ipa */
+static struct mutex add_mux_channel_lock;
 static int wwan_add_ul_flt_rule_to_ipa(void);
 static int wwan_del_ul_flt_rule_to_ipa(void);
 
@@ -1035,9 +1036,11 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 					rmnet_mux_val.mux_id);
 				return rc;
 			}
+			mutex_lock(&add_mux_channel_lock);
 			if (rmnet_index >= MAX_NUM_OF_MUX_CHANNEL) {
 				IPAWANERR("Exceed mux_channel limit(%d)\n",
 				rmnet_index);
+				mutex_unlock(&add_mux_channel_lock);
 				return -EFAULT;
 			}
 			IPAWANDBG("ADD_MUX_CHANNEL(%d, name: %s)\n",
@@ -1066,6 +1069,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 					IPAWANERR("device %s reg IPA failed\n",
 						extend_ioctl_data.u.
 						rmnet_mux_val.vchannel_name);
+					mutex_unlock(&add_mux_channel_lock);
 					return -ENODEV;
 				}
 				mux_channel[rmnet_index].mux_channel_set = true;
@@ -1078,6 +1082,7 @@ static int ipa_wwan_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 				mux_channel[rmnet_index].ul_flt_reg = false;
 			}
 			rmnet_index++;
+			mutex_unlock(&add_mux_channel_lock);
 			break;
 		case RMNET_IOCTL_SET_EGRESS_DATA_FORMAT:
 			IPAWANDBG("get RMNET_IOCTL_SET_EGRESS_DATA_FORMAT\n");
@@ -1258,6 +1263,8 @@ static int __init ipa_wwan_init(void)
 	struct net_device *dev;
 	struct wwan_private *wwan_ptr;
 
+	mutex_init(&add_mux_channel_lock);
+
 	/* start A7 QMI service/client */
 	ret = ipa_qmi_service_init();
 
@@ -1318,6 +1325,7 @@ late_initcall(ipa_wwan_init);
 
 void ipa_wwan_cleanup(void)
 {
+	mutex_destroy(&add_mux_channel_lock);
 	unregister_netdev(ipa_netdevs[0]);
 	free_netdev(ipa_netdevs[0]);
 	ipa_netdevs[0] = NULL;
