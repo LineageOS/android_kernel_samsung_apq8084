@@ -524,7 +524,7 @@ config ZSWAP
 	bool "In-kernel swap page compression"
 	depends on FRONTSWAP && CRYPTO
 	select CRYPTO_LZO
-	select ZSMALLOC_NEW
+	select ZSMALLOC
 	default n
 	help
 	  Zswap is a backend for the frontswap mechanism in the VMM.
