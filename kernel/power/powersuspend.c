@@ -48,6 +48,7 @@ static void power_resume(struct work_struct *work);
 static DECLARE_WORK(power_suspend_work, power_suspend);
 static DECLARE_WORK(power_resume_work, power_resume);
 static DEFINE_SPINLOCK(state_lock);
+static u64 count;
 
 static int state; // Yank555.lu : Current powersave state (screen on / off)
 static int mode;  // Yank555.lu : Current powersave mode  (userspace / panel)
@@ -87,6 +88,8 @@ static void power_suspend(struct work_struct *work)
 	spin_lock_irqsave(&state_lock, irqflags);
 	if (state == POWER_SUSPEND_INACTIVE)
 		abort = 1;
+	if (++count < 2)
+		abort = 1;
 	spin_unlock_irqrestore(&state_lock, irqflags);
 
 	if (abort)
@@ -119,6 +122,8 @@ static void power_resume(struct work_struct *work)
 	mutex_lock(&power_suspend_lock);
 	spin_lock_irqsave(&state_lock, irqflags);
 	if (state == POWER_SUSPEND_ACTIVE)
+		abort = 1;
+	if (count < 2)
 		abort = 1;
 	spin_unlock_irqrestore(&state_lock, irqflags);
 
