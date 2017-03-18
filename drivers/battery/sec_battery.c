@@ -1061,12 +1061,14 @@ static void sec_bat_swelling_check(struct sec_battery_info *battery, int tempera
 			val.intval = battery->pdata->swelling_drop_float_voltage;
 			psy_do_property(battery->pdata->charger_name, set,
 					POWER_SUPPLY_PROP_VOLTAGE_MAX, val);
+#ifndef CONFIG_SEC_KCCAT6_PROJECT
 			if (battery->pdata->swelling_topoff_current) {
 				/* changed topoff current */
 				val.intval = battery->pdata->swelling_topoff_current;
 				psy_do_property(battery->pdata->charger_name, set,
 						POWER_SUPPLY_PROP_ENERGY_FULL, val);
 			}
+#endif
 			/* reduce charging current */
 			if ((temperature <= battery->pdata->swelling_low_temp_block) &&
 				(battery->pdata->swelling_low_chg_current > 0)) {
