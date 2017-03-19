@@ -188,7 +188,7 @@ static struct device_attribute attrs[] = {
 	__ATTR(global, (S_IRUGO | S_IWUSR | S_IWGRP),
 			synaptics_rmi4_global_show,
 			synaptics_rmi4_global_store),
-#if defined(CONFIG_HAS_EARLYSUSPEND) || (CONFIG_POWERSUSPEND)
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND)
 	__ATTR(full_pm_cycle, (S_IRUGO | S_IWUSR | S_IWGRP),
 			synaptics_rmi4_full_pm_cycle_show,
 			synaptics_rmi4_full_pm_cycle_store),
@@ -422,7 +422,7 @@ static void synaptics_request_gpio(struct synaptics_rmi4_data *rmi4_data)
 	}
 }
 
-#if defined(CONFIG_HAS_EARLYSUSPEND) || (CONFIG_POWERSUSPEND)
+#if defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_POWERSUSPEND)
 static ssize_t synaptics_rmi4_full_pm_cycle_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
