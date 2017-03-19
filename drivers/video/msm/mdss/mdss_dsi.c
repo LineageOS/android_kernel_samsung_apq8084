@@ -108,21 +108,6 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
-
-#if defined(CONFIG_SEC_LENTIS_PROJECT)
-#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
-	if (dsi_panel_pm_ctrl && gpio_is_valid(ctrl_pdata->disp_en_gpio)){
-		gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-		usleep(1500);
-		pr_info("%s: disp_en_gpio set low	\n", __func__);
-	}
-#else
-	if (gpio_is_valid(ctrl_pdata->disp_en_gpio)){
-			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-			pr_info("%s: disp_en_gpio set low	\n", __func__);
-	}
-#endif
-#endif
 #if !defined(CONFIG_SEC_KCCAT6_PROJECT)
 
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
@@ -138,18 +123,16 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	}
 #endif
 
-#if !defined(CONFIG_SEC_LENTIS_PROJECT)
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	if (dsi_panel_pm_ctrl && gpio_is_valid(ctrl_pdata->disp_en_gpio)){
 		gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-		pr_info("%s: disp_en_gpio set low       \n", __func__);
+		pr_info("%s: disp_en_gpio set low	\n", __func__);
 	}
 #else
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio)){
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-			pr_info("%s: disp_en_gpio set low       \n", __func__);
+			pr_info("%s: disp_en_gpio set low	\n", __func__);
 	}
-#endif
 #endif
 #if defined(CONFIG_SEC_KCCAT6_PROJECT)
 
