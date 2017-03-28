@@ -136,13 +136,12 @@ int print_mcu_debug(char *pchRcvDataFrame, int *pDataIdx,
 		int iRcvDataFrameLength)
 {
 	u16 length;
-	int cur = *pDataIdx;
 
 	memcpy(&length, pchRcvDataFrame + *pDataIdx, 2);
 	*pDataIdx += 2;
 	if (length > iRcvDataFrameLength - *pDataIdx || length <= 0) {
 		ssp_dbg("[SSP]: MSG From MCU - invalid debug length(%u/%d/%d)\n",
-			length, iRcvDataFrameLength, cur);
+			length, iRcvDataFrameLength, *pDataIdx);
 		return length ? length : ERROR;
 	}
 
