@@ -31,11 +31,6 @@
 #endif
 
 
-#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
-void xlog(const char *name, u32 data0, u32 data1, u32 data2, u32 data3, u32 data4, u32 data5);
-#endif
-
-
 static int mdss_dsi_regulator_init(struct platform_device *pdev)
 {
 	int rc = 0;

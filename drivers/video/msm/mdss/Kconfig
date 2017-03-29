@@ -80,10 +80,6 @@ config FB_MSM_DUAL_DSI_MODE
 	bool "Using Dual-dsi mode"
 	default n
 
-config FB_MSM_MDSS_DSI_DBG
-	bool "DSI dbg support"
-	default n
-
 config FB_MSM_CAMERA_CSC
 	default n
 	bool "Support SAMSUNG CAMERA CSC"
