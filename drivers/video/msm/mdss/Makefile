@@ -55,7 +55,6 @@ obj-$(CONFIG_FB_MSM_MDSS) += mdss_fb.o
 obj-$(CONFIG_COMPAT) += mdss_compat_utils.o
 
 ifeq ($(CONFIG_FB_MSM_MDSS_SAMSUNG),y)
-obj-$(CONFIG_FB_MSM_MDSS_FENCE_DBG) += xlog_fence.o
 obj-y += samsung/
 endif
 
