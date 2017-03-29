@@ -138,9 +138,6 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 
 
 	mask = readl_relaxed(mdata->mdp_base + MDSS_MDP_REG_INTR_EN);
-#if 0 //defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
-	xlog(__func__, isr , mask, 0, 0, 0, 0);
-#endif
 	writel_relaxed(isr, mdata->mdp_base + MDSS_MDP_REG_INTR_CLEAR);
 
 	pr_debug("%s: isr=%x mask=%x\n", __func__, isr, mask);
