@@ -2066,11 +2066,6 @@ static void __mdss_fb_wait_for_fence_sub(struct msm_sync_pt_data *sync_pt_data,
 		if (ret == -ETIME) {
 			pr_warn("%s: sync_fence_wait timed out! ",
 					sync_pt_data->fence_name);
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-			pr_warn("%s: sync_fence_wait timed out! - timeline (%d,%d)\n",
-				sync_pt_data->fence_name, sync_pt_data->timeline_value, sync_pt_data->timeline->value);
-			xlog_fence_dump();
-#endif
 			pr_cont("Waiting %ld more seconds\n",
 					WAIT_FENCE_FINAL_TIMEOUT/MSEC_PER_SEC);
 			ret = sync_fence_wait(fences[i],
@@ -2117,27 +2112,13 @@ void mdss_fb_signal_timeline(struct msm_sync_pt_data *sync_pt_data)
 			sync_pt_data->timeline) {
 		sw_sync_timeline_inc(sync_pt_data->timeline, 1);
 		sync_pt_data->timeline_value++;
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-		xlog_fence((char*)__func__, sync_pt_data->fence_name, 0,
-			"timeline_val", sync_pt_data->timeline_value,
-			"remaining", atomic_read(&sync_pt_data->commit_cnt),
-			NULL, 0, NULL, 0, 0xAA);
-#else
 		pr_debug("%s: buffer signaled! timeline val=%d remaining=%d\n",
 			sync_pt_data->fence_name, sync_pt_data->timeline_value,
 			atomic_read(&sync_pt_data->commit_cnt));
-#endif
 	} else {
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-		xlog_fence((char*)__func__, sync_pt_data->fence_name, 0,
-			"timeline_val", sync_pt_data->timeline_value,
-			"remaining", atomic_read(&sync_pt_data->commit_cnt),
-			NULL, 0, NULL, 0, 0xBB);
-#else
 		pr_debug("%s: buffer signaled! timeline val=%d remaining=%d\n",
 			sync_pt_data->fence_name, sync_pt_data->timeline_value,
 			atomic_read(&sync_pt_data->commit_cnt));
-#endif
 	}
 	mutex_unlock(&sync_pt_data->sync_mutex);
 }
@@ -2160,11 +2141,6 @@ static void mdss_fb_release_fences(struct msm_fb_data_type *mfd)
 	if (sync_pt_data->timeline) {
 		val = sync_pt_data->threshold +
 			atomic_read(&sync_pt_data->commit_cnt);
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-		xlog_fence((char*)__func__, "Val", val,
-		"timeline_value", atomic_read(&sync_pt_data->commit_cnt),
-		NULL, 0, NULL, 0, NULL, 0, 0);
-#endif
 		sw_sync_timeline_inc(sync_pt_data->timeline, val);
 		sync_pt_data->timeline_value += val;
 		atomic_set(&sync_pt_data->commit_cnt, 0);
@@ -2224,10 +2200,6 @@ static int __mdss_fb_sync_buf_done_callback(struct notifier_block *p,
 		break;
 	case MDP_NOTIFY_FRAME_DONE:
 		pr_debug("%s: frame done\n", sync_pt_data->fence_name);
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-		xlog_fence((char*)__func__, "## Frame Done", 0,
-		NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0);
-#endif
 		mdss_fb_signal_timeline(sync_pt_data);
 		break;
 	case MDP_NOTIFY_FRAME_CONFIG_DONE:
@@ -2333,12 +2305,6 @@ static int mdss_fb_pan_display_ex(struct fb_info *info,
 
 	mfd->msm_fb_backup.info = *info;
 	mfd->msm_fb_backup.disp_commit = *disp_commit;
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-	if(atomic_read(&mfd->mdp_sync_pt_data.commit_cnt) > 1);
-		xlog_fence((char*)__func__, "## pan_disp_ex:commit",
-			atomic_read(&mfd->mdp_sync_pt_data.commit_cnt),
-			NULL, 0, NULL, 0, NULL, 0, NULL, 0, 0);
-#endif
 
 	atomic_inc(&mfd->mdp_sync_pt_data.commit_cnt);
 	atomic_inc(&mfd->commits_pending);
@@ -2877,28 +2843,6 @@ static int mdss_fb_handle_buf_sync_ioctl(struct msm_sync_pt_data *sync_pt_data,
 
 	val = sync_pt_data->timeline_value + sync_pt_data->threshold +
 			atomic_read(&sync_pt_data->commit_cnt);
-#if defined(CONFIG_FB_MSM_MDSS_FENCE_DBG)
-	if(atomic_read(&sync_pt_data->commit_cnt) > 1)
-		xlog_fence((char*)__func__, "## err1 - val", val,
-				"timeline_val", sync_pt_data->timeline_value,
-				"threshold", sync_pt_data->threshold,
-				"commit", atomic_read(&sync_pt_data->commit_cnt),
-				NULL, 0, 0xAAA);
-
-	if(sync_pt_data->timeline_value != sync_pt_data->timeline->value)
-		xlog_fence((char*)__func__, "## err2 - val", val,
-				"timeline_val", sync_pt_data->timeline_value,
-				"threshold", sync_pt_data->threshold,
-				"commit", atomic_read(&sync_pt_data->commit_cnt),
-				NULL, 0, 0xBBB);
-
-	if(val - sync_pt_data->timeline_value > 3)
-		xlog_fence((char*)__func__, "## err3 - val", val,
-				"timeline_val", sync_pt_data->timeline_value,
-				"threshold", sync_pt_data->threshold,
-				"commit", atomic_read(&sync_pt_data->commit_cnt),
-				NULL, 0, 0xCCC);
-#endif
 
 	/* Set release fence */
 	rel_fence = mdss_fb_sync_get_fence(sync_pt_data->timeline,
