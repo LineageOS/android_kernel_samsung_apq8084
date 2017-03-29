@@ -1303,9 +1303,6 @@ static int __overlay_queue_pipes(struct msm_fb_data_type *mfd)
 		/* ensure pipes are always reconfigured after power off/on */
 		if (ctl->play_cnt == 0||ctl->roi_changed) {
 			pipe->params_changed++;
-#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
-			MDSS_XLOG(__func__,pipe->num, pipe->type, pipe->flags, 0, 0, 0);
-#endif
 		}
 
 		if (pipe->back_buf.num_planes) {

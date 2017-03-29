@@ -2964,10 +2964,6 @@ int mdss_mdp_display_wait4pingpong(struct mdss_mdp_ctl *ctl)
 	return ret;
 }
 
-#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
-struct mdss_mdp_ctl *commit_ctl;
-#endif
-
 int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 	struct mdss_mdp_commit_cb *commit_cb)
 {
