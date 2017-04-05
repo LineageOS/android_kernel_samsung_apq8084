@@ -1697,24 +1697,8 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	 */
 	pm_runtime_set_autosuspend_delay(&hdev->dev, 0);
 
-#if 1
 	/* Hubs have proper suspend/resume support. */
 	usb_enable_autosuspend(hdev);
-#else
-	pr_info("%s : VID : 0x%x, PID : 0x%x, Serial: %s\n", __func__,
-			le16_to_cpu(hdev->descriptor.idVendor),
-			le16_to_cpu(hdev->descriptor.idProduct),
-			hdev->serial);
-
-	if (le16_to_cpu(hdev->descriptor.idVendor == 0x1d6b) &&
-		le16_to_cpu(hdev->descriptor.idProduct == 0x2) &&
-		strcmp(hdev->serial, "msm_hsic_host")) {
-		pr_info("%s: disable autosuspend.\n", __func__);
-	} else {
-		pr_info("%s: enable autosuspend.\n", __func__);
-		usb_enable_autosuspend(hdev);
-	}
-#endif
 
 	if (hdev->level == MAX_TOPO_LEVEL) {
 		dev_err(&intf->dev,
