@@ -1105,10 +1105,6 @@ __rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
 			if (!is_migrate_cma(migratetype) &&
 			    (unlikely(current_order >= pageblock_order / 2) ||
 			     start_migratetype == MIGRATE_RECLAIMABLE ||
-#if 0 //def CONFIG_SEC_LENTIS_PROJECT
-			     start_migratetype == MIGRATE_UNMOVABLE ||
-			     start_migratetype == MIGRATE_MOVABLE ||
-#endif
 			     page_group_by_mobility_disabled)) {
 				int pages;
 				pages = move_freepages_block(zone, page,
@@ -1116,9 +1112,6 @@ __rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
 
 				/* Claim the whole block if over half of it is free */
 				if (pages >= (1 << (pageblock_order-1)) ||
-#if 0 //def CONFIG_SEC_LENTIS_PROJECT
-						start_migratetype == MIGRATE_MOVABLE ||
-#endif
 						page_group_by_mobility_disabled)
 					set_pageblock_migratetype(page,
 								start_migratetype);
