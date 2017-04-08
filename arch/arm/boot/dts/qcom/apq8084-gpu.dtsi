@@ -23,7 +23,7 @@
 
 		qcom,chipid = <0x04020000>;
 
-		qcom,initial-pwrlevel = <3>;
+		qcom,initial-pwrlevel = <5>;
 
 		qcom,idle-timeout = <80>; // 80ms
 		qcom,strtstp-sleepwake;
@@ -41,10 +41,13 @@
 		/* Bus Scale Settings */
 		qcom,bus-control;
 		qcom,msm-bus,name = "grp3d";
-		qcom,msm-bus,num-cases = <17>;
+		qcom,msm-bus,num-cases = <19>;
 		qcom,msm-bus,num-paths = <2>;
 		qcom,msm-bus,vectors-KBps =
 				<26 512 0 0>, <89 662 0 0>,
+
+                                <26 512 0 2400000>,  <89 662 0 2656000>,     // gpu=166 bus=150
+                                <26 512 0 3200000>,  <89 662 0 2656000>,     // gpu=166 bus=200
 
 				<26 512 0 2400000>,  <89 662 0 3200000>,     // gpu=240 bus=150
 				<26 512 0 3200000>,  <89 662 0 3200000>,     // gpu=240 bus=200
@@ -92,40 +95,47 @@
 			qcom,gpu-pwrlevel@0 {
 				reg = <0>;
 				qcom,gpu-freq = <600000000>;
-				qcom,bus-freq = <16>;
+				qcom,bus-freq = <18>;
 				qcom,io-fraction = <33>;
 			};
 
 			qcom,gpu-pwrlevel@1 {
 				reg = <1>;
 				qcom,gpu-freq = <500000000>;
-				qcom,bus-freq = <13>;
+				qcom,bus-freq = <15>;
 				qcom,io-fraction = <66>;
 			};
 
 			qcom,gpu-pwrlevel@2 {
 				reg = <2>;
 				qcom,gpu-freq = <389000000>;
-				qcom,bus-freq = <10>;
+				qcom,bus-freq = <12>;
 				qcom,io-fraction = <66>;
 			};
 
 			qcom,gpu-pwrlevel@3 {
 				reg = <3>;
 				qcom,gpu-freq = <300000000>;
-				qcom,bus-freq = <7>;
+				qcom,bus-freq = <9>;
 				qcom,io-fraction = <100>;
 			};
 
 			qcom,gpu-pwrlevel@4 {
 				reg = <4>;
 				qcom,gpu-freq = <240000000>;
-				qcom,bus-freq = <3>;
+				qcom,bus-freq = <5>;
 				qcom,io-fraction = <100>;
 			};
 
 			qcom,gpu-pwrlevel@5 {
 				reg = <5>;
+				qcom,gpu-freq = <166000000>;
+				qcom,bus-freq = <2>;
+				qcom,io-fraction = <100>;
+			};
+
+			qcom,gpu-pwrlevel@6 {
+				reg = <6>;
 				qcom,gpu-freq = <27000000>;
 				qcom,bus-freq = <0>;
 				qcom,io-fraction = <0>;
