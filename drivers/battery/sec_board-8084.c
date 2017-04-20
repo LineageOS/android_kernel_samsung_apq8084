@@ -56,7 +56,7 @@ void sec_bat_check_batt_id(struct sec_battery_info *battery)
 	}
 	data = results.adc_code;
 
-	pr_info("%s: batt_id_adc = (%d)\n", __func__, data);
+	pr_debug("%s: batt_id_adc = (%d)\n", __func__, data);
 
 	/* SDI: 28500, ATL: 31000 */
 	if (data > 31000) {
@@ -297,7 +297,7 @@ bool sec_bat_check_callback(struct sec_battery_info *battery)
 	struct power_supply *psy;
 	union power_supply_propval value;
 
-	pr_info("%s:  battery->pdata->bat_irq_gpio(%d)\n",
+	pr_debug("%s:  battery->pdata->bat_irq_gpio(%d)\n",
 			__func__, battery->pdata->bat_irq_gpio);
 	psy = get_power_supply_by_name(battery->pdata->charger_name);
 	if (!psy) {
@@ -322,12 +322,12 @@ bool sec_bat_check_callback(struct sec_battery_info *battery)
 			};
 			ret = qpnp_pin_config(battery->pdata->bat_irq_gpio, &adc_param);
 			if (ret < 0)
-				pr_info("%s: qpnp config error: %d\n",
+				pr_err("%s: qpnp config error: %d\n",
 						__func__, ret);
 			/* check the adc from vf pin */
 			qpnp_vadc_read(adc_client, P_MUX8_1_3, &result);
 			data = ((int)result.physical) / 1000;
-			pr_info("%s: (%dmV) is connected.\n",
+			pr_debug("%s: (%dmV) is connected.\n",
 					__func__, data);
 #if defined(CONFIG_MACH_TRLTE_ATT) || defined(CONFIG_MACH_TRLTE_SPR) || \
 			defined(CONFIG_MACH_TRLTE_TMO) || defined(CONFIG_MACH_TRLTE_USC) || \
@@ -344,7 +344,7 @@ bool sec_bat_check_callback(struct sec_battery_info *battery)
 
 			ret = qpnp_pin_config(battery->pdata->bat_irq_gpio, &int_param);
 			if (ret < 0)
-				pr_info("%s: qpnp config error int: %d\n",
+				pr_err("%s: qpnp config error int: %d\n",
 						__func__, ret);
 		} else {
 			int ret;
@@ -367,7 +367,7 @@ void sec_bat_check_cable_result_callback(struct device *dev,
 
 	if (current_cable_type == POWER_SUPPLY_TYPE_BATTERY)
 	{
-		pr_info("%s set lvs2 off\n", __func__);
+		pr_debug("%s set lvs2 off\n", __func__);
 		pma8084_lvs2 = regulator_get(dev, "8084_lvs2");
 		if (IS_ERR(pma8084_lvs2)) {
 			pr_err("%s: pma8084_lvs2 regulator_get fail\n", __func__);
@@ -381,7 +381,7 @@ void sec_bat_check_cable_result_callback(struct device *dev,
 	}
 	else
 	{
-		pr_info("%s set lvs2 on\n", __func__);
+		pr_debug("%s set lvs2 on\n", __func__);
 		pma8084_lvs2 = regulator_get(dev, "8084_lvs2");
 		if (IS_ERR(pma8084_lvs2)) {
 			pr_err("%s: pma8084_lvs2 regulator_get fail\n", __func__);
@@ -409,7 +409,7 @@ int sec_bat_check_cable_callback(struct sec_battery_info *battery)
 	} else {
 		if (battery->cable_type == POWER_SUPPLY_TYPE_BATTERY &&
 			!gpio_get_value_cansleep(battery->pdata->ta_irq_gpio)) {
-			pr_info("%s : VBUS IN\n", __func__);
+			pr_debug("%s : VBUS IN\n", __func__);
 
 			value.intval = POWER_SUPPLY_TYPE_UARTOFF;
 			psy_do_property("battery", set, POWER_SUPPLY_PROP_ONLINE, value);
@@ -421,7 +421,7 @@ int sec_bat_check_cable_callback(struct sec_battery_info *battery)
 		if ((battery->cable_type == POWER_SUPPLY_TYPE_UARTOFF ||
 			battery->cable_type == POWER_SUPPLY_TYPE_CARDOCK) &&
 			gpio_get_value_cansleep(battery->pdata->ta_irq_gpio)) {
-			pr_info("%s : VBUS OUT\n", __func__);
+			pr_debug("%s : VBUS OUT\n", __func__);
 
 			value.intval = POWER_SUPPLY_TYPE_BATTERY;
 			psy_do_property("battery", set, POWER_SUPPLY_PROP_ONLINE, value);
@@ -438,7 +438,7 @@ void board_battery_init(struct platform_device *pdev, struct sec_battery_info *b
 {
 	if ((!battery->pdata->temp_adc_table) &&
 		(battery->pdata->thermal_source == SEC_BATTERY_THERMAL_SOURCE_ADC)) {
-		pr_info("%s : assign temp adc table\n", __func__);
+		pr_debug("%s : assign temp adc table\n", __func__);
 
 		battery->pdata->temp_adc_table = temp_table;
 		battery->pdata->temp_amb_adc_table = temp_table;
@@ -449,7 +449,7 @@ void board_battery_init(struct platform_device *pdev, struct sec_battery_info *b
 
 	if ((!battery->pdata->chg_temp_adc_table) &&
 		(battery->pdata->chg_temp_check)) {
-		pr_info("%s : assign chg temp adc table\n", __func__);
+		pr_debug("%s : assign chg temp adc table\n", __func__);
 		battery->pdata->chg_temp_adc_table = chg_temp_table;
 		battery->pdata->chg_temp_adc_table_size = sizeof(chg_temp_table)/sizeof(sec_bat_adc_table_data_t);
 	}
@@ -502,10 +502,10 @@ void board_fuelgauge_init(void *data)
 			(struct max17048_fuelgauge_data *)data;
 
 		if (!fuelgauge->battery_data) {
-			pr_info("%s : assign battery data\n", __func__);
+			pr_debug("%s : assign battery data\n", __func__);
 			fuelgauge->battery_data = max17048_battery_data;
 
-			pr_info("%s: RCOMP0: 0x%x, RCOMP_charging: 0x%x, "
+			pr_debug("%s: RCOMP0: 0x%x, RCOMP_charging: 0x%x, "
 				"temp_cohot: %d, temp_cocold: %d, "
 				"is_using_model_data: %d, type_str: %s\n", __func__ ,
 				fuelgauge->battery_data->RCOMP0,
@@ -522,7 +522,7 @@ void board_fuelgauge_init(void *data)
 			(struct max77823_fuelgauge_data *)data;
 
 		if (!fuelgauge->battery_data) {
-			pr_info("%s : assign battery data\n", __func__);
+			pr_debug("%s : assign battery data\n", __func__);
 			fuelgauge->battery_data = max77823_battery_data;
 		}
 	}
@@ -532,7 +532,7 @@ void board_fuelgauge_init(void *data)
 			(struct max77843_fuelgauge_data *)data;
 
 		if (!fuelgauge->battery_data) {
-			pr_info("%s : assign battery data\n", __func__);
+			pr_debug("%s : assign battery data\n", __func__);
 			fuelgauge->battery_data = max77843_battery_data;
 		}
 #endif
@@ -542,7 +542,7 @@ void cable_initial_check(struct sec_battery_info *battery)
 {
 	union power_supply_propval value;
 
-	pr_info("%s : current_cable_type : (%d)\n", __func__, current_cable_type);
+	pr_debug("%s : current_cable_type : (%d)\n", __func__, current_cable_type);
 	if (POWER_SUPPLY_TYPE_BATTERY != current_cable_type) {
 		value.intval = current_cable_type;
 		psy_do_property("battery", set,
