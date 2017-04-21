@@ -1663,8 +1663,6 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on)
 	u32			timeout = 500;
 	ktime_t start, diff;
 
-	printk(KERN_DEBUG"usb: %s is_on:%d\n",__func__, is_on);
-
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	if (is_on) {
 		if (dwc->revision <= DWC3_REVISION_187A) {
@@ -1856,7 +1854,7 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 	 * Make sure to let gadget driver know in that case.
 	 */
 	if (!dwc->vbus_active) {
-		pr_info("calling disconnect from %s\n", __func__);
+		dev_dbg(dwc->dev, "calling disconnect from %s\n", __func__);
 		dwc3_gadget_disconnect_interrupt(dwc);
 	}
 
@@ -2584,7 +2582,7 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 {
 	int			reg;
 
-	pr_info("usb:: %s\n", __func__);
+	dev_vdbg(dwc->dev, "%s\n", __func__);
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	reg &= ~DWC3_DCTL_INITU1ENA;
@@ -2607,7 +2605,7 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 	u32			reg;
 	struct dwc3_otg		*dotg = dwc->dotg;
 
-	pr_info("usb:: %s\n", __func__);
+	dev_vdbg(dwc->dev, "%s\n", __func__);
 
 	/*
 	 * WORKAROUND: DWC3 revisions <1.88a have an issue which
@@ -2727,26 +2725,22 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(512);
 		dwc->gadget.ep0->maxpacket = 512;
 		dwc->gadget.speed = USB_SPEED_SUPER;
-		pr_info("usb:: %s (SS)\n", __func__);
 		break;
 	case DWC3_DCFG_HIGHSPEED:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(64);
 		dwc->gadget.ep0->maxpacket = 64;
 		dwc->gadget.speed = USB_SPEED_HIGH;
-		pr_info("usb:: %s (HS)\n", __func__);
 		break;
 	case DWC3_DCFG_FULLSPEED2:
 	case DWC3_DCFG_FULLSPEED1:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(64);
 		dwc->gadget.ep0->maxpacket = 64;
 		dwc->gadget.speed = USB_SPEED_FULL;
-		pr_info("usb:: %s (FS)\n", __func__);
 		break;
 	case DWC3_DCFG_LOWSPEED:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(8);
 		dwc->gadget.ep0->maxpacket = 8;
 		dwc->gadget.speed = USB_SPEED_LOW;
-		pr_info("usb:: %s (LS)\n", __func__);
 		break;
 	}
 
@@ -2819,7 +2813,7 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 
 static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
 {
-	pr_info("usb:: %s\n", __func__);
+	dev_vdbg(dwc->dev, "%s\n", __func__);
 
 	/* Only perform resume from L2 or Early Suspend states */
 	if (dwc->link_state == DWC3_LINK_STATE_U3) {
@@ -3047,7 +3041,7 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		dwc->dbg_gadget_events.vendor_dev_test_lmp++;
 		break;
 	default:
-		pr_info("usb:: [%s] UNKNOWN IRQ %d\n", __func__, event->type);
+		dev_dbg(dwc->dev, "UNKNOWN IRQ %d\n", event->type);
 		dwc->dbg_gadget_events.unknown_event++;
 	}
 
