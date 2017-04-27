@@ -1650,6 +1650,10 @@ static int ffs_func_eps_enable(struct ffs_function *func)
 		else
 			desc_idx = 0;
 
+		/* fall-back to lower speed if desc missing for current speed */
+		do {
+			ds = ep->descs[desc_idx];
+		} while (!ds && --desc_idx >= 0);
 		ds = ep->descs[desc_idx];
 		if (!ds) {
 			ret = -EINVAL;
