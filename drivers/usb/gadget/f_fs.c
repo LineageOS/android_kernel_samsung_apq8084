@@ -195,18 +195,8 @@ struct ffs_data {
 	void				*private_data;
 
 	/* filled by __ffs_data_got_descs() */
-	/*
-	 * Real descriptors are 16 bytes after raw_descs (so you need
-	 * to skip 16 bytes (ie. ffs->raw_descs + 16) to get to the
-	 * first full speed descriptor).  raw_descs_length and
-	 * raw_fs_hs_descs_length do not have those 16 bytes added.
-	 * ss_desc are 8 bytes (ss_magic + count) pass the hs_descs
-	 */
 	const void			*raw_descs;
 	unsigned			raw_descs_length;
-	unsigned			raw_fs_hs_descs_length;
-	unsigned			raw_ss_descs_offset;
-	unsigned			raw_ss_descs_length;
 	unsigned			fs_descs_count;
 	unsigned			hs_descs_count;
 	unsigned			ss_descs_count;
@@ -1415,9 +1405,6 @@ static void ffs_data_reset(struct ffs_data *ffs)
 	ffs->stringtabs = NULL;
 
 	ffs->raw_descs_length = 0;
-	ffs->raw_fs_hs_descs_length = 0;
-	ffs->raw_ss_descs_offset = 0;
-	ffs->raw_ss_descs_length = 0;
 	ffs->fs_descs_count = 0;
 	ffs->hs_descs_count = 0;
 	ffs->ss_descs_count = 0;
@@ -1909,20 +1896,57 @@ static int __ffs_data_do_entity(enum ffs_entity_type type,
 static int __ffs_data_got_descs(struct ffs_data *ffs,
 				char *const _data, size_t len)
 {
-	unsigned fs_count, hs_count, ss_count = 0;
-	int fs_len, hs_len, ss_len, ss_magic, ret = -EINVAL;
+	unsigned fs_count = 0, hs_count = 0, ss_count = 0, flags = 0;
+	int fs_len = 0, hs_len = 0, ss_len = 0, ret = -EINVAL;
 	char *data = _data;
+	char *raw_descs;
 
 	ENTER();
 
-	if (unlikely(get_unaligned_le32(data) != FUNCTIONFS_DESCRIPTORS_MAGIC ||
-		     get_unaligned_le32(data + 4) != len))
+	if (get_unaligned_le32(data + 4) != len)
 		goto error;
-	fs_count = get_unaligned_le32(data +  8);
-	hs_count = get_unaligned_le32(data + 12);
 
-	data += 16;
-	len  -= 16;
+	switch (get_unaligned_le32(data)) {
+	case FUNCTIONFS_DESCRIPTORS_MAGIC:
+		fs_count = get_unaligned_le32(data +  8);
+		hs_count = get_unaligned_le32(data + 12);
+		data += 16;
+		len  -= 16;
+		break;
+	case FUNCTIONFS_DESCRIPTORS_MAGIC_V2:
+		flags = get_unaligned_le32(data + 8);
+		data += 12;
+		len  -= 12;
+		if (flags & FUNCTIONFS_HAS_FS_DESC) {
+		    fs_count = get_unaligned_le32(data);
+		    data += 4;
+		    len  -= 4;
+		}
+		if (flags & FUNCTIONFS_HAS_HS_DESC) {
+		    hs_count = get_unaligned_le32(data);
+		    data += 4;
+		    len  -= 4;
+		}
+		if (flags & FUNCTIONFS_HAS_SS_DESC) {
+		    ss_count = get_unaligned_le32(data);
+		    data += 4;
+		    len  -= 4;
+		}
+		if (flags & FUNCTIONFS_HAS_MS_OS_DESC) {
+		    data += 4;
+		    len  -= 4;
+		}
+		break;
+	default:
+		pr_err("FUNCTIONFS_DESCRIPTORS ???\n");
+		goto error;
+	}
+
+	if (!fs_count && !hs_count && !ss_count)
+		goto error;
+
+	/* Start of first descriptor. */
+	raw_descs = data;
 
 	if (likely(fs_count)) {
 		fs_len = ffs_do_descs(fs_count, data, len,
@@ -1934,8 +1958,6 @@ static int __ffs_data_got_descs(struct ffs_data *ffs,
 
 		data += fs_len;
 		len  -= fs_len;
-	} else {
-		fs_len = 0;
 	}
 
 	if (likely(hs_count)) {
@@ -1945,57 +1967,27 @@ static int __ffs_data_got_descs(struct ffs_data *ffs,
 			ret = hs_len;
 			goto error;
 		}
-	} else {
-		hs_len = 0;
-	}
-
-	if ((len >= hs_len + 8)) {
-		/* Check SS_MAGIC for presence of ss_descs and get SS_COUNT */
-		ss_magic = get_unaligned_le32(data + hs_len);
-		if (ss_magic != FUNCTIONFS_SS_DESC_MAGIC)
-			goto einval;
-
-		ss_count = get_unaligned_le32(data + hs_len + 4);
-		data += hs_len + 8;
-		len  -= hs_len + 8;
-	} else {
 		data += hs_len;
 		len  -= hs_len;
 	}
 
-	if (!fs_count && !hs_count && !ss_count)
-		goto einval;
-
-	if (ss_count) {
+	if (likely(ss_count)) {
 		ss_len = ffs_do_descs(ss_count, data, len,
 				   __ffs_data_do_entity, ffs);
 		if (unlikely(ss_len < 0)) {
 			ret = ss_len;
 			goto error;
 		}
-		ret = ss_len;
-	} else {
-		ss_len = 0;
-		ret = 0;
 	}
 
-	if (unlikely(len != ret))
-		goto einval;
-
-	ffs->raw_fs_hs_descs_length	 = fs_len + hs_len;
-	ffs->raw_ss_descs_length	 = ss_len;
-	ffs->raw_descs_length		 = ffs->raw_fs_hs_descs_length + ss_len;
-	ffs->raw_descs			 = _data;
+	ffs->raw_descs			 = raw_descs;
+	ffs->raw_descs_length		 = fs_len + hs_len + ss_len;
 	ffs->fs_descs_count		 = fs_count;
 	ffs->hs_descs_count		 = hs_count;
 	ffs->ss_descs_count		 = ss_count;
-	if (ffs->ss_descs_count)
-		ffs->raw_ss_descs_offset = 16 + ffs->raw_fs_hs_descs_length + 8;
 
 	return 0;
 
-einval:
-	ret = -EINVAL;
 error:
 	kfree(_data);
 	return ret;
@@ -2370,14 +2362,8 @@ static int ffs_func_bind(struct usb_configuration *c,
 
 	/* Zero */
 	memset(data->eps, 0, sizeof data->eps);
-	/* Copy only raw (hs,fs) descriptors (until ss_magic and ss_count) */
-	memcpy(data->raw_descs, ffs->raw_descs + 16,
-				ffs->raw_fs_hs_descs_length);
-	/* Copy SS descriptors */
-	if (func->ffs->ss_descs_count)
-		memcpy(data->raw_descs + ffs->raw_fs_hs_descs_length,
-			ffs->raw_descs + ffs->raw_ss_descs_offset,
-			ffs->raw_ss_descs_length);
+	/* Copy descriptors */
+	memcpy(data->raw_descs, ffs->raw_descs, ffs->raw_descs_length);
 
 	memset(data->inums, 0xff, sizeof data->inums);
 	for (ret = ffs->eps_count; ret; --ret)
