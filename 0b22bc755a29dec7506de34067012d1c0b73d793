@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a486d77_25b9e5e9",
+        "filename": "drivers/usb/gadget/composite.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 1329,
+      "author": {
+        "id": 9394
+      },
+      "writtenOn": "2017-04-29T06:04:24Z",
+      "side": 1,
+      "message": "This is only correct if the device is usb-3 compatible.  If it\u0027s not, 0201 is correct.",
+      "revId": "0b22bc755a29dec7506de34067012d1c0b73d793",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
