@@ -1641,7 +1641,7 @@ static int ffs_func_eps_enable(struct ffs_function *func)
 		do {
 			ds = ep->descs[desc_idx];
 		} while (!ds && --desc_idx >= 0);
-		ds = ep->descs[desc_idx];
+
 		if (!ds) {
 			ret = -EINVAL;
 			break;
