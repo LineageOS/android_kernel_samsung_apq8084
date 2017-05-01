@@ -17,8 +17,10 @@
 #include <linux/poll.h>
 #include <linux/uaccess.h>
 #include <linux/wait.h>
+#include <linux/delay.h>
 #include <linux/sched.h>
 #include <linux/usb/g_hid.h>
+#include "f_hid.h"
 
 static int major, minors;
 static struct class *hidg_class;
@@ -59,6 +61,43 @@ struct f_hidg {
 	struct usb_ep			*in_ep;
 	struct usb_ep			*out_ep;
 };
+
+/* Hacky device list to fix f_hidg_write being called after device destroyed.
+   It covers only most common race conditions, there will be rare crashes anyway. */
+enum { HACKY_DEVICE_LIST_SIZE = 4 };
+static struct f_hidg *hacky_device_list[HACKY_DEVICE_LIST_SIZE];
+static void hacky_device_list_add(struct f_hidg *hidg)
+{
+	int i;
+	for (i = 0; i < HACKY_DEVICE_LIST_SIZE; i++) {
+		if (!hacky_device_list[i]) {
+			hacky_device_list[i] = hidg;
+			return;
+		}
+	}
+	pr_err("%s: too many devices, not adding device %p\n", __func__, hidg);
+}
+static void hacky_device_list_remove(struct f_hidg *hidg)
+{
+	int i;
+	for (i = 0; i < HACKY_DEVICE_LIST_SIZE; i++) {
+		if (hacky_device_list[i] == hidg) {
+			hacky_device_list[i] = NULL;
+			return;
+		}
+	}
+	pr_err("%s: cannot find device %p\n", __func__, hidg);
+}
+static int hacky_device_list_check(struct f_hidg *hidg)
+{
+	int i;
+	for (i = 0; i < HACKY_DEVICE_LIST_SIZE; i++) {
+		if (hacky_device_list[i] == hidg) {
+			return 0;
+		}
+	}
+	return 1;
+}
 
 static inline struct f_hidg *func_to_hidg(struct usb_function *f)
 {
