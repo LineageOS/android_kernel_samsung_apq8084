@@ -1075,6 +1075,7 @@ typedef struct tagCsrRoamStruct
     tANI_U8 *pReassocResp;  /* reassociation response from new AP */
     tANI_U16 reassocRespLen;  /* length of reassociation response */
 #endif
+    tANI_BOOLEAN pending_roam_disable;
 }tCsrRoamStruct;
 
 
