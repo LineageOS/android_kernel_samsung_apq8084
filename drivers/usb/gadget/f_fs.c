@@ -195,6 +195,13 @@ struct ffs_data {
 	void				*private_data;
 
 	/* filled by __ffs_data_got_descs() */
+	/*
+	 * raw_descs_data is what you kfree, raw_descs points inside of
+	 * raw_descs_data, where full speed, high speed and super speed
+	 * descriptors start.  raw_descs_length is the length of all those
+	 * descriptors.
+	 */
+	const void			*raw_descs_data;
 	const void			*raw_descs;
 	unsigned			raw_descs_length;
 	unsigned			fs_descs_count;
@@ -1388,7 +1395,7 @@ static void ffs_data_clear(struct ffs_data *ffs)
 	if (ffs->epfiles)
 		ffs_epfiles_destroy(ffs->epfiles, ffs->eps_count);
 
-	kfree(ffs->raw_descs);
+	kfree(ffs->raw_descs_data);
 	kfree(ffs->raw_strings);
 	kfree(ffs->stringtabs);
 }
@@ -1400,6 +1407,7 @@ static void ffs_data_reset(struct ffs_data *ffs)
 	ffs_data_clear(ffs);
 
 	ffs->epfiles = NULL;
+	ffs->raw_descs_data = NULL;
 	ffs->raw_descs = NULL;
 	ffs->raw_strings = NULL;
 	ffs->stringtabs = NULL;
@@ -1980,6 +1988,7 @@ static int __ffs_data_got_descs(struct ffs_data *ffs,
 		}
 	}
 
+	ffs->raw_descs_data		 = _data;
 	ffs->raw_descs			 = raw_descs;
 	ffs->raw_descs_length		 = fs_len + hs_len + ss_len;
 	ffs->fs_descs_count		 = fs_count;
