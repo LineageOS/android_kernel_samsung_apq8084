@@ -4831,12 +4831,12 @@
 		compatible = "qcom,msm-thermal";
 		qcom,sensor-id = <5>;
 		qcom,poll-ms = <250>;
-		qcom,limit-temp = <70>;
+		qcom,limit-temp = <60>;
 		qcom,temp-hysteresis = <10>;
 		qcom,therm-reset-temp = <115>;
 		qcom,freq-step = <2>;
 		qcom,freq-control-mask = <0xf>;
-		qcom,core-limit-temp = <85>;
+		qcom,core-limit-temp = <80>;
 		qcom,core-temp-hysteresis = <10>;
 		qcom,core-control-mask = <0xe>;
 		qcom,hotplug-temp = <110>;
@@ -4852,6 +4852,8 @@
 		qcom,cx-phase-resource-key = "tmpc";
 		qcom,cx-phase-hot-crit-temp = <85>;
 		qcom,cx-phase-hot-crit-temp-hyst = <15>;
+		qcom,gfx-phase-warm-temp = <60>;
+		qcom,gfx-phase-warm-temp-hyst = <10>;
 		qcom,gfx-phase-hot-crit-temp = <85>;
 		qcom,gfx-phase-hot-crit-temp-hyst = <15>;
 		qcom,gfx-sensor-id = <4>;
