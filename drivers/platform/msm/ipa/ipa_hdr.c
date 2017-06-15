@@ -215,7 +215,7 @@ end:
 static int __ipa_add_hdr(struct ipa_hdr_add *hdr)
 {
 	struct ipa_hdr_entry *entry;
-	struct ipa_hdr_offset_entry *offset;
+	struct ipa_hdr_offset_entry *offset = NULL;
 	u32 bin;
 	struct ipa_hdr_tbl *htbl = &ipa_ctx->hdr_tbl;
 	int id;
@@ -237,7 +237,7 @@ static int __ipa_add_hdr(struct ipa_hdr_add *hdr)
 	entry->hdr_len = hdr->hdr_len;
 	strlcpy(entry->name, hdr->name, IPA_RESOURCE_NAME_MAX);
 	entry->is_partial = hdr->is_partial;
-	entry->cookie = IPA_COOKIE;
+	entry->cookie = IPA_HDR_COOKIE;
 
 	if (hdr->hdr_len <= ipa_hdr_bin_sz[IPA_HDR_BIN0])
 		bin = IPA_HDR_BIN0;
@@ -289,6 +289,7 @@ static int __ipa_add_hdr(struct ipa_hdr_add *hdr)
 	if (id < 0) {
 		IPAERR("failed to alloc id\n");
 		WARN_ON(1);
+		 goto ipa_insert_failed;
 	}
 	entry->id = id;
 	hdr->hdr_hdl = id;
@@ -298,6 +299,14 @@ static int __ipa_add_hdr(struct ipa_hdr_add *hdr)
 
 ofst_alloc_fail:
 	kmem_cache_free(ipa_ctx->hdr_offset_cache, offset);
+ipa_insert_failed:
+	if (offset)
+		list_move(&offset->link,
+			  &htbl->head_free_offset_list[offset->bin]);
+	entry->offset_entry = NULL;
+
+	htbl->hdr_cnt--;
+	list_del(&entry->link);
 bad_hdr_len:
 	entry->cookie = 0;
 	kmem_cache_free(ipa_ctx->hdr_cache, entry);
@@ -316,7 +325,7 @@ int __ipa_del_hdr(u32 hdr_hdl, bool by_user)
 		return -EINVAL;
 	}
 
-	if (entry->cookie != IPA_COOKIE) {
+	if (!entry || (entry->cookie != IPA_HDR_COOKIE)) {
 		IPAERR("bad parm\n");
 		return -EINVAL;
 	}
@@ -659,7 +668,7 @@ int ipa_put_hdr(u32 hdr_hdl)
 		goto bail;
 	}
 
-	if (entry == NULL || entry->cookie != IPA_COOKIE) {
+	if (entry == NULL || entry->cookie != IPA_HDR_COOKIE) {
 		IPAERR("bad params\n");
 		result = -EINVAL;
 		goto bail;
