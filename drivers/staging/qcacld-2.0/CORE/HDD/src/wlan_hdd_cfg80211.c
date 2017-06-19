@@ -819,6 +819,12 @@ wlan_hdd_extscan_config_policy[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_
 
 static const struct nla_policy
 wlan_hdd_pno_config_policy[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1] = {
+	[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_LIST_PARAM_NUM] = {
+		.type = NLA_U32
+	},
+	[QCA_WLAN_VENDOR_ATTR_PNO_PASSPOINT_NETWORK_PARAM_ID] = {
+		.type = NLA_U32
+	},
 	[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_NUM_NETWORKS] = {
 		.type = NLA_U32
 	},
@@ -4368,7 +4374,8 @@ static int hdd_extscan_passpoint_fill_network_list(
 
 		if (nla_parse(network,
 			QCA_WLAN_VENDOR_ATTR_PNO_MAX,
-			nla_data(networks), nla_len(networks), NULL)) {
+			nla_data(networks), nla_len(networks),
+			wlan_hdd_pno_config_policy)) {
 			hddLog(LOGE, FL("nla_parse failed"));
 			return -EINVAL;
 		}
@@ -4543,7 +4550,7 @@ static int wlan_hdd_cfg80211_reset_passpoint_list(struct wiphy *wiphy,
 	ENTER();
 
 	if (nla_parse(tb, QCA_WLAN_VENDOR_ATTR_PNO_MAX, data, data_len,
-		wlan_hdd_extscan_config_policy)) {
+		wlan_hdd_pno_config_policy)) {
 		hddLog(LOGE, FL("Invalid ATTR"));
 		return -EINVAL;
 	}
