@@ -218,23 +218,24 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	if (pinfo->blank_state != MDSS_PANEL_BLANK_UNBLANK){
 		pr_err("%s: level(%d), blank_state(%d)\n", __func__, level, pinfo->blank_state);
-		return;
+		if (level <= 1)
+			return;
+		if (ctrl->low_power_config)
+			ctrl->low_power_config(&ctrl->panel_data, 0);
 	}
 	else if (!pinfo->panel_state){
 		pr_err("%s: panel_state is 0\n", __func__);
 		return;
 	}
+	/*
+	*	To avoid DSI0 & DSI1 twice update.
+	*	Triggered by cmd_sync_wait_trigger.
+	*/
+	if (ctrl->cmd_sync_wait_broadcast && !ctrl->cmd_sync_wait_trigger)
+		return;
 	else {
-		/*
-		*	To avoid DSI0 & DSI1 twice update.
-		*	Triggered by cmd_sync_wait_trigger.
-		*/
-		if (ctrl->cmd_sync_wait_broadcast && !ctrl->cmd_sync_wait_trigger)
-			return;
-		else {
-			mdss_samsung_brightness_dcs(ctrl, level);
-			return;
-		}
+		mdss_samsung_brightness_dcs(ctrl, level);
+		return;
 	}
 #endif
 
