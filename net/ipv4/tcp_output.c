@@ -51,8 +51,11 @@ int sysctl_tcp_retrans_collapse __read_mostly = 1;
 int sysctl_tcp_workaround_signed_windows __read_mostly = 0;
 
 /* Default TSQ limit of two TSO segments */
+#ifdef CONFIG_BCM4358
+int sysctl_tcp_limit_output_bytes __read_mostly = 4194304;
+#else
 int sysctl_tcp_limit_output_bytes __read_mostly = 131072;
-
+#endif
 /* This limits the percentage of the congestion window which we
  * will allow a single TSO frame to consume.  Building TSO frames
  * which are too large can cause TCP streams to be bursty.

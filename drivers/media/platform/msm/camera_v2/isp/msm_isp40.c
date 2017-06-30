@@ -49,7 +49,7 @@
 
 static uint8_t stats_pingpong_offset_map[] = {
 	8, 9, 10, 11, 12, 13, 14, 15};
-
+	
 #define VFE40_NUM_STATS_TYPE 8
 #define VFE40_STATS_BASE(idx) (0x168 + 0x18 * idx)
 #define VFE40_STATS_PING_PONG_BASE(idx, ping_pong) \
@@ -96,7 +96,6 @@ static struct msm_cam_clk_info msm_vfe40_clk_info[] = {
 static void msm_vfe40_init_qos_parms(struct vfe_device *vfe_dev)
 {
 	void __iomem *vfebase = vfe_dev->vfe_base;
-
 	if (vfe_dev->vfe_hw_version == VFE40_8974V1_VERSION ||
 		vfe_dev->vfe_hw_version == VFE40_8x26_VERSION ||
 		vfe_dev->vfe_hw_version == VFE40_8x26V2_VERSION) {
@@ -118,7 +117,7 @@ static void msm_vfe40_init_qos_parms(struct vfe_device *vfe_dev)
 		msm_camera_io_w(0xAAA9AAA9, vfebase + VFE40_BUS_BDG_QOS_CFG_5);
 		msm_camera_io_w(0xAAA9AAA9, vfebase + VFE40_BUS_BDG_QOS_CFG_6);
 		msm_camera_io_w(0x0001AAA9, vfebase + VFE40_BUS_BDG_QOS_CFG_7);
-	} else {
+		} else {
 		BUG();
 		pr_err("%s: QOS is NOT configured for HW Version %x\n",
 			__func__, vfe_dev->vfe_hw_version);
@@ -206,7 +205,7 @@ static void msm_vfe40_init_vbif_parms_8974_v2(struct vfe_device *vfe_dev)
 static void msm_vfe40_init_vbif_parms_8x26(struct vfe_device *vfe_dev)
 {
 	void __iomem *vfe_vbif_base = vfe_dev->vfe_vbif_base;
-	msm_camera_io_w(0x10101010,
+		msm_camera_io_w(0x10101010,
 		vfe_vbif_base + VFE40_VBIF_IN_RD_LIM_CONF0);
 	msm_camera_io_w(0x10101010,
 		vfe_vbif_base + VFE40_VBIF_IN_RD_LIM_CONF1);
@@ -249,9 +248,8 @@ static void msm_vfe40_init_vbif_parms(struct vfe_device *vfe_dev)
 		BUG();
 		pr_err("%s: VBIF is NOT configured for HW Version %x\n",
 			__func__, vfe_dev->vfe_hw_version);
-		break;
+		break; 	
 	}
-
 }
 
 static int msm_vfe40_init_hardware(struct vfe_device *vfe_dev)
@@ -307,8 +305,7 @@ vfe_remap_failed:
 	msm_cam_clk_enable(&vfe_dev->pdev->dev, msm_vfe40_clk_info,
 		vfe_dev->vfe_clk, ARRAY_SIZE(msm_vfe40_clk_info), 0);
 clk_enable_failed:
-	if (vfe_dev->fs_vfe)
-		regulator_disable(vfe_dev->fs_vfe);
+	regulator_disable(vfe_dev->fs_vfe);
 fs_failed:
 	msm_isp_deinit_bandwidth_mgr(ISP_VFE0 + vfe_dev->pdev->id);
 bus_scale_register_failed:
@@ -352,10 +349,8 @@ static void msm_vfe40_process_reset_irq(struct vfe_device *vfe_dev,
 static void msm_vfe40_process_halt_irq(struct vfe_device *vfe_dev,
 	uint32_t irq_status0, uint32_t irq_status1)
 {
-	if (irq_status1 & (1 << 8)) {
-		complete(&vfe_dev->halt_complete);
-		msm_camera_io_w(0x0, vfe_dev->vfe_base + 0x2C0);
-	}
+	if (irq_status1 & (1 << 8)) 
+		complete(&vfe_dev->halt_complete);	
 }
 
 static void msm_vfe40_process_camif_irq(struct vfe_device *vfe_dev,
@@ -363,15 +358,17 @@ static void msm_vfe40_process_camif_irq(struct vfe_device *vfe_dev,
 	struct msm_isp_timestamp *ts)
 {
 	int cnt;
-
+	
 	if (!(irq_status0 & 0xF))
 		return;
 
 	if (irq_status0 & (1 << 0)) {
 		ISP_DBG("%s: SOF IRQ\n", __func__);
 		cnt = vfe_dev->axi_data.src_info[VFE_PIX_0].raw_stream_count;
+
 		if (cnt > 0) {
 			msm_isp_sof_notify(vfe_dev, VFE_RAW_0, ts);
+		
 			if (vfe_dev->axi_data.stream_update)
 				msm_isp_axi_stream_update(vfe_dev);
 			msm_isp_update_framedrop_reg(vfe_dev);
@@ -453,9 +450,11 @@ static void msm_vfe40_process_violation_status(
 static void msm_vfe40_process_error_status(struct vfe_device *vfe_dev)
 {
 	uint32_t error_status1 = vfe_dev->error_info.error_mask1;
+	struct msm_isp_event_data error_event;
 	if (error_status1 & (1 << 0))
-		pr_err_ratelimited("%s: camif error status: 0x%x\n",
+			pr_err_ratelimited("%s: camif error status: 0x%x\n",
 			__func__, vfe_dev->error_info.camif_status);
+
 	if (error_status1 & (1 << 1))
 		pr_err_ratelimited("%s: stats bhist overwrite\n", __func__);
 	if (error_status1 & (1 << 2))
@@ -474,25 +473,25 @@ static void msm_vfe40_process_error_status(struct vfe_device *vfe_dev)
 	}
 	if (error_status1 & (1 << 9))
 		pr_err_ratelimited("%s: image master 0 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 10))
 		pr_err_ratelimited("%s: image master 1 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 11))
 		pr_err_ratelimited("%s: image master 2 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 12))
 		pr_err_ratelimited("%s: image master 3 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 13))
 		pr_err_ratelimited("%s: image master 4 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 14))
 		pr_err_ratelimited("%s: image master 5 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 15))
 		pr_err_ratelimited("%s: image master 6 bus overflow\n",
-			__func__);
+		__func__);
 	if (error_status1 & (1 << 16))
 		pr_err_ratelimited("%s: status be bus overflow\n", __func__);
 	if (error_status1 & (1 << 17))
@@ -509,7 +508,7 @@ static void msm_vfe40_process_error_status(struct vfe_device *vfe_dev)
 		pr_err_ratelimited("%s: status ihist bus overflow\n", __func__);
 	if (error_status1 & (1 << 23))
 		pr_err_ratelimited("%s: status skin bhist bus overflow\n",
-			__func__);
+		__func__);
 }
 
 static void msm_vfe40_read_irq_status(struct vfe_device *vfe_dev,
@@ -517,11 +516,13 @@ static void msm_vfe40_read_irq_status(struct vfe_device *vfe_dev,
 {
 	*irq_status0 = msm_camera_io_r(vfe_dev->vfe_base + 0x38);
 	*irq_status1 = msm_camera_io_r(vfe_dev->vfe_base + 0x3C);
+
 	/*
-	 * Ignore composite 2/3 irq which is used for dual VFE only
-	 */
-	if (*irq_status0 & 0x6000000)
-		*irq_status0 &= ~(0x18000000);
+	* Ignore composite 2/3 irq which is used for dual VFE only
+	*/
+  if (*irq_status0 & 0x6000000)
+           *irq_status0 &= ~(0x18000000);
+
 	msm_camera_io_w(*irq_status0, vfe_dev->vfe_base + 0x30);
 	msm_camera_io_w(*irq_status1, vfe_dev->vfe_base + 0x34);
 	msm_camera_io_w_mb(1, vfe_dev->vfe_base + 0x24);
@@ -529,7 +530,6 @@ static void msm_vfe40_read_irq_status(struct vfe_device *vfe_dev,
 		pr_err_ratelimited("%s: Protection triggered\n", __func__);
 		*irq_status0 &= ~(0x18000000);
 	}
-
 	if (*irq_status1 & (1 << 0))
 		vfe_dev->error_info.camif_status =
 		msm_camera_io_r(vfe_dev->vfe_base + 0x31C);
@@ -575,21 +575,22 @@ static void msm_vfe40_reg_update(struct vfe_device *vfe_dev)
 }
 
 static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev,
-	uint32_t first_start, uint32_t blocking_call)
+uint32_t first_start, uint32_t blocking)
 {
 	long rc = 0;
-	init_completion(&vfe_dev->reset_complete);
+  init_completion(&vfe_dev->reset_complete);
 
-	if (first_start) {
-		msm_camera_io_w_mb(0x1FF, vfe_dev->vfe_base + 0xC);
-	} else {
-		msm_camera_io_w_mb(0x1EF, vfe_dev->vfe_base + 0xC);
-		msm_camera_io_w(0x7FFFFFFF, vfe_dev->vfe_base + 0x30);
-		msm_camera_io_w(0xFEFFFEFF, vfe_dev->vfe_base + 0x34);
-		msm_camera_io_w(0x1, vfe_dev->vfe_base + 0x24);
-		vfe_dev->hw_info->vfe_ops.axi_ops.
-			reload_wm(vfe_dev, 0x0003FFFF);
-	}
+		if (first_start) { // need to reset registers if First Start
+				msm_camera_io_w_mb(0x1FF, vfe_dev->vfe_base + 0xC);
+		} else {
+				msm_camera_io_w_mb(0x1EF, vfe_dev->vfe_base + 0xC);
+				//Clear IRQ Status
+				msm_camera_io_w(0x7FFFFFFF, vfe_dev->vfe_base + 0x30);
+				msm_camera_io_w(0xFEFFFEFF, vfe_dev->vfe_base + 0x34);
+				msm_camera_io_w(0x1, vfe_dev->vfe_base + 0x24);
+				vfe_dev->hw_info->vfe_ops.axi_ops.
+	   reload_wm(vfe_dev, 0x0003FFFF);
+		}
 
 
 	if (blocking_call) {
@@ -638,6 +639,7 @@ static void msm_vfe40_axi_cfg_comp_mask(struct vfe_device *vfe_dev,
 	 * For dual VFE, composite 2/3 interrupt is used to trigger
 	 * microcontroller to update certain VFE registers
 	 */
+	
 	if (stream_info->plane_cfg[0].plane_addr_offset &&
 		stream_info->stream_src == PIX_VIEWFINDER) {
 		comp_mask |= (axi_data->composite_info[comp_mask_index].
@@ -651,7 +653,6 @@ static void msm_vfe40_axi_cfg_comp_mask(struct vfe_device *vfe_dev,
 		stream_composite_mask << 24);
 		irq_mask |= BIT(28);
 	}
-
 	msm_camera_io_w(comp_mask, vfe_dev->vfe_base + 0x40);
 	msm_camera_io_w(irq_mask, vfe_dev->vfe_base + 0x28);
 }
@@ -668,7 +669,7 @@ static void msm_vfe40_axi_clear_comp_mask(struct vfe_device *vfe_dev,
 
 	irq_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x28);
 	irq_mask &= ~(1 << (comp_mask_index + 25));
-
+	
 	if (stream_info->plane_cfg[0].plane_addr_offset &&
 		stream_info->stream_src == PIX_VIEWFINDER) {
 		comp_mask &= ~(axi_data->composite_info[comp_mask_index].
@@ -678,11 +679,11 @@ static void msm_vfe40_axi_clear_comp_mask(struct vfe_device *vfe_dev,
 
 	if (stream_info->plane_cfg[0].plane_addr_offset &&
 		stream_info->stream_src == PIX_ENCODER) {
+
 		comp_mask &= ~(axi_data->composite_info[comp_mask_index].
 		stream_composite_mask << 24);
 		irq_mask &= ~BIT(28);
 	}
-
 	msm_camera_io_w(comp_mask, vfe_dev->vfe_base + 0x40);
 	msm_camera_io_w(irq_mask, vfe_dev->vfe_base + 0x28);
 }
@@ -744,9 +745,10 @@ static void msm_vfe40_clear_framedrop(struct vfe_device *vfe_dev,
 			VFE40_WM_BASE(stream_info->wm[i]) + 0x1C);
 }
 
-static int32_t msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
+static void msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
 	enum msm_vfe_axi_stream_src stream_src, uint32_t io_format)
 {
+
 	int bpp, bpp_reg = 0, pack_reg = 0;
 	enum msm_isp_pack_fmt pack_fmt = 0;
 	uint32_t io_format_reg; /*io format register bit*/
@@ -756,7 +758,7 @@ static int32_t msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
 			io_format, bpp);
 		return -EINVAL;
 	}
-
+	
 	switch (bpp) {
 	case 8:
 		bpp_reg = 0;
@@ -767,7 +769,7 @@ static int32_t msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
 	case 12:
 		bpp_reg = 1 << 1;
 		break;
-	default:
+		default:
 		pr_err("%s:%d invalid bpp %d", __func__, __LINE__, bpp);
 		return -EINVAL;
 	}
@@ -799,7 +801,6 @@ static int32_t msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
 			return -EINVAL;
 		}
 	}
-
 	io_format_reg = msm_camera_io_r(vfe_dev->vfe_base + 0x54);
 	switch (stream_src) {
 	case PIX_ENCODER:
@@ -820,7 +821,6 @@ static int32_t msm_vfe40_cfg_io_format(struct vfe_device *vfe_dev,
 		return -EINVAL;
 	}
 	msm_camera_io_w(io_format_reg, vfe_dev->vfe_base + 0x54);
-	return 0;
 }
 
 static void msm_vfe40_cfg_camif(struct vfe_device *vfe_dev,
@@ -888,8 +888,7 @@ static void msm_vfe40_update_camif_state(struct vfe_device *vfe_dev,
 			src_info[VFE_PIX_0].pix_stream_count > 0) ? 1 : 0);
 		val &= 0xFFFFFF3F;
 		val = val | bus_en << 7 | vfe_en << 6;
-		msm_camera_io_w(val, vfe_dev->vfe_base + 0x2F8);
-		msm_camera_io_w_mb(0x4, vfe_dev->vfe_base + 0x2F4);
+		msm_camera_io_w(val, vfe_dev->vfe_base + 0x2F8);		
 		msm_camera_io_w_mb(0x1, vfe_dev->vfe_base + 0x2F4);
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 1;
 	} else if (update_state == DISABLE_CAMIF) {
@@ -931,8 +930,8 @@ static void msm_vfe40_axi_cfg_wm_reg(
 	uint32_t wm_base = VFE40_WM_BASE(stream_info->wm[plane_idx]);
 
 	if (!stream_info->frame_based) {
-		msm_camera_io_w(0x0, vfe_dev->vfe_base + wm_base);
 		/*WR_IMAGE_SIZE*/
+		msm_camera_io_w(0x0, vfe_dev->vfe_base + wm_base);
 		val =
 			((msm_isp_cal_word_per_line(
 				stream_info->output_format,
@@ -1010,6 +1009,7 @@ static void msm_vfe40_axi_cfg_wm_xbar_reg(
 			case V4L2_PIX_FMT_NV12:
 			case V4L2_PIX_FMT_NV14:
 			case V4L2_PIX_FMT_NV16:
+			case V4L2_PIX_FMT_NV46:
 				xbar_cfg |= 0x3 << 4; /*PAIR_STREAM_SWAP_CTRL*/
 				break;
 			}
@@ -1083,11 +1083,11 @@ static void msm_vfe40_cfg_axi_ub_equal_default(
 		}
 	}
 	prop_size = MSM_ISP40_TOTAL_WM_UB -
-		axi_data->hw_info->min_wm_ub * num_used_wms;
+	axi_data->hw_info->min_wm_ub * num_used_wms;
 	for (i = 0; i < axi_data->hw_info->num_wm; i++) {
 		if (axi_data->free_wm[i]) {
 			delta =
-				(axi_data->wm_image_size[i] *
+							(axi_data->wm_image_size[i] *
 					prop_size)/total_image_size;
 			wm_ub_size = axi_data->hw_info->min_wm_ub + delta;
 			msm_camera_io_w(ub_offset << 16 | (wm_ub_size - 1),
@@ -1126,8 +1126,8 @@ static void msm_vfe40_update_ping_pong_addr(
 	struct vfe_device *vfe_dev,
 	uint8_t wm_idx, uint32_t pingpong_status, dma_addr_t paddr)
 {
-	uint32_t paddr32 = (paddr & 0xFFFFFFFF);
-	msm_camera_io_w(paddr32, vfe_dev->vfe_base +
+		uint32_t paddr32 = (paddr & 0xFFFFFFFF);
+		msm_camera_io_w(paddr32, vfe_dev->vfe_base +
 		VFE40_PING_PONG_BASE(wm_idx, pingpong_status));
 }
 
@@ -1135,59 +1135,28 @@ static int msm_vfe40_axi_halt(struct vfe_device *vfe_dev,
 	uint32_t blocking)
 {
 	int rc = 0;
-
-	/* Keep only halt and restart mask */
-	msm_camera_io_w(BIT(31), vfe_dev->vfe_base + 0x28);
-	msm_camera_io_w(BIT(8), vfe_dev->vfe_base + 0x2C);
-
-	/*Clear IRQ Status */
-	msm_camera_io_w(0x7FFFFFFF, vfe_dev->vfe_base + 0x30);
-	msm_camera_io_w(0xFEFFFEFF, vfe_dev->vfe_base + 0x34);
-	msm_camera_io_w(0x1, vfe_dev->vfe_base + 0x24);
-	/* if any stream is waiting for update, signal complete */
-	if (vfe_dev->axi_data.stream_update) {
-		pr_err("%s: calling complete on stream update\n", __func__);
-		complete(&vfe_dev->stream_config_complete);
-	}
-	/* Halt AXI Bus Bridge */
+	uint32_t halt_mask;
+	halt_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x2C);
+	halt_mask |= (1 << 8);
+	msm_camera_io_w_mb(halt_mask, vfe_dev->vfe_base + 0x2C);
+	
 	init_completion(&vfe_dev->halt_complete);
 	msm_camera_io_w_mb(0x1, vfe_dev->vfe_base + 0x2C0);
-	if (blocking) {
-		rc = wait_for_completion_interruptible_timeout(
-			&vfe_dev->halt_complete, msecs_to_jiffies(500));
-	}
+	rc = wait_for_completion_interruptible_timeout(
+		&vfe_dev->halt_complete, msecs_to_jiffies(500));	
 	return rc;
-}
-
-static int msm_vfe40_axi_restart(struct vfe_device *vfe_dev,
-	uint32_t blocking, uint32_t enable_camif)
-{
-	vfe_dev->hw_info->vfe_ops.core_ops.restore_irq_mask(vfe_dev);
-
-	/* Clear IRQ Status */
-	msm_camera_io_w(0x7FFFFFFF, vfe_dev->vfe_base + 0x30);
-	msm_camera_io_w(0xFEFFFEFF, vfe_dev->vfe_base + 0x34);
-	msm_camera_io_w(0x1, vfe_dev->vfe_base + 0x24);
-
-	/* Start AXI */
-	msm_camera_io_w(0x0, vfe_dev->vfe_base + 0x2C0);
-
-	vfe_dev->hw_info->vfe_ops.core_ops.reg_update(vfe_dev);
-	memset(&vfe_dev->error_info, 0, sizeof(vfe_dev->error_info));
-	atomic_set(&vfe_dev->error_info.overflow_state, NO_OVERFLOW);
-
-	if (enable_camif) {
-		vfe_dev->hw_info->vfe_ops.core_ops.
-			update_camif_state(vfe_dev, ENABLE_CAMIF);
-	}
-
-	return 0;
 }
 
 static uint32_t msm_vfe40_get_wm_mask(
 	uint32_t irq_status0, uint32_t irq_status1)
 {
 	return (irq_status0 >> 8) & 0x7F;
+}
+
+static int msm_vfe40_stats_check_streams(
+	struct msm_vfe_stats_stream *stream_info)
+{
+	return 0;
 }
 
 static uint32_t msm_vfe40_get_comp_mask(
@@ -1225,12 +1194,6 @@ static int msm_vfe40_get_stats_idx(enum msm_isp_stats_type stats_type)
 		pr_err("%s: Invalid stats type\n", __func__);
 		return -EINVAL;
 	}
-}
-
-static int msm_vfe40_stats_check_streams(
-	struct msm_vfe_stats_stream *stream_info)
-{
-	return 0;
 }
 
 static void msm_vfe40_stats_cfg_comp_mask(struct vfe_device *vfe_dev,
@@ -1473,14 +1436,6 @@ static int msm_vfe40_get_platform_data(struct vfe_device *vfe_dev)
 		rc = -ENODEV;
 		goto vfe_no_resource;
 	}
-	if (vfe_dev->hw_info->num_iommu_secure_ctx) {
-		vfe_dev->iommu_secure_ctx[0] = msm_iommu_get_ctx("vfe_secure");
-		if (!vfe_dev->iommu_secure_ctx[0]) {
-			pr_err("%s: cannot get secure iommu_ctx\n", __func__);
-			rc = -ENODEV;
-			goto vfe_no_resource;
-		}
-	}
 
 vfe_no_resource:
 	return rc;
@@ -1499,9 +1454,9 @@ static void msm_vfe40_get_overflow_mask(uint32_t *overflow_mask)
 }
 
 static void msm_vfe40_get_rdi_wm_mask(struct vfe_device *vfe_dev,
-	uint32_t *rdi_wm_mask)
+  uint32_t *rdi_wm_mask)
 {
-	*rdi_wm_mask = vfe_dev->axi_data.rdi_wm_mask;
+  *rdi_wm_mask = vfe_dev->axi_data.rdi_wm_mask;
 }
 
 static void msm_vfe40_get_irq_mask(struct vfe_device *vfe_dev,
@@ -1564,7 +1519,6 @@ static struct v4l2_subdev_internal_ops msm_vfe40_internal_ops = {
 
 struct msm_vfe_hardware_info vfe40_hw_info = {
 	.num_iommu_ctx = 1,
-	.num_iommu_secure_ctx = 1,
 	.vfe_clk_idx = VFE40_CLK_IDX,
 	.vfe_ops = {
 		.irq_ops = {
@@ -1597,8 +1551,7 @@ struct msm_vfe_hardware_info vfe40_hw_info = {
 			.get_comp_mask = msm_vfe40_get_comp_mask,
 			.get_wm_mask = msm_vfe40_get_wm_mask,
 			.get_pingpong_status = msm_vfe40_get_pingpong_status,
-			.halt = msm_vfe40_axi_halt,
-			.restart = msm_vfe40_axi_restart,
+			.halt = msm_vfe40_axi_halt,			
 		},
 		.core_ops = {
 			.reg_update = msm_vfe40_reg_update,
@@ -1615,8 +1568,7 @@ struct msm_vfe_hardware_info vfe40_hw_info = {
 			.get_rdi_wm_mask = msm_vfe40_get_rdi_wm_mask,
 			.get_irq_mask = msm_vfe40_get_irq_mask,
 			.restore_irq_mask = msm_vfe40_restore_irq_mask,
-			.get_halt_restart_mask =
-				msm_vfe40_get_halt_restart_mask,
+			.get_halt_restart_mask = msm_vfe40_get_halt_restart_mask,
 			.process_error_status = msm_vfe40_process_error_status,
 		},
 		.stats_ops = {

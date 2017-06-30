@@ -280,6 +280,28 @@ config SND_SOC_MSM8X16
 	 the machine drivers and the corresponding
 	 DAI-links.
 
+config SEC_SOLUTION
+	tristate "Samsung solution"
+	default n
+	help
+		To add support for Samsung solution
+
+config CODEC_EAR_BIAS
+	tristate "WCD Codec internal mic bias"
+	default n
+	help
+		This will enable in case of codec internal ear mic bias.
+		
+config SND_SOC_VEQ_SUPPORT
+	tristate "ES704 VEQ Function"
+	default n
+	help
+		To add support for VEQ Function
+
+config JACK_AUDIO
+	tristate "Low Latency for JAM audio"
+	default y
+
 config SND_SOC_MDM9630
 	tristate "SoC Machine driver for MDM9630 boards"
 	depends on ARCH_MDM9630

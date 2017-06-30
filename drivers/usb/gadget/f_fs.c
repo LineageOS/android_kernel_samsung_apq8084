@@ -1459,13 +1459,19 @@ static int functionfs_bind(struct ffs_data *ffs, struct usb_composite_dev *cdev)
 	ffs->ep0req->context = ffs;
 
 	lang = ffs->stringtabs;
+#if defined (CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE)
+	if(lang == NULL)
+		pr_info("%s: stringtabs is NULL\n", __func__);
+
+	else
+#else
 	for (lang = ffs->stringtabs; *lang; ++lang) {
 		struct usb_string *str = (*lang)->strings;
 		int id = ffs->first_id;
 		for (; str->s; ++id, ++str)
 			str->id = id;
 	}
-
+#endif
 	ffs->gadget = cdev->gadget;
 	ffs_data_get(ffs);
 	return 0;
@@ -2622,3 +2628,4 @@ static char *ffs_prepare_buffer(const char __user *buf, size_t len)
 
 	return data;
 }
+

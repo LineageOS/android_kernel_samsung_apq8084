@@ -31,9 +31,15 @@
 #include <mach/msm_bus.h>
 #include "mdss.h"
 #include "mdss_debug.h"
+#include "mdss_mdp_trace.h"
 #include "mdss_fb.h"
 #include "mdss_mdp.h"
 #include "mdss_mdp_rotator.h"
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+#include "samsung/ss_dsi_panel_common.h"
+#endif
+
 
 #define VSYNC_PERIOD 16
 #define BORDERFILL_NDX	0x0BF000BF
@@ -842,6 +848,7 @@ int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 	pipe->req_data = *req;
 
 	mdss_mdp_pipe_sspp_term(pipe);
+
 	if (pipe->flags & MDP_OVERLAY_PP_CFG_EN) {
 		memcpy(&pipe->pp_cfg, &req->overlay_pp_cfg,
 					sizeof(struct mdp_overlay_pp_params));
@@ -1294,8 +1301,12 @@ static int __overlay_queue_pipes(struct msm_fb_data_type *mfd)
 		}
 
 		/* ensure pipes are always reconfigured after power off/on */
-		if (ctl->play_cnt == 0)
+		if (ctl->play_cnt == 0||ctl->roi_changed) {
 			pipe->params_changed++;
+#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+			MDSS_XLOG(__func__,pipe->num, pipe->type, pipe->flags, 0, 0, 0);
+#endif
+		}
 
 		if (pipe->back_buf.num_planes) {
 			buf = &pipe->back_buf;
@@ -1341,7 +1352,7 @@ static void __overlay_kickoff_requeue(struct msm_fb_data_type *mfd)
 	__overlay_queue_pipes(mfd);
 	ATRACE_END("sspp_programming");
 
-	mdss_mdp_display_commit(ctl, NULL,  NULL);
+	mdss_mdp_display_commit(ctl, NULL, NULL);
 	mdss_mdp_display_wait4comp(ctl);
 }
 
@@ -1370,7 +1381,6 @@ static int mdss_mdp_commit_cb(enum mdp_commit_stage_type commit_stage,
 
 	return ret;
 }
-
 int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 				struct mdp_display_commit *data)
 {
@@ -1382,6 +1392,9 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	int sd_in_pipe = 0;
 	bool need_cleanup = false;
 	struct mdss_mdp_commit_cb commit_cb;
+#if defined(CONFIG_FB_MSM_MIPI_SAMSUNG_OCTA_CMD_FHD_FA2_PT_PANEL)
+	int te_ret = 0;
+#endif
 
 	ATRACE_BEGIN(__func__);
 
@@ -1397,6 +1410,7 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	ret = mdss_mdp_overlay_start(mfd);
 	if (ret) {
 		pr_err("unable to start overlay %d (%d)\n", mfd->index, ret);
+		MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1", "panic");
 		goto unlock_exit;
 	}
 
@@ -1408,6 +1422,7 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	ret = mdss_iommu_ctrl(1);
 	if (IS_ERR_VALUE(ret)) {
 		pr_err("iommu attach failed rc=%d\n", ret);
+		MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1", "panic");
 		goto unlock_exit;
 	}
 	mutex_lock(&mdp5_data->list_lock);
@@ -1516,6 +1531,25 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	}
 
 	mdss_fb_update_notify_update(mfd);
+
+
+#if defined(CONFIG_FB_MSM_MIPI_SAMSUNG_OCTA_CMD_FHD_FA2_PT_PANEL)
+	te_ret = mdss_mdp_ctl_intf_event(mdp5_data->ctl, MDSS_EVENT_TE_UPDATE, NULL);
+	if (te_ret < 0) {
+		mdss_mdp_ctl_intf_event(mdp5_data->ctl, MDSS_EVENT_TE_RESTORE, NULL);
+	}
+#endif
+
+/*
+#if defined(CONFIG_FB_MSM_CMD_MODE_PANEL)
+	mdss_mdp_ctl_intf_event(mdp5_data->ctl, MDSS_EVENT_FRAME_UPDATE, NULL);
+#endif
+*/
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	mdss_mdp_ctl_intf_event(mdp5_data->ctl, MDSS_SAMSUNG_EVENT_FRAME_UPDATE, ctl);
+#endif
+
 commit_fail:
 	ATRACE_BEGIN("overlay_cleanup");
 	mdss_mdp_overlay_cleanup(mfd);
@@ -1531,7 +1565,6 @@ unlock_exit:
 	if (ctl->shared_lock)
 		mutex_unlock(ctl->shared_lock);
 	ATRACE_END(__func__);
-
 	return ret;
 }
 
@@ -1594,6 +1627,26 @@ static int mdss_mdp_overlay_unset(struct msm_fb_data_type *mfd, int ndx)
 	if (!mdp5_data || !mdp5_data->ctl)
 		return -ENODEV;
 
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+	/*
+	 * In case of LPM mode, the new lpmapp issues flip commands even after sleep flag is
+	 * set in it. This results in multiple Overlay Commit operations to be triggered
+	 * even after Blanking display.
+	 *
+	 * Because of this behaviour, there were race conditions between FB_BLANK & overlay operation thread
+	 * in kernel, hence resulting in invalid context and causing panics - Null pointer deferences &
+	 * BUG_ON hit.
+	 *
+	 * So to avoid this, this workaround of waiting of active overlay commits is added before proceeding
+	 * with mdp off.
+	 *
+	 * NOTE: Enabling this only for lpm mode of operation, just to be on the safer side.
+	 */
+	if (poweroff_charging) {
+		wait_event(mfd->idle_wait_q,(!atomic_read(&mfd->commits_pending)) );
+	}
+#endif /* CONFIG_SAMSUNG_LPM_MODE */
+
 	ret = mutex_lock_interruptible(&mdp5_data->ov_lock);
 	if (ret)
 		return ret;
@@ -1652,8 +1705,8 @@ static int __mdss_mdp_overlay_release_all(struct msm_fb_data_type *mfd,
 		}
 	}
 
-	if (cnt == 0 && !list_empty(&mdp5_data->pipes_cleanup)) {
-		pr_debug("overlay release on fb%d called without commit!",
+	if (!mfd->ref_cnt && !list_empty(&mdp5_data->pipes_cleanup)) {
+		pr_debug("fb%d:: free pipes present in cleanup list",
 			mfd->index);
 		cnt++;
 	}
@@ -3290,9 +3343,14 @@ static int mdss_mdp_overlay_on(struct msm_fb_data_type *mfd)
 		rc = mdss_mdp_ctl_start(mdp5_data->ctl, false);
 		goto panel_on;
 	}
-
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	if (!mfd->panel_info->cont_splash_enabled &&
+		(mfd->panel_info->type != DTV_PANEL) &&
+		!(alpm_status_func(CHECK_PREVIOUS_STATUS))) {
+#else
 	if (!mfd->panel_info->cont_splash_enabled &&
 		(mfd->panel_info->type != DTV_PANEL)) {
+#endif
 		rc = mdss_mdp_overlay_start(mfd);
 		if (rc)
 			goto end;
@@ -3353,6 +3411,26 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 		goto ctl_stop;
 	}
 
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+	/*
+	 * In case of LPM mode, the new lpmapp issues flip commands even after sleep flag is
+	 * set in it. This results in multiple Overlay Commit operations to be triggered
+	 * even after Blanking display.
+	 *
+	 * Because of this behaviour, there were race conditions between FB_BLANK & overlay operation thread
+	 * in kernel, hence resulting in invalid context and causing panics - Null pointer deferences &
+	 * BUG_ON hit.
+	 *
+	 * So to avoid this, this workaround of waiting of active overlay commits is added before proceeding
+	 * with mdp off.
+	 *
+	 * NOTE: Enabling this only for lpm mode of operation, just to be on the safer side.
+	 */
+	if (poweroff_charging) {
+		wait_event(mfd->idle_wait_q,(!atomic_read(&mfd->commits_pending)) );
+	}
+#endif /* CONFIG_SAMSUNG_LPM_MODE */
+
 	mutex_lock(&mdp5_data->ov_lock);
 
 	mdss_mdp_overlay_free_fb_pipe(mfd);
@@ -3371,8 +3449,16 @@ static int mdss_mdp_overlay_off(struct msm_fb_data_type *mfd)
 	mutex_unlock(&mdp5_data->ov_lock);
 
 	if (need_cleanup) {
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (alpm_status_func(CHECK_CURRENT_STATUS))
+			pr_info("[ALPM_DEBUG] %s, Skip cleanup pipes on fb%d\n",
+					__func__, mfd->index);
+		else
+#endif
+	{
 		pr_debug("cleaning up pipes on fb%d\n", mfd->index);
 		mdss_mdp_overlay_kickoff(mfd, NULL);
+	}
 	}
 
 	/*

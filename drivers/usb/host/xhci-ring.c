@@ -67,6 +67,12 @@
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
 #include "xhci.h"
+#include <linux/hrtimer.h>
+
+extern struct dbg_data dbg_hsic;
+unsigned ep_mask;
+unsigned tmp_trb_type, maxp_trb_type;
+ktime_t handle_start_time;
 
 static int handle_cmd_in_cmd_wait_list(struct xhci_hcd *xhci,
 		struct xhci_virt_device *virt_dev,
@@ -1108,6 +1114,11 @@ static void handle_set_deq_completion(struct xhci_hcd *xhci,
 	ep_index = TRB_TO_EP_INDEX(le32_to_cpu(trb->generic.field[3]));
 	stream_id = TRB_TO_STREAM_ID(le32_to_cpu(trb->generic.field[2]));
 	dev = xhci->devs[slot_id];
+
+	if (!dev) {
+		xhci_err(xhci, "ERROR xhci->devs[%d] is NULL \n",slot_id);
+		return;
+	}
 
 	ep_ring = xhci_stream_id_to_ring(dev, ep_index, stream_id);
 	if (!ep_ring) {
@@ -2381,6 +2392,7 @@ static int handle_tx_event(struct xhci_hcd *xhci,
 
 	/* Endpoint ID is 1 based, our index is zero based */
 	ep_index = TRB_TO_EP_ID(le32_to_cpu(event->flags)) - 1;
+	ep_mask |= (1 << ep_index);  
 	ep = &xdev->eps[ep_index];
 	ep_ring = xhci_dma_to_transfer_ring(ep, le64_to_cpu(event->buffer));
 	ep_ctx = xhci_get_ep_ctx(xhci, xdev->out_ctx, ep_index);
@@ -2570,7 +2582,7 @@ static int handle_tx_event(struct xhci_hcd *xhci,
 				 * successful event after a short transfer.
 				 * Ignore it.
 				 */
-				if ((xhci->quirks & XHCI_SPURIOUS_SUCCESS) && 
+				if ((xhci->quirks & XHCI_SPURIOUS_SUCCESS) &&
 						ep_ring->last_td_was_short) {
 					ep_ring->last_td_was_short = false;
 					ret = 0;
@@ -2709,6 +2721,7 @@ int xhci_handle_event(struct xhci_hcd *xhci)
 	 * speculative reads of the event's flags/data below.
 	 */
 	rmb();
+	tmp_trb_type = le32_to_cpu(event->event_cmd.flags) & TRB_TYPE_BITMASK;
 	/* FIXME: Handle more event types. */
 	switch ((le32_to_cpu(event->event_cmd.flags) & TRB_TYPE_BITMASK)) {
 	case TRB_TYPE(TRB_COMPLETION):
@@ -2766,6 +2779,11 @@ irqreturn_t xhci_irq(struct usb_hcd *hcd)
 	u64 temp_64;
 	union xhci_trb *event_ring_deq;
 	dma_addr_t deq;
+	unsigned int event_cnt = 0;
+	ktime_t irq_delta, t1, t2;
+	s64 temp, max_t = 0, min_t = 0;
+
+	irq_delta = ktime_get();
 
 	spin_lock(&xhci->lock);
 	/* Check if the xHC generated the interrupt, or the irq is shared */
@@ -2821,7 +2839,25 @@ hw_died:
 	/* FIXME this should be a delayed service routine
 	 * that clears the EHB.
 	 */
-	while (xhci_handle_event(xhci) > 0) {}
+	while (1) {
+		handle_start_time = t1 = ktime_get();
+		
+		if (xhci_handle_event(xhci) <= 0)
+			break;
+		t2 = ktime_get();
+		temp = ktime_to_us(ktime_sub(t2, t1));
+		if (temp > max_t){
+			max_t = temp;
+			maxp_trb_type = tmp_trb_type;
+		}
+
+		if (!min_t)
+			min_t = temp;
+		if (temp < max_t)
+			if (temp < min_t)
+				min_t = temp;
+		event_cnt++;
+	}
 
 	temp_64 = xhci_read_64(xhci, &xhci->ir_set->erst_dequeue);
 	/* If necessary, update the HW's version of the event ring deq ptr. */
@@ -2841,6 +2877,11 @@ hw_died:
 	xhci_write_64(xhci, temp_64, &xhci->ir_set->erst_dequeue);
 
 	spin_unlock(&xhci->lock);
+
+	xhci_dbg_irq_event(&dbg_hsic, maxp_trb_type, max_t, event_cnt,
+		ktime_to_us(ktime_sub(ktime_get(), irq_delta)), ep_mask);
+
+	ep_mask = 0;
 
 	return IRQ_HANDLED;
 }

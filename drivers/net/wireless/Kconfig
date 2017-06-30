@@ -322,19 +322,11 @@ config CNSS_SECURE_FW
 	  The Memory Allocation is done only if this Config Parameter is
 	  enabled
 
-config BUS_AUTO_SUSPEND
-	bool "Enable/Disable Runtime PM support for PCIe based WLAN Drivers"
+config FW_LOGS_BASED_ON_INI
+	tristate "CNSS change default fw log level based on ini"
 	depends on CNSS
-	depends on PCI
 	---help---
-	  Runtime Power Management is supported for PCIe based WLAN Drivers.
-	  The features enable cld wlan driver to suspend pcie bus when APPS
-	  is awake based on the driver inactivity with the Firmware.
-	  The Feature uses runtime power management framework from kernel to
-	  track bus access clients and to synchronize the driver activity
-	  during system pm.
-	  This config flag controls the feature per target based. The feature
-	  requires CNSS driver support.
+	  If set this configuration, FW log level will be set by ini configuration file.
 
 config WCNSS_CORE_PRONTO
 	tristate "Qualcomm WCNSS Pronto Support"
@@ -357,15 +349,6 @@ config WCNSS_REGISTER_DUMP_ON_BITE
 	 register access failures. So this feature is to enable/disable the
 	 register dump on WCNSS WDOG bite.
 
-config CNSS_MAC_BUG
-	bool "Enable/disable 0-4K memory initialization for QCA6174"
-	depends on CNSS
-	help
-	 If enabled, 0-4K memory is reserved for QCA6174 to address a MAC HW bug.
-	 MAC would do an invalid pointer fetch based on the data, that was read
-	 from 0 to 4K. So fill it with zero's; to an address for which PCIe root
-	 complex would honor the read without any errors.
-
 config CLD_LL_CORE
 	tristate "Qualcomm CORE driver for QCA6174"
 	select WIRELESS_EXT
@@ -378,10 +361,20 @@ config CLD_LL_CORE
 	---help---
 	  Core driver for the Qualcomm QCA6174 Chipset
 
+config CNSS_MAC_BUG
+	bool "Enable/disable 0-4K memory initialization for QCA6174"
+	depends on CNSS
+	help
+	 If enabled, 0-4K memory is reserved for QCA6174 to address a MAC HW bug.
+	 MAC would do an invalid pointer fetch based on the data, that was read
+	 from 0 to 4K. So fill it with zero's; to an address for which PCIe root
+	 complex would honor the read without any errors.
+
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
 source "drivers/net/wireless/brcm80211/Kconfig"
+source "drivers/net/wireless/bcmdhd4358/Kconfig"
 source "drivers/net/wireless/hostap/Kconfig"
 source "drivers/net/wireless/ipw2x00/Kconfig"
 source "drivers/net/wireless/iwlwifi/Kconfig"
@@ -394,5 +387,6 @@ source "drivers/net/wireless/rtlwifi/Kconfig"
 source "drivers/net/wireless/ti/Kconfig"
 source "drivers/net/wireless/zd1211rw/Kconfig"
 source "drivers/net/wireless/mwifiex/Kconfig"
+source "drivers/net/wireless/mwlan_aarp/Kconfig"
 
 endif # WLAN

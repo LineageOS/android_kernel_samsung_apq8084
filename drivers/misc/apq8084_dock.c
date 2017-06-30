@@ -131,13 +131,6 @@ static int apq8084_dock_probe(struct platform_device *pdev)
 		return dock->dock_detect;
 	}
 
-	ret = devm_request_irq(&pdev->dev, gpio_to_irq(dock->dock_detect),
-				dock_detected, IRQF_TRIGGER_RISING |
-				IRQF_TRIGGER_FALLING | IRQF_SHARED,
-				"dock_detect_irq", dock);
-	if (ret)
-		return ret;
-
 	dock->dock_hub_reset = of_get_named_gpio(node,
 						 "qcom,dock-hub-reset-gpio", 0);
 	if (dock->dock_hub_reset < 0) {
@@ -184,6 +177,13 @@ static int apq8084_dock_probe(struct platform_device *pdev)
 		of_node_put(usb3_node);
 		return -EPROBE_DEFER;
 	}
+
+	ret = devm_request_irq(&pdev->dev, gpio_to_irq(dock->dock_detect),
+				dock_detected, IRQF_TRIGGER_RISING |
+				IRQF_TRIGGER_FALLING | IRQF_SHARED,
+				"dock_detect_irq", dock);
+	if (ret)
+		return ret;
 
 	of_node_put(usb3_node);
 	schedule_work(&dock->dock_work);

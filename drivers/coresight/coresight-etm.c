@@ -35,6 +35,9 @@
 #include <soc/qcom/memory_dump.h>
 
 #include "coresight-priv.h"
+#if defined(CONFIG_CORESIGHT_ETM_DEFAULT_ENABLE) && defined(CONFIG_SEC_DEBUG)
+#include <mach/sec_debug.h>
+#endif
 
 #define etm_writel_mm(drvdata, val, off)  \
 			__raw_writel((val), drvdata->base + off)
@@ -2238,6 +2241,13 @@ static int etm_probe(struct platform_device *pdev)
 	}
 
 	dev_info(dev, "ETM initialized\n");
+	
+#if defined(CONFIG_CORESIGHT_ETM_DEFAULT_ENABLE) && defined(CONFIG_SEC_DEBUG)
+	if (kernel_sec_get_debug_level() == KERNEL_SEC_DEBUG_LEVEL_LOW)
+		boot_enable = 0;
+	else
+		boot_enable = 1;
+#endif
 
 	if (boot_enable) {
 		coresight_enable(drvdata->csdev);

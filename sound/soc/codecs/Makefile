@@ -38,6 +38,9 @@ snd-soc-max9768-objs := max9768.o
 snd-soc-max98088-objs := max98088.o
 snd-soc-max98090-objs := max98090.o
 snd-soc-max98095-objs := max98095.o
+snd-soc-max98504-objs := max98504.o
+snd-soc-max98504a-objs := max98504a.o
+snd-soc-maxim-dsm-objs := maxim_dsm.o
 snd-soc-max9850-objs := max9850.o
 snd-soc-mc13783-objs := mc13783.o
 snd-soc-ml26124-objs := ml26124.o
@@ -176,6 +179,9 @@ obj-$(CONFIG_SND_SOC_MAX9768)	+= snd-soc-max9768.o
 obj-$(CONFIG_SND_SOC_MAX98088)	+= snd-soc-max98088.o
 obj-$(CONFIG_SND_SOC_MAX98090)	+= snd-soc-max98090.o
 obj-$(CONFIG_SND_SOC_MAX98095)	+= snd-soc-max98095.o
+obj-$(CONFIG_SND_SOC_MAX98504)	+= snd-soc-max98504.o
+obj-$(CONFIG_SND_SOC_MAX98504A)	+= snd-soc-max98504a.o
+obj-$(CONFIG_SND_SOC_MAXIM_DSM) += snd-soc-maxim-dsm.o
 obj-$(CONFIG_SND_SOC_MAX9850)	+= snd-soc-max9850.o
 obj-$(CONFIG_SND_SOC_MC13783)	+= snd-soc-mc13783.o
 obj-$(CONFIG_SND_SOC_ML26124)	+= snd-soc-ml26124.o
@@ -266,3 +272,8 @@ obj-$(CONFIG_SND_SOC_MSM_STUB)  += snd-soc-msm-stub.o
 # Amp
 obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_TPA6130A2)	+= snd-soc-tpa6130a2.o
+# Audience
+obj-$(CONFIG_SND_SOC_ES_515)	+= audience/
+obj-$(CONFIG_SND_SOC_ES705)	+= audience/
+#DBMD2
+obj-$(CONFIG_SND_DSPG_DBMD2)	+= dbmd2/

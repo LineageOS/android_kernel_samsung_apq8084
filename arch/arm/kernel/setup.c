@@ -144,6 +144,12 @@ static const char *machine_name;
 static char __initdata cmd_line[COMMAND_LINE_SIZE];
 struct machine_desc *machine_desc __initdata;
 
+#ifdef CONFIG_SEC_DEBUG_SUBSYS
+const char *unit_name;
+EXPORT_SYMBOL(unit_name);
+#endif
+
+
 static union { char c[4]; unsigned long l; } endian_test __initdata = { { 'l', '?', '?', 'b' } };
 #define ENDIANNESS ((char)endian_test.l)
 
@@ -630,6 +636,14 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+static int __init msm_hw_rev_setup(char *p)
+{
+	system_rev = memparse(p, NULL);
+	printk("androidboot.revision %x\n", system_rev);
+	return 0;
+}
+early_param("androidboot.revision", msm_hw_rev_setup);
+
 static void __init request_standard_resources(struct machine_desc *mdesc)
 {
 	struct memblock_region *region;
@@ -794,6 +808,9 @@ void __init setup_arch(char **cmdline_p)
 		mdesc = setup_machine_tags(__atags_pointer, __machine_arch_type);
 	machine_desc = mdesc;
 	machine_name = mdesc->name;
+#ifdef CONFIG_SEC_DEBUG_SUBSYS
+	unit_name = machine_name;
+#endif
 
 	setup_dma_zone(mdesc);
 

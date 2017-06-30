@@ -1123,7 +1123,7 @@ static void ip6_link_failure(struct sk_buff *skb)
 				dst_free(&rt->dst);
 		} else if (rt->rt6i_node && (rt->rt6i_flags & RTF_DEFAULT)) {
 			rt->rt6i_node->fn_sernum = -1;
-		}
+                }
 	}
 }
 

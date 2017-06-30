@@ -411,35 +411,58 @@ static int msm_rpm_flush_requests(bool print)
 		ret = msm_rpm_send_smd_buffer(s->buf,
 				get_buf_len(s->buf), true);
 
-		/*
-		 * RPM acks need to be handled here if we have sent over
-		 * 24 messages such that we do not overrun SMD buffer. Since
-		 * we expect only sleep sets at this point (RPM PC would be
-		 * disallowed if we had pending active requests), we need not
-		 * process these sleep set acks.
-		 */
-		count++;
-		if (count > MAX_WAIT_ON_ACK) {
-			int len;
-			pkt_sz = smd_cur_packet_size(msm_rpm_data.ch_info);
-			if (pkt_sz)
-				len = smd_read(msm_rpm_data.ch_info, buf,
-							pkt_sz);
-			count--;
-		}
-
 		WARN_ON(ret != get_buf_len(s->buf));
+
+		s->valid = false;
+		count++;
 
 		trace_rpm_send_message(true, MSM_RPM_CTX_SLEEP_SET,
 				get_rsc_type(s->buf),
 				get_rsc_id(s->buf),
 				get_msg_id(s->buf));
 
-		s->valid = false;
+		/*
+		 * RPM acks need to be handled here if we have sent 24
+		 * messages such that we do not overrun SMD buffer. Since
+		 * we expect only sleep sets at this point (RPM PC would be
+		 * disallowed if we had pending active requests), we need not
+		 * process these sleep set acks.
+		 */
+		if (count >= MAX_WAIT_ON_ACK) {
+			int len;
+			int timeout = 10;
+
+			while (timeout) {
+				if (smd_is_pkt_avail(msm_rpm_data.ch_info))
+					break;
+				/*
+				 * Sleep for 50us at a time before checking
+				 * for packet availability. The 50us is based
+				 * on the the time rpm could take to process
+				 * and send an ack for the sleep set request.
+				 */
+				udelay(50);
+				timeout--;
+			}
+			/*
+			 * On timeout return an error and exit the spinlock
+			 * control on this cpu. This will allow any other
+			 * core that has wokenup and trying to acquire the
+			 * spinlock from being locked out.
+			 */
+			if (!timeout) {
+				pr_err("%s: Timed out waiting for RPM ACK\n",
+					__func__);
+				return -EAGAIN;
+			}
+
+			pkt_sz = smd_cur_packet_size(msm_rpm_data.ch_info);
+			len = smd_read(msm_rpm_data.ch_info, buf, pkt_sz);
+			count--;
+		}
 	}
 	return 0;
 }
-
 
 static atomic_t msm_rpm_msg_id = ATOMIC_INIT(0);
 
@@ -1309,12 +1332,19 @@ EXPORT_SYMBOL(msm_rpm_send_message_noirq);
  */
 int msm_rpm_enter_sleep(bool print, const struct cpumask *cpumask)
 {
+	int ret = 0;
+
 	if (standalone)
 		return 0;
 
-	msm_rpm_flush_requests(print);
-
-	return smd_mask_receive_interrupt(msm_rpm_data.ch_info, true, cpumask);
+	ret = smd_mask_receive_interrupt(msm_rpm_data.ch_info, true, cpumask);
+	if (!ret) {
+		ret = msm_rpm_flush_requests(print);
+		if (ret)
+			smd_mask_receive_interrupt(msm_rpm_data.ch_info,
+							false, NULL);
+	}
+	return ret;
 }
 EXPORT_SYMBOL(msm_rpm_enter_sleep);
 

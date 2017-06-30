@@ -1,3 +1,4 @@
+/* Copyright (c) 2015 Samsung Electronics Co., Ltd. */
 /*
  *  Universal TUN/TAP device driver.
  *  Copyright (C) 1999-2000 Maxim Krasnyansky <max_mk@yahoo.com>
@@ -12,7 +13,15 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  */
-
+/*
+ *  Changes:
+ *  KwnagHyun Kim <kh0304.kim@samsung.com> 2015/07/08
+ *  Baesung Park  <baesung.park@samsung.com> 2015/07/08
+ *  Vignesh Saravanaperumal <vignesh1.s@samsung.com> 2015/07/08
+ *    Add codes to share UID/PID information
+ *
+ */
+ 
 #ifndef _UAPI__IF_TUN_H
 #define _UAPI__IF_TUN_H
 
@@ -82,6 +91,15 @@ struct tun_pi {
 	__u16  flags;
 	__be16 proto;
 };
+
+// ------------- START of KNOX_VPN ------------------//
+#define TUN_META_HDR	0x0800
+#define TUNGETMETAPARAM _IOR('T', 218, int)
+#define IFF_META_HDR	0x0004
+#define TUN_GET_META_HDR_SZ 0
+#define TUN_GET_META_MARK_OFFSET 1
+#define DEFAULT_IHL 5
+// ------------- END of KNOX_VPN -------------------//
 
 /*
  * Filter spec (used for SETXXFILTER ioctls)

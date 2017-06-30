@@ -20,7 +20,11 @@
 #include "mdss_mdp.h"
 #include "mdss_debug.h"
 
-#define MDSS_XLOG_ENTRY	256
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+#include "samsung/ss_dsi_panel_common.h" /* UTIL HEADER */
+#endif
+
+#define MDSS_XLOG_ENTRY	1024
 #define MDSS_XLOG_MAX_DATA 6
 #define MDSS_XLOG_BUF_MAX 512
 
@@ -69,6 +73,11 @@ int mdss_create_xlog_debug(struct mdss_debug_data *mdd)
 		mdd->logd.xlog = NULL;
 		return -ENODEV;
 	}
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	mdd->logd.xlog_enable = true;
+	mdd->logd.panic_on_err = true;
+	mdd->logd.enable_reg_dump = true;
+#endif
 	debugfs_create_file("dump", 0644, mdd->logd.xlog, NULL,
 						&mdss_xlog_fops);
 	debugfs_create_bool("enable", 0644, mdd->logd.xlog,
@@ -131,18 +140,25 @@ void mdss_xlog_dump(void)
 	unsigned long rem_nsec;
 	struct tlog *log;
 	char xlog_buf[MDSS_XLOG_BUF_MAX];
+	u64 tick_backup;
 
 	if (!mdd->logd.xlog_enable)
 		return;
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	/* To block mdss_xlog() function */
+	mdd->logd.xlog_enable = false;
+#endif
 
 	spin_lock_irqsave(&mdss_dbg_xlog.xlock, flags);
 	i = mdss_dbg_xlog.first;
 	for (n = 0; n < MDSS_XLOG_ENTRY; n++) {
 		log = &mdss_dbg_xlog.logs[i];
-		rem_nsec = do_div(log->tick, 1000000000);
+		tick_backup = log->tick;
+		rem_nsec = do_div(tick_backup, 1000000000);
 		off = snprintf(xlog_buf, MDSS_XLOG_BUF_MAX,
-				"%-32s => [%5llu.%06lu]: ", log->name,
-					log->tick, rem_nsec / 1000);
+			"%-32s => [%5llu.%06lu]: ", log->name,
+			tick_backup, rem_nsec / 1000);
 		for (d_cnt = 0; d_cnt < log->data_cnt;) {
 			off += snprintf((xlog_buf + off),
 					(MDSS_XLOG_BUF_MAX - off),
@@ -164,6 +180,10 @@ void mdss_xlog_tout_handler(const char *name, ...)
 	int i, dead = 0;
 	va_list args;
 	char *blk_name = NULL;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	char *dsi0_addr = NULL;
+	char *dsi1_addr = NULL;
+#endif
 
 	if (!mdd->logd.xlog_enable)
 		return;
@@ -185,6 +205,14 @@ void mdss_xlog_tout_handler(const char *name, ...)
 				mdss_dump_reg(blk_base->base,
 						blk_base->max_offset);
 			}
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if (!strcmp(blk_base->name, "dsi0_ctrl"))
+			dsi0_addr = blk_base->base;
+
+		if (!strcmp(blk_base->name, "dsi1_ctrl"))
+			dsi1_addr = blk_base->base;
+#endif
+
 		}
 		if (!strcmp(blk_name, "panic"))
 			dead = 1;
@@ -193,7 +221,10 @@ void mdss_xlog_tout_handler(const char *name, ...)
 
 	MDSS_XLOG(0xffff, 0xffff, 0xffff, 0xffff, 0xffff);
 	mdss_xlog_dump();
-
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	mdss_samsung_dsi_te_check();
+	mdss_mdp_underrun_dump_info();
+#endif
 	if (dead && mdd->logd.panic_on_err)
 		panic(name);
 }

@@ -419,7 +419,6 @@ MODULE_DEVICE_TABLE(of, msm_ahci_of_match);
 
 static int msm_ahci_probe(struct platform_device *pdev)
 {
-	int err;
 	struct msm_ahci_host *host;
 	struct device *dev = &pdev->dev;
 	const struct of_device_id *of_id;
@@ -453,7 +452,7 @@ static int msm_ahci_probe(struct platform_device *pdev)
 	} else if (!dma_set_mask(dev, DMA_BIT_MASK(32))) {
 		dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
 	} else {
-		err = -EIO;
+		ret = -EIO;
 		dev_err(dev, "unable to set dma mask\n");
 		goto err_put_device;
 	}

@@ -1277,6 +1277,7 @@ static int connect_port_ch(struct slim_controller *ctrl, u8 ch, u32 ph,
 	buf[1] = ctrl->chans[ch].chan;
 	if (la == SLIM_LA_MANAGER)
 		ctrl->ports[pn].flow = flow;
+	pr_err("CODEC connect MC:0x %x, port:%x", mc, pn); 
 	ret = slim_processtxn(ctrl, SLIM_MSG_DEST_LOGICALADDR, mc, 0,
 				SLIM_MSG_MT_CORE, NULL, buf, 2, 6, NULL, la,
 				NULL);
@@ -1293,6 +1294,7 @@ static int disconnect_port_ch(struct slim_controller *ctrl, u32 ph)
 	u8 pn = (u8)SLIM_HDL_TO_PORT(ph);
 
 	mc = SLIM_MSG_MC_DISCONNECT_PORT;
+	pr_err("CODEC disconnect port:%x", pn);
 	ret = slim_processtxn(ctrl, SLIM_MSG_DEST_LOGICALADDR, mc, 0,
 				SLIM_MSG_MT_CORE, NULL, &pn, 1, 5,
 				NULL, la, NULL);
@@ -2818,7 +2820,7 @@ int slim_reconfigure_now(struct slim_device *sb)
 		ret = slim_processtxn(ctrl, SLIM_MSG_DEST_BROADCAST,
 			SLIM_MSG_MC_NEXT_SUBFRAME_MODE, 0, SLIM_MSG_MT_CORE,
 			NULL, (u8 *)&subframe, 1, 4, NULL, 0, NULL);
-		dev_dbg(&ctrl->dev, "sending subframe:%d,ret:%d\n",
+			pr_err("%s:sending subframe:%d,ret:%d\n",__func__, 
 				(int)wbuf[0], ret);
 	}
 	if (!ret && clkgear != ctrl->clkgear) {
@@ -2826,7 +2828,7 @@ int slim_reconfigure_now(struct slim_device *sb)
 		ret = slim_processtxn(ctrl, SLIM_MSG_DEST_BROADCAST,
 			SLIM_MSG_MC_NEXT_CLOCK_GEAR, 0, SLIM_MSG_MT_CORE,
 			NULL, wbuf, 1, 4, NULL, 0, NULL);
-		dev_dbg(&ctrl->dev, "sending clkgear:%d,ret:%d\n",
+		pr_err("%s:sending clkgear:%d,ret:%d\n",__func__,
 				(int)wbuf[0], ret);
 	}
 	if (ret)
@@ -2950,7 +2952,7 @@ int slim_reconfigure_now(struct slim_device *sb)
 	ret = slim_processtxn(ctrl, SLIM_MSG_DEST_BROADCAST,
 			SLIM_MSG_MC_RECONFIGURE_NOW, 0, SLIM_MSG_MT_CORE, NULL,
 			NULL, 0, 3, NULL, 0, NULL);
-	dev_dbg(&ctrl->dev, "reconfig now:ret:%d\n", ret);
+	pr_err("%s:reconfig now:ret:%d\n",__func__, ret); 
 	if (!ret) {
 		ctrl->sched.subfrmcode = subframe;
 		ctrl->clkgear = clkgear;
@@ -3016,7 +3018,7 @@ int slim_control_ch(struct slim_device *sb, u16 chanh,
 		u8 add_mark_removal  = true;
 
 		slc = &ctrl->chans[chan];
-		dev_dbg(&ctrl->dev, "chan:%d,ctrl:%d,def:%d", chan, chctrl,
+		pr_err("%s:chan:%d,ctrl:%d,def:%d",__func__, chan, chctrl, 
 					slc->def);
 		if (slc->state < SLIM_CH_DEFINED) {
 			ret = -ENOTCONN;

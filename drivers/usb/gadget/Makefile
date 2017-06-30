@@ -38,15 +38,15 @@ obj-$(CONFIG_USB_FUSB300)	+= fusb300_udc.o
 obj-$(CONFIG_USB_MV_U3D)	+= mv_u3d_core.o
 
 # USB Functions
-usb_f_acm-y			:= f_acm.o
-obj-$(CONFIG_USB_F_ACM)		+= usb_f_acm.o
-usb_f_ss_lb-y			:= f_loopback.o f_sourcesink.o
-obj-$(CONFIG_USB_F_SS_LB)	+= usb_f_ss_lb.o
+#usb_f_acm-y			:= f_acm.o
+#obj-$(CONFIG_USB_F_ACM)	+= usb_f_acm.o
+#usb_f_ss_lb-y			:= f_loopback.o f_sourcesink.o
+#obj-$(CONFIG_USB_F_SS_LB)	+= usb_f_ss_lb.o
 obj-$(CONFIG_USB_U_SERIAL)	+= u_serial.o
-usb_f_serial-y			:= f_serial.o
-obj-$(CONFIG_USB_F_SERIAL)	+= usb_f_serial.o
-usb_f_obex-y			:= f_obex.o
-obj-$(CONFIG_USB_F_OBEX)	+= usb_f_obex.o
+#usb_f_serial-y			:= f_serial.o
+#obj-$(CONFIG_USB_F_SERIAL)	+= usb_f_serial.o
+#usb_f_obex-y			:= f_obex.o
+#obj-$(CONFIG_USB_F_OBEX)	+= usb_f_obex.o
 
 #
 # USB gadget drivers
@@ -89,3 +89,4 @@ obj-$(CONFIG_USB_G_NCM)		+= g_ncm.o
 obj-$(CONFIG_USB_G_ACM_MS)	+= g_acm_ms.o
 obj-$(CONFIG_USB_G_ANDROID)	+= g_android.o
 obj-$(CONFIG_USB_GADGET_TARGET)	+= tcm_usb_gadget.o
+obj-$(CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE)	+= multi_config.o

@@ -18,6 +18,7 @@
 #include <linux/platform_device.h>
 #include <linux/mutex.h>
 #include <linux/cpu.h>
+#include <linux/qpnp/pin.h>
 #include <linux/of.h>
 #include <linux/irqchip/msm-mpm-irq.h>
 #include <linux/hrtimer.h>
@@ -26,10 +27,15 @@
 #include <linux/suspend.h>
 #include <linux/pm_qos.h>
 #include <linux/of_platform.h>
+#include <mach/gpiomux.h>
 #include <soc/qcom/spm.h>
 #include <soc/qcom/pm.h>
 #include <soc/qcom/rpm-notifier.h>
 #include <soc/qcom/event_timer.h>
+#include <linux/regulator/consumer.h>
+#ifdef CONFIG_SEC_GPIO_DVS
+#include <linux/secgpio_dvs.h>
+#endif
 
 #define SCLK_HZ (32768)
 
@@ -119,6 +125,12 @@ module_param_named(
 static int msm_pm_sleep_time_override;
 module_param_named(sleep_time_override,
 	msm_pm_sleep_time_override, int, S_IRUGO | S_IWUSR | S_IWGRP);
+
+#ifdef CONFIG_SEC_PM_DEBUG
+static int msm_pm_sleep_sec_debug;
+module_param_named(secdebug,
+	msm_pm_sleep_sec_debug, int, S_IRUGO | S_IWUSR | S_IWGRP);
+#endif
 
 static struct cpumask num_powered_cores;
 static struct hrtimer lpm_hrtimer;
@@ -299,7 +311,10 @@ static int lpm_system_mode_select(struct lpm_system_state *system_state,
 
 		if (suspend_in_progress && from_idle
 				&& system_level->notify_rpm)
-				continue;
+			continue;
+
+		if (system_level->notify_rpm && msm_rpm_waiting_for_ack())
+			continue;
 
 		if ((sleep_us >> 10) > pwr_params->time_overhead_us) {
 			pwr = pwr_params->ss_power;
@@ -548,11 +563,6 @@ static int lpm_cpu_power_select(struct cpuidle_device *dev, int *index)
 
 		if (!allow)
 			continue;
-
-		if ((MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE == mode)
-			|| (MSM_PM_SLEEP_MODE_POWER_COLLAPSE == mode))
-			if (!dev->cpu && msm_rpm_waiting_for_ack())
-				break;
 
 		lvl_latency_us = pwr_params->latency_us;
 
@@ -834,6 +844,24 @@ static int lpm_suspend_prepare(void)
 	suspend_in_progress = true;
 	msm_mpm_suspend_prepare();
 
+#ifdef CONFIG_SEC_GPIO_DVS
+	/************************ Caution !!! ****************************
+	 * This functiongit a must be located in appropriate SLEEP position
+	 * in accordance with the specification of each BB vendor.
+	 ************************ Caution !!! ****************************/
+	gpio_dvs_check_sleepgpio();
+#endif
+
+#ifdef CONFIG_SEC_PM
+	regulator_showall_enabled();
+#endif
+
+#ifdef CONFIG_SEC_PM_DEBUG
+	if (msm_pm_sleep_sec_debug) {
+		msm_gpio_print_enabled();
+		qpnp_debug_suspend_show();
+	}
+#endif
 	return 0;
 }
 

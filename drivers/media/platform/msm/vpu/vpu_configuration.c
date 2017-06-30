@@ -1233,9 +1233,8 @@ static u32 __get_power_mode(struct vpu_dev_session *cur_sess)
 
 		max_w = max(in->format.width,  out->format.width);
 		max_h = max(in->format.height, out->format.height);
-		if ((max_w * max_h) > SZ_2M)
-			goto exit_and_return_mode;
-
+                if ((max_w * max_h) > SZ_2M)
+                        goto exit_and_return_mode;
 		fps = max(in->framerate, out->framerate) >> 16;
 		fps = fps ? fps : 30;
 

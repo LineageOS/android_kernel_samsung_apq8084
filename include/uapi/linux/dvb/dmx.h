@@ -37,7 +37,7 @@
 /* Min recording chunk upon which event is generated */
 #define DMX_REC_BUFF_CHUNK_MIN_SIZE		(100*188)
 
-#define DMX_MAX_DECODER_BUFFER_NUM		(32)
+#define DMX_MAX_DECODER_BUFFER_NUM		(64)
 
 typedef enum
 {
@@ -880,6 +880,5 @@ struct dmx_scrambling_bits {
 #define DMX_GET_SCRAMBLING_BITS _IOWR('o', 72, struct dmx_scrambling_bits)
 #define DMX_SET_CIPHER _IOW('o', 73, struct dmx_cipher_operations)
 #define DMX_FLUSH_BUFFER _IO('o', 74)
-
-
+#define DMX_GET_PCR_TS_INSERTED _IOR('o', 75, unsigned long long int)
 #endif /* _UAPI_DVBDMX_H_ */

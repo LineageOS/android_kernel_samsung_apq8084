@@ -33,11 +33,11 @@
 #include <linux/wait.h>
 
 struct dvb_ringbuffer {
-	u8               *data;
-	ssize_t           size;
-	ssize_t           pread;
-	ssize_t           pwrite;
-	int               error;
+	u8		*data;
+	ssize_t		size;
+	ssize_t		pread;
+	ssize_t		pwrite;
+	int		error;
 
 	wait_queue_head_t queue;
 	spinlock_t        lock;
@@ -85,7 +85,7 @@ extern int dvb_ringbuffer_empty(struct dvb_ringbuffer *rbuf);
 extern ssize_t dvb_ringbuffer_free(struct dvb_ringbuffer *rbuf);
 
 /* return the number of bytes waiting in the buffer */
-extern ssize_t dvb_ringbuffer_avail(struct dvb_ringbuffer *rbuf);
+extern size_t dvb_ringbuffer_avail(struct dvb_ringbuffer *rbuf);
 
 
 /*
@@ -109,7 +109,7 @@ extern void dvb_ringbuffer_flush_spinlock_wakeup(struct dvb_ringbuffer *rbuf);
 
 /* advance read ptr by <num> bytes */
 #define DVB_RINGBUFFER_SKIP(rbuf,num)	\
-			(rbuf)->pread = ((rbuf)->pread+(num))%(rbuf)->size
+			(rbuf)->pread=((rbuf)->pread+(num))%(rbuf)->size
 
 /* advance write ptr by <num> bytes */
 #define DVB_RINGBUFFER_PUSH(rbuf, num)	\
@@ -131,7 +131,7 @@ extern void dvb_ringbuffer_read(struct dvb_ringbuffer *rbuf,
 /* write single byte to ring buffer */
 #define DVB_RINGBUFFER_WRITE_BYTE(rbuf,byte)	\
 			{ (rbuf)->data[(rbuf)->pwrite]=(byte); \
-			(rbuf)->pwrite = ((rbuf)->pwrite+1)%(rbuf)->size; }
+			(rbuf)->pwrite=((rbuf)->pwrite+1)%(rbuf)->size; }
 /*
 ** write <len> bytes to ring buffer
 ** <usermem> specifies whether <buf> resides in user space

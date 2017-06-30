@@ -85,8 +85,8 @@ enum device_status {
 
 #define DEVICE_CONFIGURED 0x1
 
-#define RMI4_VTG_MIN_UV		2700000
-#define RMI4_VTG_MAX_UV		3300000
+#define RMI4_VTG_MIN_UV		1800000
+#define RMI4_VTG_MAX_UV		1800000
 #define RMI4_ACTIVE_LOAD_UA	15000
 #define RMI4_LPM_LOAD_UA	10
 

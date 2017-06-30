@@ -94,71 +94,48 @@ static inline void dsb_sev(void)
 
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
-	unsigned long tmp, flags = 0;
+	unsigned long tmp;
 	u32 newval;
 	arch_spinlock_t lockval;
+	u32 tickets;
 
 	__asm__ __volatile__(
-"1:	ldrex	%0, [%3]\n"
-"	add	%1, %0, %4\n"
-"	strex	%2, %1, [%3]\n"
+"1:	ldrex	%0, [%4]\n"
+"	cpy	%3, %0\n"
+"	add	%1, %0, %5\n"
+"	strex	%2, %1, [%4]\n"
 "	teq	%2, #0\n"
 "	bne	1b"
-	: "=&r" (lockval), "=&r" (newval), "=&r" (tmp)
+	: "=&r" (lockval), "=&r" (newval), "=&r" (tmp), "=&r" (tickets)
 	: "r" (&lock->slock), "I" (1 << TICKET_SHIFT)
 	: "cc");
 
 	while (lockval.tickets.next != lockval.tickets.owner) {
-		if (msm_krait_need_wfe_fixup) {
-			local_save_flags(flags);
-			local_fiq_disable();
-			__asm__ __volatile__(
-			"mrc	p15, 7, %0, c15, c0, 5\n"
+		/* Tentatively off CPU auto clock gating */
+		__asm__ __volatile__(
+			"mrc    p15, 7, %0, c15, c0, 5\n"
 			: "=r" (tmp)
 			:
 			: "cc");
-			tmp &= ~(0x10000);
-			__asm__ __volatile__(
-			"mcr	p15, 7, %0, c15, c0, 5\n"
-			:
-			: "r" (tmp)
-			: "cc");
-			isb();
-		}
-
-		__asm__ __volatile__(
-		    "mrc    p15, 7, %0, c15, c0, 5\n"
-		    : "=r" (tmp)
-		    :
-		    : "cc");
 		tmp |= 0x1;
 		__asm__ __volatile__(
-		    "mcr    p15, 7, %0, c15, c0, 5\n"
-		    :
-		    : "r" (tmp)
-		    : "cc");
-		isb();
-
-		wfe();
-
-		tmp &= ~(0x1);
-		__asm__ __volatile__(
-		    "mcr   p15, 7, %0, c15, c0, 5\n"
-		    :
-		    : "r" (tmp)
-		    : "cc");
-		isb();
-
-		if (msm_krait_need_wfe_fixup) {
-			tmp |= 0x10000;
-			__asm__ __volatile__(
-			"mcr	p15, 7, %0, c15, c0, 5\n"
+			"mcr    p15, 7, %0, c15, c0, 5\n"
 			:
 			: "r" (tmp)
 			: "cc");
-			isb();
-			local_irq_restore(flags);
-		}
+		isb();			
+			
+		wfe();
+
+		/* Re-eabling CPU auto clock gating */
+		tmp &= ~(0x1);
+		__asm__ __volatile__(
+			"mcr   p15, 7, %0, c15, c0, 5\n"
+			:
+			: "r" (tmp)
+			: "cc");
+		isb();
+
 		lockval.tickets.owner = ACCESS_ONCE(lock->tickets.owner);
 	}
 

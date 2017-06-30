@@ -64,6 +64,7 @@ struct msm_ssphy {
 	bool			suspended;
 	int			vdd_levels[3]; /* none, low, high */
 	int			deemphasis_val;
+	int			amplitude_val;
 };
 
 static int msm_ssusb_config_vdd(struct msm_ssphy *phy, int high)
@@ -295,12 +296,21 @@ static int msm_ssphy_set_params(struct usb_phy *uphy)
 	data &= ~0x3F80;
 	if (ss_phy_override_deemphasis)
 		phy->deemphasis_val = ss_phy_override_deemphasis;
-	if (phy->deemphasis_val)
+	if (phy->deemphasis_val) {
 		data |= (phy->deemphasis_val << 7);
+		pr_info("usb:: %s deemphasis = 0x%X\n", __func__, phy->deemphasis_val);
+	}
 	else
 		data |= (0x16 << 7);
+
 	data &= ~0x7F;
-	data |= (0x7F | (1 << 14));
+	if (phy->amplitude_val) {
+		data |= (phy->amplitude_val | (1 << 14));
+		pr_info("usb:: %s amplitude = 0x%X\n", __func__, phy->amplitude_val);
+	}
+	else
+		data |= (0x7F | (1 << 14));
+
 	msm_ssusb_write_phycreg(phy->base, 0x1002, data);
 
 	/*
@@ -546,6 +556,10 @@ static int msm_ssphy_probe(struct platform_device *pdev)
 	if (of_property_read_u32(dev->of_node, "qcom,deemphasis-value",
 						&phy->deemphasis_val))
 		dev_dbg(dev, "unable to read ssphy deemphasis value\n");
+
+	if (of_property_read_u32(dev->of_node, "qcom,amplitude-value",
+						&phy->amplitude_val))
+		dev_dbg(dev, "unable to read ssphy amplitude value\n");
 
 	phy->phy.init			= msm_ssphy_init;
 	phy->phy.set_suspend		= msm_ssphy_set_suspend;

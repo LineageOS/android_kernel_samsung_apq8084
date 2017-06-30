@@ -1339,7 +1339,7 @@ smem_targ_info_done:
 	if (!smem_areas_tmp) {
 		LOG_ERR("%s: smem areas kmalloc failed\n", __func__);
 		ret = -ENOMEM;
-		goto free_smem_areas;
+		goto free_smem_areas2;
 	}
 
 	ramdump_segments_tmp = kmalloc_array(num_smem_areas,
@@ -1347,7 +1347,7 @@ smem_targ_info_done:
 	if (!ramdump_segments_tmp) {
 		LOG_ERR("%s: ramdump segment kmalloc failed\n", __func__);
 		ret = -ENOMEM;
-		goto free_smem_areas;
+		goto free_smem_areas1;
 	}
 	smem_areas_tmp[smem_idx].phys_addr =  smem_ram_phys;
 	smem_areas_tmp[smem_idx].size = smem_ram_size;
@@ -1434,7 +1434,9 @@ free_smem_areas:
 
 	num_smem_areas = 0;
 	kfree(ramdump_segments_tmp);
+free_smem_areas1:
 	kfree(smem_areas_tmp);
+free_smem_areas2:
 	return ret;
 }
 

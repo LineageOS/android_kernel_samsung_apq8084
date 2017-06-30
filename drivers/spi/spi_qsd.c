@@ -44,6 +44,57 @@
 #include <linux/msm-bus.h>
 #include <linux/msm-bus-board.h>
 #include "spi_qsd.h"
+#include <mach/msm_iomap.h>
+#include <linux/io.h>
+
+
+#define GPIO_CFG_DEBUG(n) (MSM_TLMM_BASE + 0x1000 + (0x10 * n))
+
+static void msm_spi_dump_qup_reg(struct msm_spi *dd)
+{
+	int offset = 0;
+
+	pr_err("Dumping Register for Base \n");
+	for (offset =0; offset <= 0x30; offset+=20)
+		pr_err( "Reg=0x%.2x: 0x%.8x, 0x%.8x, 0x%.8x, 0x%.8x 0x%.8x\n", offset,
+			readl_relaxed(dd->base + offset),
+			readl_relaxed(dd->base + (offset + 4)),
+			readl_relaxed(dd->base + (offset + 8)),
+			readl_relaxed(dd->base + (offset + 12)),
+			readl_relaxed(dd->base + (offset + 16)));
+
+	for (offset =0x100; offset <= 0x10c; offset+=20)
+		pr_err( "Reg=0x%.2x: 0x%.8x, 0x%.8x, 0x%.8x, 0x%.8x 0x%.8x\n", offset,
+			readl_relaxed(dd->base + offset),
+			readl_relaxed(dd->base + (offset + 4)),
+			readl_relaxed(dd->base + (offset + 8)),
+			readl_relaxed(dd->base + (offset + 12)),
+			readl_relaxed(dd->base + (offset + 16)));
+
+	for (offset =0x150; offset <= 0x154; offset+=20)
+		pr_err( "Reg=0x%.2x: 0x%.8x, 0x%.8x, 0x%.8x, 0x%.8x 0x%.8x\n", offset,
+			readl_relaxed(dd->base + offset),
+			readl_relaxed(dd->base + (offset + 4)),
+			readl_relaxed(dd->base + (offset + 8)),
+			readl_relaxed(dd->base + (offset + 12)),
+			readl_relaxed(dd->base + (offset + 16)));
+
+	for (offset =0x200; offset <= 0x218; offset+=20)
+		pr_err( "Reg=0x%.2x: 0x%.8x, 0x%.8x, 0x%.8x, 0x%.8x 0x%.8x\n", offset,
+			readl_relaxed(dd->base + offset),
+			readl_relaxed(dd->base + (offset + 4)),
+			readl_relaxed(dd->base + (offset + 8)),
+			readl_relaxed(dd->base + (offset + 12)),
+			readl_relaxed(dd->base + (offset + 16)));
+
+	for (offset =0x300; offset <= 0x32C; offset+=20)
+		pr_err( "Reg=0x%.2x: 0x%.8x, 0x%.8x, 0x%.8x, 0x%.8x 0x%.8x\n", offset,
+			readl_relaxed(dd->base + offset),
+			readl_relaxed(dd->base + (offset + 4)),
+			readl_relaxed(dd->base + (offset + 8)),
+			readl_relaxed(dd->base + (offset + 12)),
+			readl_relaxed(dd->base + (offset + 16)));
+}
 
 static int msm_spi_pm_resume_runtime(struct device *device);
 static int msm_spi_pm_suspend_runtime(struct device *device);
@@ -1563,6 +1614,15 @@ static void msm_spi_process_transfer(struct msm_spi *dd)
 				dev_err(dd->dev,
 					"%s: SPI transaction timeout\n",
 					__func__);
+				pr_err("***debug gpio 0:[0x%x], gpio 1 [0x%x], gpio 2[0x%x],  gpio 3[0x%x]\n", __raw_readl(GPIO_CFG_DEBUG(0)),
+					__raw_readl(GPIO_CFG_DEBUG(1)), __raw_readl(GPIO_CFG_DEBUG(2)), __raw_readl(GPIO_CFG_DEBUG(3)));
+				msm_spi_dump_qup_reg(dd);
+				if (dd->mode == SPI_BAM_MODE)
+				{
+					/* Dump the BAM and QUP Registers */
+					sps_get_bam_debug_info(dd->bam.handle, 95, SPS_BAM_PIPE(dd->pdata->bam_producer_pipe_index)|
+							       SPS_BAM_PIPE(dd->pdata->bam_consumer_pipe_index), 0, 2);
+				}
 				dd->cur_msg->status = -EIO;
 				break;
 		}
@@ -1729,6 +1789,7 @@ static void msm_spi_process_message(struct msm_spi *dd)
 	}
 	if (dd->qup_ver)
 		write_force_cs(dd, 0);
+	return;
 error:
 	msm_spi_free_cs_gpio(dd);
 	return;
@@ -2298,6 +2359,15 @@ struct msm_spi_platform_data * __init msm_spi_dt_to_pdata(
 		}
 	}
 
+#ifdef ENABLE_SENSORS_FPRINT_SECURE
+	/* Even if you set the bam setting, */
+	/* you can't access bam when you use tzspi */
+	if ((dd->cs_gpios[0].gpio_num) == FP_SPI_CS) {
+		pdata->use_bam = false;
+		pr_info("%s: disable bam for BLSP5 tzspi\n", __func__);
+	}
+#endif
+
 	if (pdata->use_bam) {
 		if (!pdata->bam_consumer_pipe_index) {
 			dev_warn(&pdev->dev,
@@ -2358,6 +2428,85 @@ static int __init msm_spi_bam_get_resources(struct msm_spi *dd,
 	dd->dma_teardown = msm_spi_bam_teardown;
 	return 0;
 }
+
+#ifdef ENABLE_SENSORS_FPRINT_SECURE
+int fp_spi_clock_set_rate(struct spi_device *spidev)
+{
+	struct msm_spi *dd;
+
+	if (!spidev) {
+		pr_err("%s: spidev pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	dd = spi_master_get_devdata(spidev->master);
+	if (!dd) {
+		pr_err("%s: spi master pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	msm_spi_clock_set(dd, spidev->max_speed_hz);
+
+	pr_info("%s sucess\n", __func__);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(fp_spi_clock_set_rate);
+
+int fp_spi_clock_enable(struct spi_device *spidev)
+{
+	struct msm_spi *dd;
+	int rc;
+
+	if (!spidev) {
+		pr_err("%s: spidev pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	dd = spi_master_get_devdata(spidev->master);
+	if (!dd) {
+		pr_err("%s: spi master pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	rc = clk_prepare_enable(dd->clk);
+	if (rc) {
+		pr_err("%s: unable to enable core_clk\n", __func__);
+		return rc;
+	}
+
+	rc = clk_prepare_enable(dd->pclk);
+	if (rc) {
+		pr_err("%s: unable to enable iface_clk\n", __func__);
+		return rc;
+	}
+	pr_info("%s sucess\n", __func__);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(fp_spi_clock_enable);
+
+int fp_spi_clock_disable(struct spi_device *spidev)
+{
+	struct msm_spi *dd;
+
+	if (!spidev) {
+		pr_err("%s: spidev pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	dd = spi_master_get_devdata(spidev->master);
+	if (!dd) {
+		pr_err("%s: spi master pointer is NULL\n", __func__);
+		return -EFAULT;
+	}
+
+	clk_disable_unprepare(dd->clk);
+	clk_disable_unprepare(dd->pclk);
+
+	pr_info("%s sucess\n", __func__);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(fp_spi_clock_disable);
+#endif
 
 static int __init msm_spi_probe(struct platform_device *pdev)
 {
@@ -2472,6 +2621,7 @@ skip_dma_resources:
 
 	spin_lock_init(&dd->queue_lock);
 	mutex_init(&dd->core_lock);
+	init_waitqueue_head(&dd->continue_suspend);
 
 	if (!devm_request_mem_region(&pdev->dev, dd->mem_phys_addr,
 					dd->mem_size, SPI_DRV_NAME)) {

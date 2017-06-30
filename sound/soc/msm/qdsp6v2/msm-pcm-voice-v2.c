@@ -29,6 +29,10 @@
 #include "msm-pcm-voice-v2.h"
 #include "q6voice.h"
 
+#if defined(CONFIG_MACH_TRLTE_EUR) && defined(CONFIG_SND_DSPG_DBMD2)
+extern int system_rev;
+#endif
+
 static struct msm_voice voice_info[VOICE_SESSION_INDEX_MAX];
 
 static struct snd_pcm_hardware msm_pcm_hardware = {
@@ -361,6 +365,10 @@ static int msm_pcm_ioctl(struct snd_pcm_substream *substream,
 	return ret;
 }
 
+#if defined(CONFIG_SND_SOC_ES705) && defined(CONFIG_SND_SOC_VEQ_SUPPORT)
+int es705_put_veq_block(int volume);
+#endif
+
 static int msm_voice_gain_put(struct snd_kcontrol *kcontrol,
 			      struct snd_ctl_elem_value *ucontrol)
 {
@@ -381,6 +389,14 @@ static int msm_voice_gain_put(struct snd_kcontrol *kcontrol,
 		volume, session_id, ramp_duration);
 
 	voc_set_rx_vol_step(session_id, RX_PATH, volume, ramp_duration);
+
+#if defined(CONFIG_SND_SOC_ES705) && defined(CONFIG_SND_SOC_VEQ_SUPPORT)
+#if defined(CONFIG_MACH_TRLTE_EUR) && defined(CONFIG_SND_DSPG_DBMD2)
+	if (system_rev < 15)
+#endif
+	es705_put_veq_block(volume);
+#endif
+
 
 done:
 	return ret;
@@ -508,6 +524,51 @@ static int msm_voice_slowtalk_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef CONFIG_SEC_SOLUTION
+static int msm_sec_dha_get(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
+{
+	return 0;
+}
+
+static int msm_sec_dha_put(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
+{
+	int i = 0;
+
+	int dha_mode = ucontrol->value.integer.value[0];
+	int dha_select = ucontrol->value.integer.value[1];
+	short dha_param[12] = {0,};
+	for (i = 0; i < 12; i++) {
+		dha_param[i] = (short)ucontrol->value.integer.value[2+i];
+		pr_debug("msm_dha_put : param - %d\n", dha_param[i]);
+	}
+
+	return voice_sec_set_dha_data(voc_get_session_id(VOICE_SESSION_NAME),
+		dha_mode, dha_select, dha_param);
+}
+
+static int msm_loopback_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	int loopback_enable = ucontrol->value.integer.value[0];
+
+	pr_debug("%s: loopback enable=%d\n", __func__, loopback_enable);
+
+	voc_set_loopback_enable(loopback_enable);
+	return 0;
+}
+
+static int msm_loopback_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = voc_get_loopback_enable();
+	 return 0;
+}
+
+#endif /*CONFIG_SEC_SOLUTION*/
+
+
 static struct snd_kcontrol_new msm_voice_controls[] = {
 	SOC_SINGLE_MULTI_EXT("Voice Rx Device Mute", SND_SOC_NOPM, 0, VSID_MAX,
 				0, 3, NULL, msm_voice_rx_device_mute_put),
@@ -521,6 +582,12 @@ static struct snd_kcontrol_new msm_voice_controls[] = {
 				msm_voice_tty_mode_put),
 	SOC_SINGLE_MULTI_EXT("Slowtalk Enable", SND_SOC_NOPM, 0, VSID_MAX, 0, 2,
 				NULL, msm_voice_slowtalk_put),
+#ifdef CONFIG_SEC_SOLUTION
+	SOC_SINGLE_MULTI_EXT("Sec Set DHA data", SND_SOC_NOPM, 0, 65535, 0, 14,
+				msm_sec_dha_get, msm_sec_dha_put),
+	SOC_SINGLE_EXT("Loopback Enable", SND_SOC_NOPM, 0, 1, 0,
+				msm_loopback_get, msm_loopback_put),
+#endif
 };
 
 static struct snd_pcm_ops msm_pcm_ops = {

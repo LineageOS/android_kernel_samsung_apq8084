@@ -292,7 +292,11 @@ static u64 *get_th_params(struct platform_device *pdev,
 							GFP_KERNEL);
 	arr = kzalloc(size, GFP_KERNEL);
 	if ((size > 0) && (ZERO_OR_NULL_PTR(arr)
-				|| ZERO_OR_NULL_PTR(ret_arr))) {
+			|| ZERO_OR_NULL_PTR(ret_arr))) {
+		if (arr)
+			kfree(arr);
+		else if (ret_arr)
+			devm_kfree(&pdev->dev, ret_arr);
 		pr_err("Error: Failed to alloc mem for %s\n", prop);
 		return NULL;
 	}

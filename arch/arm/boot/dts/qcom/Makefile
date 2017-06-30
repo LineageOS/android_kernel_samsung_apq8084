@@ -96,35 +96,85 @@ dtb-$(CONFIG_ARCH_MPQ8092) += mpq8092-sim.dtb \
 	mpq8092-cdp.dtb \
 	mpq8092-dtv.dtb \
 	mpq8092-dma.dtb
-dtb-$(CONFIG_ARCH_APQ8084) += apq8084-v1.0-old-pwr-grid-liquid.dtb \
-	apq8084-v1.1-old-pwr-grid-liquid.dtb \
-	apq8084-v1.1-liquid.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1357-cdp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-cdp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-mdm9x25-cdp.dtb \
-	apq8084-v1.1-smb1357-cdp.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1357-mtp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-mtp.dtb \
-	apq8084-v1.1-smb1357-mtp.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1359-mdm9x35-alt-mtp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1359-mdm9x35-alt-mtp.dtb \
-	apq8084-v1.1-smb1359-mdm9x35-alt-mtp.dtb \
-	apq8084-old-pwr-grid-smb349-cdp.dtb \
-	apq8084-old-pwr-grid-smb349-mtp.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1357-mdm9x35-alt-rcm.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-mdm9x35-alt-rcm.dtb \
-	apq8084-v1.1-smb1357-mdm9x35-alt-rcm.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1357-mdm9x35-mtp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-mdm9x35-mtp.dtb \
-	apq8084-v1.1-smb1357-mdm9x35-mtp.dtb \
-	apq8084-v1.0-old-pwr-grid-smb1357-mdm9x35-cdp.dtb \
-	apq8084-v1.1-old-pwr-grid-smb1357-mdm9x35-cdp.dtb \
-	apq8084-v1.1-smb1357-mdm9x35-cdp.dtb \
-	apq8084-v1.0-old-pwr-grid-mdm9x35-alt-cdp.dtb \
-	apq8084-v1.1-old-pwr-grid-mdm9x35-alt-cdp.dtb \
-	apq8084-v1.1-mdm9x35-alt-cdp.dtb \
-	apq8084-v1.1-sbc.dtb
-dtb-$(CONFIG_ARCH_MSM) += msmplutonium-sim.dtb
+dtb-$(CONFIG_ARCH_MSMPLUTONIUM) += msmplutonium-sim.dtb
+
+dtb-$(CONFIG_SEC_LENTIS_PROJECT) = apq8084-sec-lentis-r04.dtb \
+	apq8084-sec-lentis-r06.dtb \
+	apq8084-sec-lentis-r07.dtb \
+	apq8084-sec-lentis-r08.dtb \
+	apq8084-sec-lentis-r10.dtb
+
+dtb-$(CONFIG_SEC_TRLTE_PROJECT) = apq8084-sec-trlte-r00.dtb \
+	apq8084-sec-trlte-r01.dtb \
+	apq8084-sec-trlte-r02.dtb \
+	apq8084-sec-trlte-r03.dtb \
+	apq8084-sec-trlte-r04.dtb \
+	apq8084-sec-trlte-r06.dtb \
+	apq8084-sec-trlte-r07.dtb \
+	apq8084-sec-trlte-r08.dtb \
+	apq8084-sec-trlte-r09.dtb \
+	apq8084-sec-trlte-r10.dtb \
+	apq8084-sec-trlte-r12.dtb \
+	apq8084-sec-trlte-r13.dtb \
+	apq8084-sec-trlte-r14.dtb \
+	apq8084-sec-trlte-r15.dtb
+
+dtb-$(CONFIG_SEC_TBLTE_PROJECT) = apq8084-sec-tblte-r03.dtb \
+	apq8084-sec-tblte-r04.dtb \
+	apq8084-sec-tblte-r06.dtb \
+	apq8084-sec-tblte-r07.dtb \
+	apq8084-sec-tblte-r08.dtb \
+	apq8084-sec-tblte-r09.dtb \
+	apq8084-sec-tblte-r10.dtb \
+	apq8084-sec-tblte-r12.dtb \
+	apq8084-sec-tblte-r13.dtb \
+	apq8084-sec-tblte-r14.dtb
+
+# For KCCAT6
+dtb-$(CONFIG_SEC_KCCAT6_PROJECT) = apq8084-sec-kccat6-r00.dtb \
+	apq8084-sec-kccat6-r01.dtb
+
+# TRLTE DTB Targets will be overridden by below for various project.
+# For TRLTE DCM/KDDI
+dtb-$(CONFIG_SEC_TRLTE_JPN) = apq8084-sec-trlte-jpn-r01.dtb \
+	apq8084-sec-trlte-jpn-r02.dtb \
+	apq8084-sec-trlte-jpn-r03.dtb \
+	apq8084-sec-trlte-jpn-r04.dtb \
+	apq8084-sec-trlte-jpn-r06.dtb \
+	apq8084-sec-trlte-jpn-r07.dtb
+# For TRLTE CHINA DUOS
+dtb-$(CONFIG_SEC_TRLTE_CHNDUOS) = apq8084-sec-trlte-chnduos-r00.dtb \
+	apq8084-sec-trlte-chnduos-r02.dtb \
+	apq8084-sec-trlte-chnduos-r04.dtb \
+	apq8084-sec-trlte-chnduos-r06.dtb \
+	apq8084-sec-trlte-chnduos-r07.dtb \
+	apq8084-sec-trlte-chnduos-r08.dtb \
+	apq8084-sec-trlte-chnduos-r09.dtb \
+	apq8084-sec-trlte-chnduos-r10.dtb \
+	apq8084-sec-trlte-chnduos-r12.dtb \
+	apq8084-sec-trlte-chnduos-r13.dtb \
+	apq8084-sec-trlte-chnduos-r14.dtb
+
+# For TRLTE CHINA CMCC DUOS
+dtb-$(CONFIG_SEC_TRLTE_CMCC) = apq8084-sec-trlte-r00.dtb \
+	apq8084-sec-trlte-r02.dtb \
+	apq8084-sec-trlte-r03.dtb \
+	apq8084-sec-trlte-r04.dtb \
+	apq8084-sec-trlte-chnduos-r06.dtb \
+	apq8084-sec-trlte-chnduos-r08.dtb \
+	apq8084-sec-trlte-chnduos-r09.dtb \
+	apq8084-sec-trlte-chnduos-r10.dtb \
+	apq8084-sec-trlte-chnduos-r12.dtb
+
+# TBLTE DTB Targets will be overridden by below for various project.
+# For TBLTE DCM/KDDI
+dtb-$(CONFIG_SEC_TBLTE_JPN) = apq8084-sec-tblte-jpn-r06.dtb \
+	apq8084-sec-tblte-jpn-r07.dtb \
+	apq8084-sec-tblte-jpn-r10.dtb \
+	apq8084-sec-tblte-jpn-r11.dtb \
+	apq8084-sec-tblte-jpn-r12.dtb \
+	apq8084-sec-tblte-jpn-r13.dtb
+
 
 DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES))
 ifneq ($(DTB_NAMES),)

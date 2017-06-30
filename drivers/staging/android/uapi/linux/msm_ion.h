@@ -5,7 +5,8 @@
 
 enum msm_ion_heap_types {
 	ION_HEAP_TYPE_MSM_START = ION_HEAP_TYPE_CUSTOM + 1,
-	ION_HEAP_TYPE_DMA = ION_HEAP_TYPE_MSM_START,
+	ION_HEAP_TYPE_IOMMUCA = ION_HEAP_TYPE_MSM_START,
+	ION_HEAP_TYPE_DMA,
 	ION_HEAP_TYPE_SECURE_DMA,
 	ION_HEAP_TYPE_REMOVED,
 	/*
@@ -28,17 +29,19 @@ enum ion_heap_ids {
 	ION_CP_MM_HEAP_ID = 8,
 	ION_CP_MFC_HEAP_ID = 12,
 	ION_CP_WB_HEAP_ID = 16, /* 8660 only */
-	ION_CAMERA_HEAP_ID = 20, /* 8660 only */
+	//ION_CAMERA_HEAP_ID = 20, /* 8660 only */
 	ION_SYSTEM_CONTIG_HEAP_ID = 21,
 	ION_ADSP_HEAP_ID = 22,
 	ION_PIL1_HEAP_ID = 23, /* Currently used for other PIL images */
 	ION_SF_HEAP_ID = 24,
 	ION_SYSTEM_HEAP_ID = 25,
+	ION_IOMMUCA_HEAP_ID = ION_SYSTEM_HEAP_ID,
 	ION_PIL2_HEAP_ID = 26, /* Currently used for modem firmware images */
 	ION_QSECOM_HEAP_ID = 27,
 	ION_AUDIO_HEAP_ID = 28,
 
 	ION_MM_FIRMWARE_HEAP_ID = 29,
+	ION_CAMERA_HEAP_ID = 30,
 
 	ION_HEAP_ID_RESERVED = 31 /** Bit reserved for ION_FLAG_SECURE flag */
 };
@@ -107,6 +110,7 @@ enum cp_mem_usage {
 #define ION_MM_HEAP_NAME	"mm"
 #define ION_CAMERA_HEAP_NAME	"camera_preview"
 #define ION_IOMMU_HEAP_NAME	"iommu"
+#define ION_IOMMUCA_HEAP_NAME	"iommuca"
 #define ION_MFC_HEAP_NAME	"mfc"
 #define ION_WB_HEAP_NAME	"wb"
 #define ION_MM_FIRMWARE_HEAP_NAME	"mm_fw"
@@ -174,5 +178,30 @@ struct ion_prefetch_data {
 
 #define ION_IOC_DRAIN			_IOWR(ION_IOC_MSM_MAGIC, 4, \
 						struct ion_prefetch_data)
+
+#if defined(CONFIG_DTCP_ION_PHYS)
+/* struct ion_buffer_data
+ *
+ * @handle:	handle for the buffer being queried
+ * @paddr:	The physical address of the buffer referenced by the handle
+ * @length:	The length of the buffer referenced by the handle
+ *
+ * Gets the physicial address of the given handle
+ */
+struct ion_buffer_data {
+	struct ion_handle *handle;
+	unsigned long paddr;
+	unsigned int length;
+};
+
+/**
+ * DOC: ION_IOC_GET_PHYS - get the physical address of the handle
+ *
+ * Gets the physicial address of the given handle
+ */
+#define ION_IOC_GET_PHYS	_IOWR(ION_IOC_MSM_MAGIC, 5, \
+									struct ion_buffer_data)
+
+#endif
 
 #endif

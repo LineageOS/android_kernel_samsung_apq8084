@@ -268,8 +268,13 @@ class Builder():
         hdri_dir = '%s/usr' % staging_dir
         steps.append(RmtreeStep(os.path.join(dest_dir, staging_dir)))
 
-        steps.append(ExecStep(['make', 'O=%s' % dest_dir,
-            self.confname], env=self.make_env))
+        with open('/dev/null', 'r') as devnull:
+            subprocess.check_call(['make', 'O=%s' % dest_dir,
+        	'SELINUX_DEFCONFIG=selinux_defconfig',
+	        'SELINUX_LOG_DEFCONFIG=selinux_log_defconfig',
+	            'TIMA_DEFCONFIG=tima_defconfig',
+                self.confname], env=self.make_env,
+                stdin=devnull)
 
         if not all_options.updateconfigs:
             # Build targets can be dependent upon the completion of

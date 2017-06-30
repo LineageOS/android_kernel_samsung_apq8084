@@ -7,6 +7,7 @@ struct msm_buf_mngr_info {
 	uint32_t frame_id;
 	struct timeval timestamp;
 	uint32_t index;
+	uint32_t uv_subsample_reserved;
 };
 
 struct v4l2_subdev *msm_buf_mngr_get_subdev(void);

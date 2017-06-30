@@ -402,6 +402,7 @@ static int _disp_log_stats(struct tzdbg_log_t *log,
 	int max_len;
 	int len = 0;
 	int i = 0;
+	int retry = 2;
 
 	wrap_start = log_start->wrap;
 	wrap_end = log->log_pos.wrap;
@@ -435,6 +436,10 @@ static int _disp_log_stats(struct tzdbg_log_t *log,
 			/* Some event woke us up, so let's quit */
 			return 0;
 		}
+
+                retry--;
+                if (!retry)
+                        return 0;
 
 		if (buf_idx == TZDBG_LOG)
 			memcpy_fromio((void *)tzdbg.diag_buf, tzdbg.virt_iobase,
@@ -631,7 +636,7 @@ static int  tzdbgfs_init(struct platform_device *pdev)
 	for (i = 0; i < TZDBG_STATS_MAX; i++) {
 		tzdbg.debug_tz[i] = i;
 		dent = debugfs_create_file(tzdbg.stat[i].name,
-				S_IRUGO, dent_dir,
+				S_IRUSR, dent_dir,
 				&tzdbg.debug_tz[i], &tzdbg_fops);
 		if (dent == NULL) {
 			dev_err(&pdev->dev, "TZ debugfs_create_file failed\n");

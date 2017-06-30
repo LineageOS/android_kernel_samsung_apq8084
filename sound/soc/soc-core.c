@@ -1361,7 +1361,7 @@ static int soc_probe_link_dais(struct snd_soc_card *card, int num, int order)
 			if (!try_module_get(cpu_dai->dev->driver->owner))
 				return -ENODEV;
 
-			list_add(&cpu_dai->dapm.list, &card->dapm_list);
+			//list_add(&cpu_dai->dapm.list, &card->dapm_list);
 			snd_soc_dapm_new_dai_widgets(&cpu_dai->dapm, cpu_dai);
 		}
 

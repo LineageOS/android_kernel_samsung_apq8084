@@ -1516,13 +1516,17 @@ static void __vb2_dqbuf(struct vb2_buffer *vb)
 	vb->state = VB2_BUF_STATE_DEQUEUED;
 
 	/* unmap DMABUF buffer */
-	if (q->memory == V4L2_MEMORY_DMABUF)
+	if (q->memory == V4L2_MEMORY_DMABUF) {
+		if (vb->num_planes > VIDEO_MAX_PLANES)
+			panic("vb->num_planes exceeds the maximum index range.");
+
 		for (i = 0; i < vb->num_planes; ++i) {
 			if (!vb->planes[i].dbuf_mapped)
 				continue;
 			call_memop(q, unmap_dmabuf, vb->planes[i].mem_priv);
 			vb->planes[i].dbuf_mapped = 0;
 		}
+	}
 }
 
 /**

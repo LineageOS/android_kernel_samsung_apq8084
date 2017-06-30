@@ -31,12 +31,54 @@
 #define NGD_SLIM_NAME	"ngd_msm_ctrl"
 #define SLIM_LA_MGR	0xFF
 #define SLIM_ROOT_FREQ	24576000
-#define LADDR_RETRY	5
+#define LADDR_RETRY	10
 
 #define NGD_BASE_V1(r)	(((r) % 2) ? 0x800 : 0xA00)
 #define NGD_BASE_V2(r)	(((r) % 2) ? 0x1000 : 0x2000)
 #define NGD_BASE(r, v) ((v) ? NGD_BASE_V2(r) : NGD_BASE_V1(r))
 /* NGD (Non-ported Generic Device) registers */
+
+#define LPASS_SB_NGD1_CFG                                                                (0xFE1B0000)
+#define LPASS_SB_NGD1_STATUS                                                             (0xFE1B0004)
+#define LPASS_SB_NGD1_INT_EN                                                             (0xFE1B0010)
+#define LPASS_SB_NGD1_INT_STATUS                                                         (0xFE1B0014)
+#define LPASS_SB_NGD1_IE_STATUS                                                          (0xFE1B00F0)
+static void slimbus_ngd_dump(void)
+{
+	u32 val_sb_ngd1_cfg= 0x0;
+	u32 val_sb_ngd1_status= 0x0;
+	u32 val_sb_ngd1_int_en= 0x0;
+	u32 val_sb_ngd1_int_status= 0x0;
+	u32 val_sb_ngd1_ie_status= 0x0;
+
+	void __iomem *io_map_sb_ngd1_cfg= NULL;
+	void __iomem *io_map_sb_ngd1_status= NULL;
+	void __iomem *io_map_sb_ngd1_int_en= NULL;
+	void __iomem *io_map_sb_ngd1_int_status= NULL;
+	void __iomem *io_map_sb_ngd1_ie_status= NULL;
+
+	io_map_sb_ngd1_cfg    = ioremap(LPASS_SB_NGD1_CFG,0x04);
+	val_sb_ngd1_cfg = readl_relaxed(io_map_sb_ngd1_cfg);
+
+	io_map_sb_ngd1_status =ioremap(LPASS_SB_NGD1_STATUS,0x04);
+	val_sb_ngd1_status = readl_relaxed(io_map_sb_ngd1_status);
+
+	io_map_sb_ngd1_int_en =ioremap(LPASS_SB_NGD1_INT_EN,0x04);
+	val_sb_ngd1_int_en = readl_relaxed(io_map_sb_ngd1_int_en);
+
+	io_map_sb_ngd1_int_status =ioremap(LPASS_SB_NGD1_INT_STATUS,0x04);
+	val_sb_ngd1_int_status = readl_relaxed(io_map_sb_ngd1_int_status);
+
+	io_map_sb_ngd1_ie_status =ioremap(LPASS_SB_NGD1_IE_STATUS,0x04);
+	val_sb_ngd1_ie_status = readl_relaxed(io_map_sb_ngd1_ie_status);
+
+	pr_err("****LPASS_SB_NGD1_CFG(0xFE130000)=0x%x\n",val_sb_ngd1_cfg);
+	pr_err("****LPASS_SB_NGD1_STATUS(0xFE130004)=0x%x\n",val_sb_ngd1_status);
+	pr_err("****LPASS_SB_NGD1_INT_EN(0xFE130010)=0x%x\n",val_sb_ngd1_int_en);
+	pr_err("****LPASS_SB_NGD1_INT_STATUS(0xFE130014)=0x%x\n",val_sb_ngd1_int_status);
+	pr_err("****LPASS_SB_NGD1_IE_STATUS(0xFE1300F0)=0x%x\n",val_sb_ngd1_ie_status);
+}
+
 enum ngd_reg {
 	NGD_CFG		= 0x0,
 	NGD_STATUS	= 0x4,
@@ -99,6 +141,7 @@ static irqreturn_t ngd_slim_interrupt(int irq, void *d)
 
 		SLIM_WARN(dev, "NGD interrupt error:0x%x, err:%d\n", stat,
 								dev->err);
+
 		/* Guarantee that error interrupts are cleared */
 		mb();
 		if (dev->wr_comp)
@@ -666,6 +709,7 @@ static int ngd_xferandwait_ack(struct slim_controller *ctrl,
 		if (ret != -EREMOTEIO || txn->mc != SLIM_USR_MC_CHAN_CTRL)
 			SLIM_ERR(dev, "master msg:0x%x,tid:%d ret:%d\n",
 				txn->mc, txn->tid, ret);
+
 		mutex_lock(&ctrl->m_ctrl);
 		ctrl->txnt[txn->tid] = NULL;
 		mutex_unlock(&ctrl->m_ctrl);
@@ -994,6 +1038,7 @@ static int ngd_slim_power_up(struct msm_slim_ctrl *dev, bool mdm_restart)
 			NGD_INT_MSG_BUF_CONTE | NGD_INT_MSG_TX_INVAL |
 			NGD_INT_IE_VE_CHG | NGD_INT_DEV_ERR |
 			NGD_INT_TX_MSG_SENT | NGD_INT_RX_MSG_RCVD);
+	static int err_cnt = 0;
 
 	if (!mdm_restart && cur_state == MSM_CTRL_DOWN) {
 		int timeout = wait_for_completion_timeout(&dev->qmi.qmi_comp,
@@ -1085,8 +1130,16 @@ static int ngd_slim_power_up(struct msm_slim_ctrl *dev, bool mdm_restart)
 
 	timeout = wait_for_completion_timeout(&dev->reconf, HZ);
 	if (!timeout) {
+		err_cnt++;
 		SLIM_ERR(dev, "Failed to receive master capability\n");
+
+		if (err_cnt > 5) {
+			slimbus_ngd_dump();
+			panic("Force crash : Failed to receive Master Capability\n");
+		}
 		return -ETIMEDOUT;
+	} else {
+		err_cnt = 0;
 	}
 	/* mutliple transactions waiting on slimbus to power up? */
 	if (cur_state == MSM_CTRL_DOWN)
@@ -1104,6 +1157,7 @@ static int ngd_slim_enable(struct msm_slim_ctrl *dev, bool enable)
 		/* controller state should be in sync with framework state */
 		if (!ret) {
 			complete(&dev->qmi.qmi_comp);
+
 			if (!pm_runtime_enabled(dev->dev) ||
 					!pm_runtime_suspended(dev->dev))
 				ngd_slim_runtime_resume(dev->dev);
@@ -1129,7 +1183,7 @@ static int ngd_slim_power_down(struct msm_slim_ctrl *dev)
 	/* Pending response for a message */
 	for (i = 0; i < ctrl->last_tid; i++) {
 		if (ctrl->txnt[i]) {
-			SLIM_INFO(dev, "NGD down:txn-rsp for %d pending", i);
+			pr_info("slim_clk_pause: txn-rsp for %d pending", i);
 			mutex_unlock(&ctrl->m_ctrl);
 			return -EBUSY;
 		}
@@ -1172,7 +1226,7 @@ static int ngd_slim_rx_msgq_thread(void *data)
 			msg_len = *buffer & 0x1F;
 			mt = (buffer[0] >> 5) & 0x7;
 			mc = (buffer[0] >> 8) & 0xff;
-			dev_dbg(dev->dev, "MC: %x, MT: %x\n", mc, mt);
+			//dev_dbg(dev->dev, "MC: %x, MT: %x\n", mc, mt);
 		}
 		if ((index * 4) >= msg_len) {
 			index = 0;
@@ -1227,8 +1281,10 @@ static int ngd_notify_slaves(void *data)
 						6, &sbdev->laddr);
 				if (!ret)
 					break;
-				else /* time for ADSP to assign LA */
+				else /* time for ADSP to assign LA */ {					
+					pr_info("ngd_notify_slaves slim_get_logical_addr \n");
 					msleep(20);
+				}
 			}
 			mutex_lock(&ctrl->m_ctrl);
 		}

@@ -18,6 +18,77 @@
 static struct msm_hdmi_mode_timing_info
 	hdmi_supported_video_mode_lut[HDMI_VFRMT_MAX];
 
+#if defined(CONFIG_SEC_MHL_SUPPORT)
+#define MHL_DEV_VID_LINK_SUPP_PPIXEL		0x08
+#define MHL_DEV_VID_LINK_SUPP_16PPIXEL		0x40
+#if CONFIG_MHL_VERSION >= 0x30
+#define MHL_XDC_TMDS_150                        0x01
+#define MHL_XDC_TMDS_300                        0x02
+extern int mhl_get_link_speed(void);
+#endif
+bool is_mhl_supported_resolution(uint8_t mhl_version, int mhl_video_linkmode, u32 mode)
+{
+	bool ret = false;
+	bool support_ppixel_mode =
+		mhl_video_linkmode &  MHL_DEV_VID_LINK_SUPP_PPIXEL ? true : false;
+	bool support_16ppixel_mode =
+		mhl_video_linkmode &  MHL_DEV_VID_LINK_SUPP_16PPIXEL ? true : false;
+#if CONFIG_MHL_VERSION >= 0x30
+	uint32_t link_speed = mhl_get_link_speed();
+#endif
+
+	switch (mode) {
+		case HDMI_VFRMT_720x480p60_16_9:
+		case HDMI_VFRMT_720x576p50_16_9:
+			ret = true;
+			break;
+	}
+
+#if CONFIG_MHL_VERSION >= 0x30
+	if (mhl_version >= 0x30 && link_speed <=  MHL_XDC_TMDS_150)
+		return ret;
+#endif
+
+	switch (mode) {
+		case HDMI_VFRMT_1280x720p60_16_9:
+		case HDMI_VFRMT_1280x720p50_16_9:
+		case HDMI_VFRMT_1920x1080p24_16_9:
+		case HDMI_VFRMT_1920x1080p25_16_9:
+		case HDMI_VFRMT_1920x1080p30_16_9:
+			ret = true;
+			break;
+	}
+
+	if (!support_ppixel_mode && mhl_version < 0x30)
+		return ret;
+
+#if CONFIG_MHL_VERSION >= 0x30
+	if (mhl_version >= 0x30 && link_speed ==  MHL_XDC_TMDS_300)
+		return ret;
+#endif
+
+	switch(mode) {
+		case HDMI_VFRMT_1920x1080p60_16_9:
+		case HDMI_VFRMT_1920x1080p50_16_9:
+			ret = true;
+			break;
+	}
+
+	if (!support_16ppixel_mode || mhl_version < 0x30)
+		return ret;
+
+	switch (mode) {
+		case  HDMI_VFRMT_3840x2160p24_16_9:
+		case  HDMI_VFRMT_3840x2160p25_16_9:
+		case  HDMI_VFRMT_3840x2160p30_16_9:
+			ret = true;
+			break;
+	}
+
+	return ret;
+}
+#endif
+
 void hdmi_del_supported_mode(u32 mode)
 {
 	struct msm_hdmi_mode_timing_info *ret = NULL;

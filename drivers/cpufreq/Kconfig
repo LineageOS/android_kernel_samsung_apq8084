@@ -41,6 +41,12 @@ config CPU_FREQ_STAT_DETAILS
 
 	  If in doubt, say N.
 
+config CPU_FREQ_LIMIT
+	bool "CPU frequency limit API"
+	default n
+	help
+	  This driver supports API to limit CPU frequency.
+
 choice
 	prompt "Default CPUFreq governor"
 	default CPU_FREQ_DEFAULT_GOV_USERSPACE if ARM_SA1100_CPUFREQ || ARM_SA1110_CPUFREQ
@@ -226,6 +232,12 @@ config GENERIC_CPUFREQ_CPU0
 	  systems which share clock and voltage across all CPUs.
 
 	  If in doubt, say N.
+
+ config SUSPEND_BOOSTER
+	bool "Suspend booster for Samsung"
+	default y
+	help
+	  Samsung TN PowerManagement Feature.
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86

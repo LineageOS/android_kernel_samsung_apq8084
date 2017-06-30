@@ -272,4 +272,7 @@ int hdmi_ddc_write(struct hdmi_tx_ddc_ctrl *, struct hdmi_tx_ddc_data *);
 int hdmi_ddc_read_seg(struct hdmi_tx_ddc_ctrl *, struct hdmi_tx_ddc_data *);
 int hdmi_ddc_read(struct hdmi_tx_ddc_ctrl *, struct hdmi_tx_ddc_data *);
 
+#if defined(CONFIG_SEC_MHL_SUPPORT)
+bool is_mhl_supported_resolution(uint8_t mhl_version, int mhl_video_linkmode, u32 mode);
+#endif
 #endif /* __HDMI_UTIL_H__ */

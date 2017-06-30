@@ -43,6 +43,7 @@ struct cp2_lock_req {
 	struct cp2_mem_chunks chunks;
 	unsigned int mem_usage;
 	unsigned int lock;
+	unsigned int flag;
 } __attribute__ ((__packed__));
 
 #define MEM_PROTECT_LOCK_ID2     0x0A
@@ -110,6 +111,7 @@ static int secure_buffer_change_chunk(unsigned long chunks,
 
 	request.mem_usage = usage;
 	request.lock = lock;
+	request.flag = 0;
 
 	request.chunks.chunk_list = (unsigned int *)chunks;
 	request.chunks.chunk_list_size = nchunks;

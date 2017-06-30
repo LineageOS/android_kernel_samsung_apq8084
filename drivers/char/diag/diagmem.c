@@ -31,7 +31,6 @@ void *diagmem_alloc(struct diagchar_dev *driver, int size, int pool_type)
 	void *buf = NULL;
 	unsigned long flags;
 	int index;
-
 	spin_lock_irqsave(&driver->diag_mem_lock, flags);
 	index = 0;
 	if (pool_type == POOL_TYPE_COPY) {
@@ -392,8 +391,6 @@ void diagmem_free(struct diagchar_dev *driver, void *buf, int pool_type)
 
 void diagmem_init(struct diagchar_dev *driver)
 {
-	spin_lock_init(&driver->diag_mem_lock);
-
 	if (driver->count == 0) {
 		driver->diagpool = mempool_create_kmalloc_pool(
 					driver->poolsize, driver->itemsize);

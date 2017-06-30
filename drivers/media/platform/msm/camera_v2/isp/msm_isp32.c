@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -37,6 +37,7 @@ static uint8_t stats_pingpong_offset_map[] = {
 	7, 8, 9, 10, 11, 12, 13};
 
 #define VFE32_NUM_STATS_TYPE 7
+#define VFE32_STATS_PING_PONG_OFFSET 7
 #define VFE32_STATS_BASE(idx) (0xF4 + 0xC * idx)
 #define VFE32_STATS_PING_PONG_BASE(idx, ping_pong) \
 	(VFE32_STATS_BASE(idx) + 0x4 * \
@@ -89,6 +90,7 @@ static int msm_vfe32_init_hardware(struct vfe_device *vfe_dev)
 			vfe_dev->vfe_clk_idx = 2;
 	} else
 		vfe_dev->vfe_clk_idx = 1;
+ 
 
 	vfe_dev->vfe_base = ioremap(vfe_dev->vfe_mem->start,
 		resource_size(vfe_dev->vfe_mem));
@@ -118,8 +120,7 @@ vfe_remap_failed:
 				msm_vfe32_2_clk_info, vfe_dev->vfe_clk,
 				ARRAY_SIZE(msm_vfe32_2_clk_info), 0);
 clk_enable_failed:
-	if (vfe_dev->fs_vfe)
-		regulator_disable(vfe_dev->fs_vfe);
+	regulator_disable(vfe_dev->fs_vfe);
 fs_failed:
 	msm_isp_deinit_bandwidth_mgr(ISP_VFE0 + vfe_dev->pdev->id);
 bus_scale_register_failed:
@@ -131,6 +132,7 @@ static void msm_vfe32_release_hardware(struct vfe_device *vfe_dev)
 	free_irq(vfe_dev->vfe_irq->start, vfe_dev);
 	tasklet_kill(&vfe_dev->vfe_tasklet);
 	iounmap(vfe_dev->vfe_base);
+
 	if (vfe_dev->vfe_clk_idx == 1)
 		msm_cam_clk_enable(&vfe_dev->pdev->dev,
 				msm_vfe32_1_clk_info, vfe_dev->vfe_clk,
@@ -139,6 +141,7 @@ static void msm_vfe32_release_hardware(struct vfe_device *vfe_dev)
 		msm_cam_clk_enable(&vfe_dev->pdev->dev,
 				msm_vfe32_2_clk_info, vfe_dev->vfe_clk,
 				ARRAY_SIZE(msm_vfe32_2_clk_info), 0);
+	
 	regulator_disable(vfe_dev->fs_vfe);
 	msm_isp_deinit_bandwidth_mgr(ISP_VFE0 + vfe_dev->pdev->id);
 }
@@ -153,7 +156,6 @@ static void msm_vfe32_init_hardware_reg(struct vfe_device *vfe_dev)
 	msm_camera_io_w_mb(0x1CFFFFFF, vfe_dev->vfe_base + 0x20);
 	msm_camera_io_w(0xFFFFFFFF, vfe_dev->vfe_base + 0x24);
 	msm_camera_io_w_mb(0x1FFFFFFF, vfe_dev->vfe_base + 0x28);
-
 }
 
 static void msm_vfe32_process_reset_irq(struct vfe_device *vfe_dev,
@@ -166,6 +168,7 @@ static void msm_vfe32_process_reset_irq(struct vfe_device *vfe_dev,
 static void msm_vfe32_process_halt_irq(struct vfe_device *vfe_dev,
 	uint32_t irq_status0, uint32_t irq_status1)
 {
+
 }
 
 static void msm_vfe32_process_camif_irq(struct vfe_device *vfe_dev,
@@ -342,7 +345,7 @@ static void msm_vfe32_process_reg_update(struct vfe_device *vfe_dev,
 		rdi_status |= msm_camera_io_r(vfe_dev->vfe_base +
 						VFE32_XBAR_BASE(4));
 
-		if (((rdi_status & BIT(7)) || (rdi_status & BIT(7)) ||
+	if (((rdi_status & BIT(7)) || (rdi_status & BIT(7)) ||
 			(rdi_status & BIT(7)) || (rdi_status & BIT(7))) &&
 			(!(irq_status0 & 0x20)))
 			return;
@@ -366,12 +369,11 @@ static void msm_vfe32_reg_update(
 	msm_camera_io_w_mb(0xF, vfe_dev->vfe_base + 0x260);
 }
 
-static long msm_vfe32_reset_hardware(struct vfe_device *vfe_dev,
-	uint32_t first_start, uint32_t blocking)
+static long msm_vfe32_reset_hardware(struct vfe_device *vfe_dev))
 {
 	init_completion(&vfe_dev->reset_complete);
 	msm_camera_io_w_mb(0x3FF, vfe_dev->vfe_base + 0x4);
-	return wait_for_completion_timeout(
+	return wait_for_completion_interruptible_timeout(
 	   &vfe_dev->reset_complete, msecs_to_jiffies(50));
 }
 
@@ -505,6 +507,7 @@ static int32_t msm_vfe32_cfg_io_format(struct vfe_device *vfe_dev,
 	int bpp, bpp_reg = 0, pack_fmt = 0, pack_reg = 0;
 	uint32_t io_format_reg;
 	bpp = msm_isp_get_bit_per_pixel(io_format);
+
 	if (bpp < 0) {
 		pr_err("%s:%d invalid io_format %d bpp %d", __func__, __LINE__,
 			io_format, bpp);
@@ -521,9 +524,11 @@ static int32_t msm_vfe32_cfg_io_format(struct vfe_device *vfe_dev,
 	case 12:
 		bpp_reg = 1 << 1;
 		break;
+
 	default:
 		pr_err("%s:%d invalid bpp %d", __func__, __LINE__, bpp);
 		return -EINVAL;
+		
 	}
 
 	if (stream_src == IDEAL_RAW) {
@@ -552,7 +557,7 @@ static int32_t msm_vfe32_cfg_io_format(struct vfe_device *vfe_dev,
 			return -EINVAL;
 		}
 	}
-
+	
 	io_format_reg = msm_camera_io_r(vfe_dev->vfe_base + 0x6F8);
 	switch (stream_src) {
 	case PIX_ENCODER:
@@ -565,6 +570,8 @@ static int32_t msm_vfe32_cfg_io_format(struct vfe_device *vfe_dev,
 		io_format_reg &= 0xFFFFFFC8;
 		io_format_reg |= bpp_reg << 4 | pack_reg;
 		break;
+	case PIX_ENCODER:
+	case PIX_VIEWFINDER:
 	case RDI_INTF_0:
 	case RDI_INTF_1:
 	case RDI_INTF_2:
@@ -634,6 +641,9 @@ static void msm_vfe32_update_camif_state(
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
 	} else if (update_state == DISABLE_CAMIF_IMMEDIATELY) {
 		msm_camera_io_w_mb(0x6, vfe_dev->vfe_base + 0x1E0);
+		vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev);
+		vfe_dev->hw_info->vfe_ops.core_ops.reset_hw(vfe_dev);
+		vfe_dev->hw_info->vfe_ops.core_ops.init_hw_reg(vfe_dev);		
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
 	}
 }
@@ -789,6 +799,7 @@ static void msm_vfe32_cfg_axi_ub(struct vfe_device *vfe_dev)
 	uint32_t final_ub_slice_size;
 	struct msm_vfe_axi_shared_data *axi_data = &vfe_dev->axi_data;
 	for (i = 0; i < axi_data->hw_info->num_wm; i++) {
+
 		if (ub_offset + VFE32_EQUAL_SLICE_UB > VFE32_AXI_SLICE_UB) {
 			final_ub_slice_size = VFE32_AXI_SLICE_UB - ub_offset;
 			msm_camera_io_w(ub_offset << 16 |
@@ -801,19 +812,22 @@ static void msm_vfe32_cfg_axi_ub(struct vfe_device *vfe_dev)
 				VFE32_WM_BASE(i) + 0xC);
 			ub_offset += VFE32_EQUAL_SLICE_UB;
 		}
+		
 	}
 }
 
 static void msm_vfe32_update_ping_pong_addr(struct vfe_device *vfe_dev,
 		uint8_t wm_idx, uint32_t pingpong_status, dma_addr_t paddr)
 {
-	uint32_t paddr32 = (paddr & 0xFFFFFFFF);
-	msm_camera_io_w(paddr32, vfe_dev->vfe_base +
+		uint32_t paddr32 = (paddr & 0xFFFFFFFF);
+		msm_camera_io_w(paddr32, vfe_dev->vfe_base +
 		VFE32_PING_PONG_BASE(wm_idx, pingpong_status));
 }
 
-static int msm_vfe32_axi_halt(struct vfe_device *vfe_dev, uint32_t blocking)
+static int msm_vfe32_axi_halt(struct vfe_device *vfe_dev,
+	uint32_t blocking)
 {
+	int rc = 0;
 	uint32_t halt_mask;
 	uint32_t axi_busy_flag = true;
 
@@ -824,6 +838,7 @@ static int msm_vfe32_axi_halt(struct vfe_device *vfe_dev, uint32_t blocking)
 			axi_busy_flag = false;
 	}
 	msm_camera_io_w_mb(0, vfe_dev->vfe_base + 0x1D8);
+	
 	halt_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x20);
 	halt_mask &= 0xFEFFFFFF;
 	/* Disable AXI IRQ */
@@ -981,7 +996,7 @@ static void msm_vfe32_stats_enable_module(struct vfe_device *vfe_dev,
 
 static void msm_vfe32_stats_update_ping_pong_addr(struct vfe_device *vfe_dev,
 	struct msm_vfe_stats_stream *stream_info, uint32_t pingpong_status,
-	dma_addr_t paddr)
+dma_addr_t paddr)
 {
 	uint32_t paddr32 = (paddr & 0xFFFFFFFF);
 	int stats_idx = STATS_IDX(stream_info->stream_handle);
@@ -1038,7 +1053,7 @@ static int msm_vfe32_get_platform_data(struct vfe_device *vfe_dev)
 		vfe_dev->iommu_ctx[0] = msm_iommu_get_ctx("vfe_imgwr");
 	else
 		vfe_dev->iommu_ctx[0] = msm_iommu_get_ctx("vfe0");
-
+	
 	if (!vfe_dev->iommu_ctx[0]) {
 		pr_err("%s: no iommux ctx resource?\n", __func__);
 		rc = -ENODEV;
@@ -1103,7 +1118,6 @@ static struct v4l2_subdev_internal_ops msm_vfe32_internal_ops = {
 
 struct msm_vfe_hardware_info vfe32_hw_info = {
 	.num_iommu_ctx = 2,
-	.num_iommu_secure_ctx = 0,
 	.vfe_clk_idx = VFE32_CLK_IDX,
 	.vfe_ops = {
 		.irq_ops = {

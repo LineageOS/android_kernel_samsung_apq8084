@@ -71,7 +71,7 @@ static atomic_t msm_rtb_idx;
 
 static struct msm_rtb_state msm_rtb = {
 	.filter = 1 << LOGK_LOGBUF,
-	.enabled = 1,
+	.enabled = 0,
 };
 
 module_param_named(filter, msm_rtb.filter, uint, 0644);

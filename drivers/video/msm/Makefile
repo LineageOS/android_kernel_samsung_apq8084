@@ -1,5 +1,7 @@
 ifeq ($(CONFIG_FB_MSM_MDSS_COMMON),y)
 obj-y += mdss/
+obj-$(CONFIG_SEC_MHL_SII8240) += mhl_v2/
+obj-$(CONFIG_SEC_MHL_SII8620) += mhl_v3/
 else
 obj-y := msm_fb.o
 

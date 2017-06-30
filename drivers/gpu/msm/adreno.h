@@ -366,6 +366,8 @@ enum adreno_regs {
 	ADRENO_REG_UCHE_INVALIDATE0,
 	ADRENO_REG_RBBM_PERFCTR_LOAD_VALUE_LO,
 	ADRENO_REG_RBBM_PERFCTR_LOAD_VALUE_HI,
+	ADRENO_REG_VBIF_XIN_HALT_CTRL0,
+	ADRENO_REG_VBIF_XIN_HALT_CTRL1,
 	ADRENO_REG_REGISTER_MAX,
 };
 
@@ -513,12 +515,14 @@ struct adreno_gpudev {
 	struct adreno_coresight *coresight;
 
 	struct adreno_irq *irq;
+	unsigned int vbif_xin_halt_ctrl0_mask;
 	/* GPU specific function hooks */
 	irqreturn_t (*irq_handler)(struct adreno_device *);
 	void (*irq_control)(struct adreno_device *, int);
 	unsigned int (*irq_pending)(struct adreno_device *);
 	void (*irq_setup)(struct adreno_device *);
 	void * (*snapshot)(struct adreno_device *, void *, int *, int);
+	void (*gpudev_init)(struct adreno_device *);
 	int (*rb_init)(struct adreno_device *, struct adreno_ringbuffer *);
 	int (*perfcounter_init)(struct adreno_device *);
 	void (*perfcounter_close)(struct adreno_device *);
@@ -664,6 +668,14 @@ void adreno_coresight_stop(struct adreno_device *adreno_dev);
 void adreno_coresight_remove(struct kgsl_device *device);
 
 bool adreno_hw_isidle(struct kgsl_device *device);
+#if defined (CONFIG_FB_MSM_MDSS_FENCE_DBG)
+void xlog_fence(char *name, char *data0_name, u32 data0,
+				char *data1_name, u32 data1,
+				char *data2_name, u32 data2,
+				char *data3_name, u32 data3,
+				char *data4_name, u32 data4, u32 data5);
+void xlog_fence_dump(void);
+#endif
 
 static inline int adreno_is_a3xx(struct adreno_device *adreno_dev)
 {

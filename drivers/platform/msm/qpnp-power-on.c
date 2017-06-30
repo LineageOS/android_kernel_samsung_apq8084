@@ -24,6 +24,11 @@
 #include <linux/log2.h>
 #include <linux/qpnp/power-on.h>
 
+#if defined(CONFIG_SEC_DEBUG)
+#include <mach/sec_debug.h>
+#endif
+
+
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
 
@@ -126,12 +131,23 @@ struct qpnp_pon {
 	struct input_dev *pon_input;
 	struct qpnp_pon_config *pon_cfg;
 	int num_pon_config;
+	int powerkey_state;
 	u16 base;
 	struct delayed_work bark_work;
 	u32 dbc;
 };
 
 static struct qpnp_pon *sys_reset_dev;
+
+#ifdef CONFIG_SEC_PM_DEBUG
+static int wake_enabled;
+static int reset_enabled;
+#endif
+
+static int check_pkey_press;
+#if defined(CONFIG_SEC_PM)
+static int check_vdkey_press;
+#endif
 
 static u32 s1_delay[PON_S1_COUNT_MAX + 1] = {
 	0 , 32, 56, 80, 138, 184, 272, 408, 608, 904, 1352, 2048,
@@ -490,11 +506,46 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 
 	input_report_key(pon->pon_input, cfg->key_code, key_status);
 	input_sync(pon->pon_input);
+	pr_info("[KEY] code(0x%02X), value(%d)\n", cfg->key_code, key_status);
+
+	if((cfg->key_code == 116) && (pon_rt_sts & pon_rt_bit)){
+		pon->powerkey_state = 1;
+		check_pkey_press = 1;
+	}else if((cfg->key_code == 116) && !(pon_rt_sts & pon_rt_bit)){
+		pon->powerkey_state = 0;
+		check_pkey_press = 0;
+	}
+
+#if defined(CONFIG_SEC_PM)
+	/* RESIN is used for VOL DOWN key, it should report the keycode for kernel panic */
+	if((cfg->key_code == 114) && (pon_rt_sts & pon_rt_bit)){
+		pon->powerkey_state = 1;
+		check_vdkey_press = 1;
+	}else if((cfg->key_code == 114) && !(pon_rt_sts & pon_rt_bit)){
+		pon->powerkey_state = 0;
+		check_vdkey_press = 0;
+	}
+#endif
+
+#ifdef CONFIG_SEC_DEBUG
+	sec_debug_check_crash_key(cfg->key_code, key_status);
+#endif
 
 	cfg->old_state = !!key_status;
 
 	return 0;
 }
+
+int get_pkey_press(void){
+	return check_pkey_press;
+}
+EXPORT_SYMBOL(get_pkey_press);
+#if defined(CONFIG_SEC_PM)
+int get_vdkey_press(void){
+	return check_vdkey_press;
+}
+EXPORT_SYMBOL(get_vdkey_press);
+#endif
 
 static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 {
@@ -763,6 +814,18 @@ qpnp_config_reset(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 		return rc;
 	}
 
+#ifdef CONFIG_SEC_DEBUG
+	/* Configure reset type:
+	 * Debug level MID/HIGH: WARM Reset
+	 * Debug level LOW: HARD Reset
+	 */
+	if (sec_debug_is_enabled()) {
+		cfg->s2_type = 1;
+	} else {
+		cfg->s2_type = 8;	/* 7: Hard reset, 8: dVdd Hard reset */
+	}
+#endif
+
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl_addr,
 				QPNP_PON_S2_CNTL_TYPE_MASK, (u8)cfg->s2_type);
 	if (rc) {
@@ -780,6 +843,48 @@ qpnp_config_reset(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 
 	return 0;
 }
+
+#ifdef CONFIG_SEC_PM
+static int
+qpnp_control_s2_reset(struct qpnp_pon *pon, struct qpnp_pon_config *cfg, int on)
+{
+	int rc;
+
+	/* control S2 reset */
+	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
+				QPNP_PON_S2_CNTL_EN, on? QPNP_PON_S2_CNTL_EN : 0);
+	if (rc) {
+		dev_err(&pon->spmi->dev, "Unable to configure S2 enable\n");
+		return rc;
+	}
+
+	return 0;
+}
+
+int
+qpnp_set_resin_wk_int(int en)
+{
+	struct qpnp_pon *pon = sys_reset_dev;
+	struct qpnp_pon_config *cfg;
+
+	cfg = qpnp_get_cfg(pon, PON_RESIN);
+	if (!cfg) {
+		pr_err("Invalid config pointer\n");
+		return -EFAULT;
+	}
+
+	if (!en) {
+		disable_irq_wake(cfg->state_irq);
+	} else {
+		enable_irq_wake(cfg->state_irq);
+	}
+
+	pr_info("%s: wake_enabled = %d\n", KBUILD_MODNAME, en);
+
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_set_resin_wk_int);
+#endif
 
 static int 
 qpnp_pon_request_irqs(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
@@ -865,6 +970,9 @@ qpnp_pon_request_irqs(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 	/* mark the interrupts wakeable if they support linux-key */
 	if (cfg->key_code) {
 		enable_irq_wake(cfg->state_irq);
+#ifdef CONFIG_SEC_PM_DEBUG
+		wake_enabled = true;
+#endif
 		/* special handling for RESIN due to a hardware bug */
 		if (cfg->pon_type == PON_RESIN && cfg->support_reset)
 			enable_irq_wake(cfg->bark_irq);
@@ -900,6 +1008,7 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 	struct device_node *pp = NULL;
 	struct qpnp_pon_config *cfg;
 	u8 pon_ver;
+	bool check_safe_mode = false;
 
 	/* Check if it is rev B */
 	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
@@ -1055,8 +1164,13 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 			 * Get the reset parameters (bark debounce time and
 			 * reset debounce time) for the reset line.
 			 */
+#ifdef CONFIG_MACH_TRLTE_VZW
+			rc = of_property_read_u32(pp, "qcom,s1-timer2",
+							&cfg->s1_timer);
+#else
 			rc = of_property_read_u32(pp, "qcom,s1-timer",
 							&cfg->s1_timer);
+#endif
 			if (rc) {
 				dev_err(&pon->spmi->dev,
 					"Unable to read s1-timer\n");
@@ -1067,8 +1181,13 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 					"Incorrect S1 debounce time\n");
 				return -EINVAL;
 			}
+#ifdef CONFIG_MACH_TRLTE_VZW
+			rc = of_property_read_u32(pp, "qcom,s2-timer2",
+							&cfg->s2_timer);
+#else
 			rc = of_property_read_u32(pp, "qcom,s2-timer",
 							&cfg->s2_timer);
+#endif
 			if (rc) {
 				dev_err(&pon->spmi->dev,
 					"Unable to read s2-timer\n");
@@ -1159,11 +1278,33 @@ static int qpnp_pon_config_init(struct qpnp_pon *pon)
 				goto unreg_input_dev;
 			}
 		}
+#ifdef CONFIG_SEC_PM
+		else {
+			/* Disable pon reset */
+			rc = qpnp_control_s2_reset(pon, cfg, cfg->support_reset);
+			if (rc) {
+				dev_err(&pon->spmi->dev,
+					"Unable to disable pon reset\n");
+				goto unreg_input_dev;
+			}
+		}
+#endif
 		rc = qpnp_pon_request_irqs(pon, cfg);
 		if (rc) {
 			dev_err(&pon->spmi->dev, "Unable to request-irq's\n");
 			goto unreg_input_dev;
 		}
+
+		if (cfg->key_code == KEY_VOLUMEDOWN)
+			check_safe_mode = true;
+
+	}
+
+	/* check safe mode enter condition when bootup.(volume down + bootup -> enter safe mode) */
+	if (check_safe_mode) {
+		rc = qpnp_pon_input_dispatch(pon, PON_RESIN);
+		if (rc)
+			dev_err(&pon->spmi->dev, "unable check safe mode.\n");
 	}
 
 	device_init_wakeup(&pon->spmi->dev, 1);
@@ -1252,6 +1393,93 @@ static struct kernel_param_ops dload_on_uvlo_ops = {
 
 module_param_cb(dload_on_uvlo, &dload_on_uvlo_ops, &dload_on_uvlo, 0644);
 
+static ssize_t  sysfs_powerkey_onoff_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct qpnp_pon *pon = dev_get_drvdata(dev);
+	printk(KERN_INFO "%s\n",__func__);
+	if (pon->powerkey_state == 1) {
+		printk(KERN_INFO "powerkey is pressed\n");
+		return snprintf(buf, 5, "%d\n", pon->powerkey_state);
+	} else {
+		printk(KERN_INFO "powerkey is released\n");
+		return snprintf(buf, 5, "%d\n", pon->powerkey_state);
+	}
+}
+static DEVICE_ATTR(sec_powerkey_pressed, 0664 , sysfs_powerkey_onoff_show, NULL);
+
+
+#ifdef CONFIG_SEC_PM_DEBUG
+static int qpnp_wake_enabled(const char *val, const struct kernel_param *kp)
+{
+	int ret = 0;
+	struct qpnp_pon_config *cfg;
+
+	ret = param_set_bool(val, kp);
+	if (ret) {
+		pr_err("Unable to set qpnp_wake_enabled: %d\n", ret);
+		return ret;
+	}
+
+	cfg = qpnp_get_cfg(sys_reset_dev, PON_KPDPWR);
+	if (!cfg) {
+		pr_err("Invalid config pointer\n");
+		return -EFAULT;
+	}
+
+	if (!wake_enabled)
+		disable_irq_wake(cfg->state_irq);
+	else
+		enable_irq_wake(cfg->state_irq);
+
+	pr_info("%s: wake_enabled = %d\n", KBUILD_MODNAME, wake_enabled);
+
+	return ret;
+}
+
+static struct kernel_param_ops module_ops = {
+	.set = qpnp_wake_enabled,
+	.get = param_get_bool,
+};
+
+module_param_cb(wake_enabled, &module_ops, &wake_enabled, 0644);
+
+static int qpnp_reset_enabled(const char *val, const struct kernel_param *kp)
+{
+	int ret = 0;
+	struct qpnp_pon_config *cfg;
+
+	ret = param_set_bool(val, kp);
+	if (ret) {
+		pr_err("Unable to set qpnp_reset_enabled: %d\n", ret);
+		return ret;
+	}
+
+	cfg = qpnp_get_cfg(sys_reset_dev, PON_KPDPWR);
+
+	if (!cfg) {
+		pr_err("Invalid config pointer\n");
+		return -EFAULT;
+	}
+
+	if (!reset_enabled)
+		qpnp_control_s2_reset(sys_reset_dev, cfg, 0);
+	else
+		qpnp_control_s2_reset(sys_reset_dev, cfg, 1);
+
+	pr_info("%s: powerkey reset_enabled = %d\n", KBUILD_MODNAME, reset_enabled);
+
+	return ret;
+}
+
+static struct kernel_param_ops reset_module_ops = {
+	.set = qpnp_reset_enabled,
+	.get = param_get_bool,
+};
+
+module_param_cb(reset_enabled, &reset_module_ops, &reset_enabled, 0644);
+#endif
+
 static int qpnp_pon_probe(struct spmi_device *spmi)
 {
 	struct qpnp_pon *pon;
@@ -1261,6 +1489,8 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 	int rc, sys_reset, index;
 	u8 pon_sts = 0, buf[2];
 	u16 poff_sts = 0;
+	struct device *sec_powerkey;
+	int ret;
 
 	pon = devm_kzalloc(&spmi->dev, sizeof(struct qpnp_pon),
 							GFP_KERNEL);
@@ -1399,6 +1629,16 @@ static int qpnp_pon_probe(struct spmi_device *spmi)
 		dev_err(&spmi->dev, "sys file creation failed\n");
 		return rc;
 	}
+
+	sec_powerkey = device_create(sec_class, NULL, 0, NULL, "sec_powerkey");
+	if (IS_ERR(sec_powerkey))
+		pr_err("Failed to create device(sec_powerkey)!\n");
+	ret = device_create_file(sec_powerkey, &dev_attr_sec_powerkey_pressed);
+	if (ret) {
+		pr_err("Failed to create device file in sysfs entries(%s)!\n",
+			dev_attr_sec_powerkey_pressed.attr.name);
+	}
+	dev_set_drvdata(sec_powerkey, pon);
 
 	return rc;
 }

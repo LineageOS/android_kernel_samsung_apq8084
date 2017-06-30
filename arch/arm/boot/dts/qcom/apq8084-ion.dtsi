@@ -49,5 +49,13 @@
 			linux,contiguous-region = <&qsecom_mem>;
 			qcom,ion-heap-type = "DMA";
 		};
+
+		qcom,ion-heap@30 { /* Reserved Mem for Camera */
+			compatible = "qcom,msm-ion-reserve";
+			reg = <30>;
+			qcom,heap-align = <0x1000>;
+			qcom,memory-fixed = <0x10200000 0xae00000>;
+			qcom,ion-heap-type = "CARVEOUT";
+		};
 	};
 };

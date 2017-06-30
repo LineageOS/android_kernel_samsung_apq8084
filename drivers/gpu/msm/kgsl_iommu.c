@@ -641,7 +641,10 @@ static int kgsl_iommu_pt_equal(struct kgsl_mmu *mmu,
 static void kgsl_iommu_destroy_pagetable(struct kgsl_pagetable *pt)
 {
 	struct kgsl_iommu_pt *iommu_pt = pt->priv;
-	phys_addr_t domain_ptbase = iommu_get_pt_base_addr(iommu_pt->domain);
+	phys_addr_t domain_ptbase;
+
+	if (iommu_pt->domain)
+		domain_ptbase = iommu_get_pt_base_addr(iommu_pt->domain);
 
 	if (iommu_pt->domain)
 		msm_unregister_domain(iommu_pt->domain);
@@ -1930,7 +1933,7 @@ static int kgsl_iommu_default_setstate(struct kgsl_mmu *mmu,
 					(KGSL_IOMMU_CTX_TLBSTATUS_SACTIVE)) {
 					if (time_after(jiffies,
 						wait_for_flush)) {
-						KGSL_DRV_ERR(mmu->device,
+						KGSL_DRV_WARN(mmu->device,
 						"Wait limit reached for IOMMU tlb flush\n");
 						break;
 					}

@@ -51,14 +51,13 @@ static int msm_csid_cid_lut(
 		return -EINVAL;
 	}
 	for (i = 0; i < csid_lut_params->num_cid && i < 16; i++) {
-		if (csid_lut_params->vc_cfg[i]->cid >=
-			csid_lut_params->num_cid ||
-			csid_lut_params->vc_cfg[i]->cid < 0) {
-			pr_err("%s: cid outside range %d\n",
-				 __func__, csid_lut_params->vc_cfg[i]->cid);
-			return -EINVAL;
-		}
-
+	    if (csid_lut_params->vc_cfg[i]->cid >=
+		    csid_lut_params->num_cid ||
+		    csid_lut_params->vc_cfg[i]->cid < 0) {
+		pr_err("%s: cid outside range %d\n",
+			__func__, csid_lut_params->vc_cfg[i]->cid);
+		return -EINVAL;
+	    }
 		CDBG("%s lut params num_cid = %d, cid = %d\n",
 			__func__,
 			csid_lut_params->num_cid,
@@ -154,12 +153,23 @@ static int msm_csid_config(struct csid_device *csid_dev,
 static irqreturn_t msm_csid_irq(int irq_num, void *data)
 {
 	uint32_t irq;
-	struct csid_device *csid_dev = data;
+	struct csid_device *csid_dev ;//prevent
+	void __iomem *csidbase;
 
-	if (!csid_dev) {
+	if (!data) {
+		pr_err("%s:%d data NULL\n", __func__, __LINE__);
+		return IRQ_HANDLED;
+	}//prevent
+
+	csid_dev = data;
+
+	if (!csid_dev || ! csid_dev->base) {
 		pr_err("%s:%d csid_dev NULL\n", __func__, __LINE__);
 		return IRQ_HANDLED;
 	}
+
+	csidbase = csid_dev->base;
+
 	irq = msm_camera_io_r(csid_dev->base + CSID_IRQ_STATUS_ADDR);
 	CDBG("%s CSID%d_IRQ_STATUS_ADDR = 0x%x\n",
 		 __func__, csid_dev->pdev->id, irq);
@@ -214,7 +224,7 @@ static int msm_csid_init(struct csid_device *csid_dev, uint32_t *csid_version)
 		return rc;
 	}
 
-	pr_info("%s: CSID_VERSION = 0x%x\n", __func__, CSID_VERSION);
+	CDBG("%s: CSID_VERSION = 0x%x\n", __func__, CSID_VERSION);
 	/* power up */
 	rc = msm_camera_config_vreg(&csid_dev->pdev->dev,
 		csid_vreg_info, ARRAY_SIZE(csid_vreg_info),
@@ -246,8 +256,8 @@ static int msm_csid_init(struct csid_device *csid_dev, uint32_t *csid_version)
 		goto clk_enable_failed;
 	}
 	CDBG("%s:%d called\n", __func__, __LINE__);
-		csid_dev->hw_version =
-	msm_camera_io_r(csid_dev->base + CSID_HW_VERSION_ADDR);
+	csid_dev->hw_version =
+		msm_camera_io_r(csid_dev->base + CSID_HW_VERSION_ADDR);
 	CDBG("%s:%d called csid_dev->hw_version 0x%x\n", __func__, __LINE__,
 		csid_dev->hw_version);
 	*csid_version = csid_dev->hw_version;
@@ -531,7 +541,7 @@ static int csid_probe(struct platform_device *pdev)
 csid_no_resource:
 	mutex_destroy(&new_csid_dev->mutex);
 	kfree(new_csid_dev);
-	return 0;
+	return rc;
 }
 
 static const struct of_device_id msm_csid_dt_match[] = {

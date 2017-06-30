@@ -38,26 +38,35 @@
 					"resin-bark", "kpdpwr-resin-bark";
 			qcom,pon-dbc-delay = <15625>;
 			qcom,system-reset;
-			qcom,s3-debounce = <32>;
+			qcom,s3-debounce = <128>;
 
 			qcom,pon_1 {
 				qcom,pon-type = <0>;
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <1000>;
+				qcom,s1-timer2 = <10256>;
+				qcom,s2-timer2 = <100>;
+				qcom,s2-type = <1>;
 				qcom,pull-up = <1>;
 				linux,code = <116>;
 			};
 
 			qcom,pon_2 {
 				qcom,pon-type = <1>;
+				qcom,support-reset = <0>;
 				qcom,pull-up = <1>;
-				linux,code = <114>;
+				linux,code = <0>;
 			};
 
 			qcom,pon_3 {
 				qcom,pon-type = <3>;
-				qcom,support-reset = <1>;
+				qcom,support-reset = <0>;
 				qcom,s1-timer = <6720>;
-				qcom,s2-timer = <2000>;
-				qcom,s2-type = <7>;
+				qcom,s2-timer = <1000>;
+				qcom,s1-timer2 = <10256>;
+				qcom,s2-timer2 = <100>;
+				qcom,s2-type = <1>;
 				qcom,pull-up = <1>;
 			};
 		};
@@ -202,6 +211,11 @@
 			};
 		};
 
+		clkrf2@5502 {
+		        reg = <0x5502 0x100>;
+		        compatible = "qcom,qpnp-clkrf2";
+		};
+
 		pma8084_mpps: mpps {
 			spmi-dev-container;
 			compatible = "qcom,qpnp-pin";
@@ -301,6 +315,17 @@
 				reg = <0xc>;
 				qcom,decimation = <0>;
 				qcom,pre-div-channel-scaling = <0>;
+				qcom,calibration-type = "absolute";
+				qcom,scale-function = <0>;
+				qcom,hw-settle-time = <0>;
+				qcom,fast-avg-setup = <0>;
+			};
+
+			chan@27 {
+				label = "vf_div3";
+				reg = <0x27>;
+				qcom,decimation = <0>;
+				qcom,pre-div-channel-scaling = <1>; /* 1:3 scaling */
 				qcom,calibration-type = "absolute";
 				qcom,scale-function = <0>;
 				qcom,hw-settle-time = <0>;

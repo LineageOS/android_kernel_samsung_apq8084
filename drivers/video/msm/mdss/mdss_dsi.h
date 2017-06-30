@@ -81,6 +81,18 @@ enum dsi_panel_bl_ctrl {
 	UNKNOWN_CTRL,
 };
 
+enum dsi_panel_status_mode {
+	ESD_BTA,
+	ESD_REG,
+	ESD_REG_NT35596,
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	ESD_REG_IRQ,
+#endif
+
+	ESD_TE,
+	ESD_MAX,
+};
+
 enum dsi_ctrl_op_mode {
 	DSI_LP_MODE,
 	DSI_HS_MODE,
@@ -205,6 +217,11 @@ struct dsi_panel_cmds {
 	struct dsi_cmd_desc *cmds;
 	int cmd_cnt;
 	int link_state;
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	char *read_size;
+	char *read_startoffset;
+#endif
 };
 
 struct dsi_kickoff_action {
@@ -217,6 +234,7 @@ struct dsi_drv_cm_data {
 	struct regulator *vdd_vreg;
 	struct regulator *vdd_io_vreg;
 	struct regulator *vdda_vreg;
+	struct regulator *iovdd_vreg;
 };
 
 struct panel_horizontal_idle {
@@ -251,7 +269,18 @@ struct mdss_dsi_ctrl_pdata {
 	int (*low_power_config) (struct mdss_panel_data *pdata, int enable);
 	int (*set_col_page_addr) (struct mdss_panel_data *pdata);
 	int (*check_status) (struct mdss_dsi_ctrl_pdata *pdata);
+	int (*check_read_status) (struct mdss_dsi_ctrl_pdata *pdata);
+	int (*registered) (struct mdss_panel_data *pdata);
+	int (*dimming_init) (struct mdss_panel_data *pdata);
+	int (*panel_blank) (struct mdss_panel_data *pdata, int blank);
+	void (*panel_reset) (struct mdss_panel_data *pdata, int enable);
+	int (*panel_extra_power) (struct mdss_panel_data *pdata, int enable);
+	void (*bl_fnc) (struct mdss_panel_data *pdata, u32 level);
 	int (*cmdlist_commit)(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp);
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	int (*event_handler) (struct mdss_panel_data *pdata, int event, void *arg);
+#endif
+
 	struct mdss_panel_data panel_data;
 	unsigned char *ctrl_base;
 	struct dss_io_data ctrl_io;
@@ -271,6 +300,7 @@ struct mdss_dsi_ctrl_pdata {
 	u8 ctrl_state;
 	int panel_mode;
 	int irq_cnt;
+	int disp_te_gpio;
 	int rst_gpio;
 	int disp_en_gpio;
 	int bklt_en_gpio;
@@ -286,6 +316,8 @@ struct mdss_dsi_ctrl_pdata {
 	bool cmd_sync_wait_broadcast;
 	bool cmd_sync_wait_trigger;
 
+	u32 status_value;
+
 	struct mdss_rect roi;
 	struct pwm_device *pwm_bl;
 	struct dsi_drv_cm_data shared_pdata;
@@ -298,6 +330,8 @@ struct mdss_dsi_ctrl_pdata {
 
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds off_cmds;
+	struct dsi_panel_cmds status_cmds;
+	u32 status_cmds_rlen;
 
 	struct dcs_cmd_list cmdlist;
 	struct completion dma_comp;
@@ -316,6 +350,8 @@ struct mdss_dsi_ctrl_pdata {
 
 	struct dsi_buf tx_buf;
 	struct dsi_buf rx_buf;
+	struct dsi_buf status_buf;
+	int status_mode;
 
 	unsigned long dma_size;
 	dma_addr_t dma_addr;
@@ -495,4 +531,14 @@ static inline bool mdss_dsi_ulps_feature_enabled(
 	return pdata->panel_info.ulps_feature_enabled;
 }
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+int mdss_samsung_parse_dcs_cmds(struct device_node *np,
+		struct dsi_panel_cmds *pcmds, char *cmd_key, char *link_key);
+u32 mdss_samsung_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl,
+		struct dsi_panel_cmds *pcmds, int read_size);
+struct mdss_dsi_ctrl_pdata **mdss_dsi_get_ctrl(void);
+int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata);
+
 #endif /* MDSS_DSI_H */
+
+#endif

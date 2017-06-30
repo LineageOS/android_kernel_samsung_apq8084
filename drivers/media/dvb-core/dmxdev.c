@@ -39,6 +39,9 @@
 #include "dmxdev.h"
 
 static int overflow_auto_flush = 1;
+#if defined(CONFIG_JPN_DEMUX_MOD)
+static unsigned long long int pcr_ts_inserted = 0;
+#endif
 module_param(overflow_auto_flush, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(overflow_auto_flush,
 	"Automatically flush buffer on overflow (default: on)");
@@ -508,7 +511,7 @@ static ssize_t dvb_dmxdev_buffer_read(struct dmxdev_filter *filter,
 					size_t count, loff_t *ppos)
 {
 	size_t todo;
-	ssize_t avail;
+	size_t avail;	//CID 24402
 	ssize_t ret = 0;
 
 	if (!src->data)
@@ -1931,7 +1934,7 @@ static int dvb_dmxdev_reuse_decoder_buf(struct dmxdev_filter *dmxdevfilter,
 {
 	struct dmxdev_feed *feed;
 
-	if ((dmxdevfilter->type != DMXDEV_TYPE_PES) ||
+	if ((dmxdevfilter->state != DMXDEV_STATE_GO) || (dmxdevfilter->type != DMXDEV_TYPE_PES) ||
 		(dmxdevfilter->params.pes.output != DMX_OUT_DECODER) ||
 		(dmxdevfilter->events.event_mask.disable_mask &
 			DMX_EVENT_NEW_ES_DATA))
@@ -1940,9 +1943,11 @@ static int dvb_dmxdev_reuse_decoder_buf(struct dmxdev_filter *dmxdevfilter,
 	/* Only one feed should be in the list in case of decoder */
 	feed = list_first_entry(&dmxdevfilter->feed.ts,
 				struct dmxdev_feed, next);
-
-	if (feed->ts->reuse_decoder_buffer)
+	if(feed && feed->ts && feed->ts->reuse_decoder_buffer) {
 		return feed->ts->reuse_decoder_buffer(feed->ts, cookie);
+	} else {
+		printk(KERN_ERR "%s: feed or feed->ts is NULL\n", __func__);
+	}
 
 	return -ENODEV;
 }
@@ -2057,6 +2062,23 @@ static int dvb_dmxdev_get_scrambling_bits(struct dmxdev_filter *filter,
 	return -EINVAL;
 }
 
+#if defined(CONFIG_JPN_DEMUX_MOD)
+static int dvb_dmxdev_get_ts_inserted_pcr(struct dmxdev_filter *filter,
+	unsigned long long int *get_pcr_ts_inserted )
+{
+	int ret = 0;
+	if (!get_pcr_ts_inserted)
+	{
+		pr_err("dvb_dmxdev_get_ts_inserted_pcr get_pcr_ts_inserted EINVAL\n");
+		return -EINVAL;
+	}
+	pr_err("dvb_dmxdev_get_ts_inserted_pcr pcr_ts_inserted=%llu\n",pcr_ts_inserted);
+	*get_pcr_ts_inserted = pcr_ts_inserted;
+	return ret;
+
+}
+#endif
+
 static void dvb_dmxdev_ts_insertion_work(struct work_struct *worker)
 {
 	struct ts_insertion_buffer *ts_buffer =
@@ -2065,7 +2087,11 @@ static void dvb_dmxdev_ts_insertion_work(struct work_struct *worker)
 	struct dmxdev_feed *feed;
 	size_t free_bytes;
 	struct dmx_ts_feed *ts;
-
+#if defined(CONFIG_JPN_DEMUX_MOD)	
+	static struct dmx_stc dmx_stc;
+	int ret =0;
+#endif	
+	
 	mutex_lock(&ts_buffer->dmxdevfilter->mutex);
 
 	if (ts_buffer->abort ||
@@ -2082,9 +2108,55 @@ static void dvb_dmxdev_ts_insertion_work(struct work_struct *worker)
 	mutex_unlock(&ts_buffer->dmxdevfilter->mutex);
 
 	if (ts_buffer->size < free_bytes)
+	{
+#if defined(CONFIG_JPN_DEMUX_MOD)
+	if (ts_buffer->dmxdevfilter->dmx_tsp_format == DMX_TSP_FORMAT_192_TAIL)
+	{
+
+		pr_debug("dvb_dmxdev_ts_insertion_work repetition_time=%d time=%llu\n",ts_buffer->repetition_time,ts_buffer->tts);
+		
+		ts_buffer->buffer[3] = 	(unsigned int)( 0x0 << 6 ) |
+								(unsigned int)( 0x2 << 4 ) | 
+								(unsigned int)( ts_buffer->continuity & 0xF );
+								
+		ts_buffer->buffer[10] = (ts_buffer->tts & 0x0000000001)<<7;
+		ts_buffer->buffer[9] = ((ts_buffer->tts >>1) & 0x00000000FF);
+		ts_buffer->buffer[8] = ((ts_buffer->tts >>9) & 0x00000000FF);
+		ts_buffer->buffer[7] = ((ts_buffer->tts >>17) & 0x00000000FF);
+		ts_buffer->buffer[6] = ((ts_buffer->tts >>25) & 0x00000000FF);
+		
+		pcr_ts_inserted = ts_buffer->tts;
+
+		dmx_stc.num = 0; //TSIF 0
+			
+		ret = ts_buffer->dmxdevfilter->dev->demux->get_stc(ts_buffer->dmxdevfilter->dev->demux,
+    					     dmx_stc.num,
+    					     &(dmx_stc.stc),
+    					     &(dmx_stc.base));	
+		if(ret)
+			printk("Error get_stc %d\n",ret);
+		
+		ts_buffer->buffer[188] = (dmx_stc.stc & 0x0000FF00) >> 8;
+		ts_buffer->buffer[189] = (dmx_stc.stc & 0x00FF0000) >> 16;
+		ts_buffer->buffer[190] = (dmx_stc.stc & 0xFF000000) >> 24;
+
+		ts_buffer->continuity++; 
+
+		if(ts_buffer->continuity > 0xf)
+			ts_buffer->continuity = 0;
+			
+		ts_buffer->tts += (ts_buffer->repetition_time *90); //in cycles of 90 KHz
+
+		if(ts_buffer->tts > 0x1ffffffff)
+			ts_buffer->tts = 0;
+		
+		
+	}
+#endif
 		ts->ts_insertion_insert_buffer(ts,
 			ts_buffer->buffer, ts_buffer->size);
-
+	}
+	
 	if (ts_buffer->repetition_time && !ts_buffer->abort)
 		schedule_delayed_work(&ts_buffer->dwork,
 				msecs_to_jiffies(ts_buffer->repetition_time));
@@ -2181,6 +2253,12 @@ static int dvb_dmxdev_set_ts_insertion(struct dmxdev_filter *dmxdevfilter,
 	ts_buffer->identifier = params->identifier;
 	ts_buffer->repetition_time = params->repetition_time;
 	ts_buffer->dmxdevfilter = dmxdevfilter;
+#if defined(CONFIG_JPN_DEMUX_MOD)
+	ts_buffer->continuity = 0; 
+	ts_buffer->tts = 0;
+	pcr_ts_inserted = 0;
+#endif
+
 	INIT_DELAYED_WORK(&ts_buffer->dwork, dvb_dmxdev_ts_insertion_work);
 
 	first_buffer = list_empty(&dmxdevfilter->insertion_buffers);
@@ -4405,6 +4483,17 @@ static int dvb_demux_do_ioctl(struct file *file,
 		ret = dvb_dmxdev_flush_buffer(dmxdevfilter);
 		mutex_unlock(&dmxdevfilter->mutex);
 		break;
+
+#if defined(CONFIG_JPN_DEMUX_MOD)
+	case DMX_GET_PCR_TS_INSERTED:
+		if (mutex_lock_interruptible(&dmxdevfilter->mutex)) {
+			mutex_unlock(&dmxdev->mutex);
+			return -ERESTARTSYS;
+		}
+		ret = dvb_dmxdev_get_ts_inserted_pcr(dmxdevfilter, parg);
+		mutex_unlock(&dmxdevfilter->mutex);
+		break;
+#endif
 
 	default:
 		ret = -EINVAL;

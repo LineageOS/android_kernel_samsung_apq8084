@@ -18,6 +18,10 @@
 		reg-names = "msm-cam";
 	};
 
+        qcom,cam_dummy {
+                compatible = "qcom,cam_dummy";
+        };
+
 	qcom,csiphy@fda0ac00 {
 		cell-index = <0>;
 		compatible = "qcom,csiphy";
@@ -107,9 +111,8 @@
 		cell-index = <0>;
 		compatible = "qcom,vfe44";
 		reg = <0xfda10000 0x1000>,
-		       <0xfda40000 0x200>,
-                        <0xFE0C900C  0x8>;
-		reg-names = "vfe", "vfe_vbif","vfe_avtimer";
+			<0xfda40000 0x200>;
+		reg-names = "vfe", "vfe_vbif";
 		interrupts = <0 57 0>;
 		interrupt-names = "vfe";
 		vdd-supply = <&gdsc_vfe>;
@@ -119,9 +122,8 @@
 		cell-index = <1>;
 		compatible = "qcom,vfe44";
 		reg = <0xfda14000 0x1000>,
-			<0xfda40000 0x200>,
-			<0xFE0C900C  0x8>;
-		reg-names = "vfe", "vfe_vbif","vfe_avtimer";
+			<0xfda40000 0x200>;
+		reg-names = "vfe", "vfe_vbif";
 		interrupts = <0 58 0>;
 		interrupt-names = "vfe";
 		vdd-supply = <&gdsc_vfe>;
@@ -181,6 +183,12 @@
         qcom,clock-rates = <0 266670000 0 0 266670000 0 0 0 0>;
     };
 
+	led_flash0: qcom,camera-led-flash {
+		cell-index = <0>;
+		compatible = "qcom,camera-led-flash";
+		qcom,flash-type = <1>;
+	};
+
 	cci: qcom,cci@fda0C000 {
 		cell-index = <0>;
 		compatible = "qcom,cci";
@@ -190,9 +198,9 @@
 		reg-names = "cci";
 		interrupts = <0 50 0>;
 		interrupt-names = "cci";
-        qcom,clock-names = "camss_top_ahb_clk", "camss_ahb_clk", "cci_src_clk",
+		qcom,clock-names = "camss_top_ahb_clk", "camss_ahb_clk", "cci_src_clk",
                            "cci_ahb_clk", "cci_clk";
-        qcom,clock-rates = <0 0 19200000 0 0>;
+		qcom,clock-rates = <0 0 19200000 0 0>;
 		gpios = <&msmgpio 19 0>,
 			<&msmgpio 20 0>,
 			<&msmgpio 21 0>,
@@ -203,6 +211,16 @@
 				      "CCI_I2C_CLK0",
 				      "CCI_I2C_DATA1",
 				      "CCI_I2C_CLK1";
+		qcom,hw-thigh = <20>;
+		qcom,hw-tlow = <28>;
+		qcom,hw-tsu-sto = <6>;
+		qcom,hw-tsu-sta = <7>;
+		qcom,hw-thd-dat = <13>;
+		qcom,hw-thd-sta = <11>;
+		qcom,hw-tbuf = <25>;
+		qcom,hw-scl-stretch-en = <0>;
+		qcom,hw-trdhld = <6>;
+		qcom,hw-tsp = <3>;
 		i2c_freq_100Khz: qcom,i2c_standard_mode {
 			status = "disabled";
 		};

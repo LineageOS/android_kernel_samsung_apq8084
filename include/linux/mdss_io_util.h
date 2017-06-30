@@ -31,6 +31,10 @@
 struct dss_io_data {
 	u32 len;
 	void __iomem *base;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	resource_size_t physical_base;
+	resource_size_t physical_base_offset;
+#endif
 };
 
 void dss_reg_w(struct dss_io_data *io, u32 offset, u32 value, u32 debug);

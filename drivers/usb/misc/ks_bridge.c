@@ -247,8 +247,13 @@ read_start:
 
 	dbg_log_event(ksb, "KS_READ", copied, 0);
 
-	dev_dbg(ksb->device, "count:%d space:%d copied:%d", count,
-			space, copied);
+	if (!strcmp(ksb->id_info.name, "efs_hsic_bridge") &&
+		test_bit(USB_DEV_CONNECTED, &ksb->flags))
+		dev_err(ksb->device, "%s, count:%d space:%d copied:%d",
+				__func__, count, space, copied);
+	else
+		dev_dbg(ksb->device, "count:%d space:%d copied:%d",
+				count, space, copied);
 
 	return copied;
 }
@@ -342,6 +347,11 @@ static ssize_t ksb_fs_write(struct file *fp, const char __user *buf,
 
 	if (!test_bit(USB_DEV_CONNECTED, &ksb->flags))
 		return -ENODEV;
+
+
+	if (!strcmp(ksb->id_info.name, "efs_hsic_bridge"))
+		dev_err(ksb->device, "%s ,count:%d cmd:%d\n",
+				__func__, count, *buf);
 
 	if (count > MAX_DATA_PKT_SIZE)
 		count = MAX_DATA_PKT_SIZE;

@@ -81,6 +81,21 @@
 	pr_err("%s: " fmt, __func__, arg);  \
 	} while (0)
 
+#define PCIE_REG(dev, fmt, arg...) do {			 \
+	if ((dev) && (dev)->ipc_log_reg)   \
+		ipc_log_string((dev)->ipc_log_reg, "%s: " fmt, __func__, arg); \
+	if (msm_pcie_get_debug_mask())   \
+		pr_alert("%s: " fmt, __func__, arg);              \
+	} while (0)
+
+#define PCIE_DUMP_ALL_REG(dev) do {					\
+		if (dev->link_status == MSM_PCIE_LINK_ENABLED) {	\
+			pcie_phy_dump(dev);				\
+			msm_pcie_dump_testbus(dev);			\
+			msm_pcie_dump_parf(dev);			\
+		}							\
+	} while (0)
+
 #define PCIE_BUS_PRIV_DATA(pdev) \
 	(((struct pci_sys_data *)pdev->bus->sysdata)->private_data)
 
@@ -251,6 +266,7 @@ struct msm_pcie_dev_t {
 	bool                         power_on;
 	void                         *ipc_log;
 	void                         *ipc_log_long;
+	void                         *ipc_log_reg;
 };
 
 extern int msm_pcie_enumerate(u32 rc_idx);
@@ -263,8 +279,11 @@ extern void msm_pcie_irq_deinit(struct msm_pcie_dev_t *dev);
 extern int msm_pcie_get_debug_mask(void);
 extern bool msm_pcie_confirm_linkup(struct msm_pcie_dev_t *dev,
 		bool check_sw_stts, bool check_ep);
+extern void msm_pcie_dump_parf(struct msm_pcie_dev_t* dev);
+extern void msm_pcie_dump_testbus(struct msm_pcie_dev_t *dev);
 
 extern void pcie_phy_init(struct msm_pcie_dev_t *dev);
 extern bool pcie_phy_is_ready(struct msm_pcie_dev_t *dev);
+extern void pcie_phy_dump(struct msm_pcie_dev_t *dev);
 
 #endif

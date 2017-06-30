@@ -4,6 +4,15 @@
 
 menu "Misc devices"
 
+config SEC_FPGA_ICE40XX
+        tristate "this feature allows FPGA_ICE40XX"
+        default y
+        help
+          This is a driver for IR LEd driver based on Lattice chip.
+          Lattice FPGA can support IR LED.
+          To compile this driver as a module, choose M here.
+          If unsure, say N.
+
 config SENSORS_LIS3LV02D
 	tristate
 	depends on INPUT
@@ -374,6 +383,17 @@ config SENSORS_APDS990X
 	   To compile this driver as a module, choose M here: the
 	   module will be called apds990x. If unsure, say N here.
 
+config SAMSUNG_JACK
+	bool "3.5 PI Jack driver for Samsung devices"
+	depends on INPUT
+	default n
+	help
+	 This is 3.5 PI JACK driver for Samsung devies.
+	 sec_jack from samsung driver used for samsung devices.
+
+	 To samsung jack is reviewed and supported in all the
+	 samsung devices.
+
 config HMC6352
 	tristate "Honeywell HMC6352 compass"
 	depends on I2C
@@ -581,6 +601,26 @@ config QPNP_MISC
 	  and the driver provides an API to check if this interrupt
 	  is available on the current PMIC chip.
 
+config SEC_MISC
+	bool "Samsung P series miscellaneous driver"
+	default n
+	---help---
+	  Samsung P series miscellaneous driver
+	  This creates sys fs entries for changing
+	  debug levels. The debug level is stored in
+	  Param partition
+
+config SAMSUNG_JACK
+	bool "3.5 PI Jack driver for Samsung devices"
+	depends on INPUT
+	default n
+	help
+	 This is 3.5 PI JACK driver for Samsung devies.
+	 sec_jack from samsung driver used for samsung devices.
+
+	 To samsung jack is reviewed and supported in all the
+	 samsung devices.
+
 config USB_HSIC_SMSC_HUB
 	tristate "Support for HSIC based MSM on-chip SMSC3503 HUB"
 	depends on USB_EHCI_MSM_HSIC
@@ -615,6 +655,115 @@ config UID_CPUTIME
 	help
 	  Per UID based cpu time statistics exported to /proc/uid_cputime
 
+config NFC_PN547
+	bool "NXP PN547 NFC Controller Driver"
+	depends on I2C
+	default n
+	help
+	  NXP PN547 Near Field Communication controller support.
+	  This option enables device driver support for the NFC.
+	  It is used by many services. NFC is fully controlled using I2C
+	  to communicate the AP chip.
+
+config NFC_PN547_PMC8974_CLK_REQ
+	bool "NXP PN547 NFC Controller Driver"
+	depends on I2C
+	default n
+	help
+	  PM8941 Clock request for NXP PN547 Near Field
+	  Communication controller support.
+	  This option enables d1 clock for NFC.
+
+config NFC_PN547_8226_USE_BBCLK2
+	bool "NXP PN547 NFC CLOCK Controller"
+	depends on NFC_PN547
+	default n
+	help
+	  NXP PN547 Near Field Communication controller support.
+	  This option enables device driver support for the NFC.
+	  It is used by many services. NFC is fully controlled using I2C
+	  to communicate the AP chip.
+
+config NFC_PN547_8084_USE_BBCLK2
+	bool "NXP PN547 NFC CLOCK Controller"
+	depends on NFC_PN547
+	default n
+	help
+	  NXP PN547 Near Field Communication controller support.
+	  This option enables device driver support for the NFC.
+	  It is used by many services. NFC is fully controlled using I2C
+	  to communicate the AP chip.
+
+config SEC_NFC_I2C
+	tristate "SEC NFC driver for I2C interface"
+	depends on I2C
+	default n
+	help
+	  Say yes if you want System LSI Near Field Communication driver.
+	  This is for spi connected version. If unsure, say N here.
+	  To compile this driver as a module, choose m here. The module will
+	  be called sec-nfc-i2c.
+
+config SEC_NFC
+	bool "Samsung NFC driver"
+	default n
+	help
+	  SAMSUNG NFC Driver.
+	  This driver provides support for SAMSUNG NFC products.
+	  You should select your NFC product and interface.
+
+	  Say Y here to compile support for SAMSUNG NFC driver into the
+	  kernel.
+
+config NFC_N5_8084_USE_BBCLK2
+	bool "SEC N5 NFC CLOCK Controller"
+	depends on SEC_NFC
+	default n
+	help
+	  SEC N5 Near Field Communication controller support.
+	  This option enables device driver support for the NFC.
+	  It is used by many services. NFC is fully controlled using I2C
+	  to communicate the AP chip.
+
+config NFC_DUAL
+	bool "NFC DUAL"
+	depends on SEC_NFC
+	default n
+	help
+	  DUAL Near Field Communication controller support.
+	  This option enables device driver support for the NFC.
+	  It is used by many services. NFC is fully controlled using I2C
+	  to communicate the AP chip.
+
+choice
+	prompt "SEC NFC Products"
+	depends on SEC_NFC
+	default SEC_NFC_PRODUCT_N5
+config SEC_NFC_PRODUCT_N3
+	bool "N3"
+config SEC_NFC_PRODUCT_N5
+	bool "N5"
+endchoice
+
+config SEC_NFC_MARGINTIME
+	bool "SEC NFC MARGINTIME"
+	depends on SEC_NFC
+	default n
+	help
+	  SAMSUNG SEC NFC MARGINTIME feature.
+	  This feature provides support for SAMSUNG NFC products.
+	  You should select this feature if your NFC product uses AVDD Cap 10uF .
+
+	  Say Y here to compile support for SAMSUNG SEC NFC MARGINTIME feature into the
+	  kernel.
+
+config NFC_I2C_OVERWRITE
+	bool "I2C gpio overwrite"
+	depends on I2C
+	default n
+	help
+	  F-project rev09,10 has no external PU register.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -622,6 +771,7 @@ source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
+source "drivers/misc/modem_if/Kconfig"
 source "drivers/misc/mei/Kconfig"
 source "drivers/misc/vmw_vmci/Kconfig"
 source "drivers/misc/qcom/Kconfig"

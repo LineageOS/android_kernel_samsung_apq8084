@@ -173,6 +173,12 @@ config KEYBOARD_EP93XX
 	  To compile this driver as a module, choose M here: the
 	  module will be called ep93xx_keypad.
 
+config SENSORS_HALL
+	bool "HALL"
+	default n
+	help
+	  Say Y here to enable the HALL
+
 config KEYBOARD_GPIO
 	tristate "GPIO Buttons"
 	depends on GPIOLIB
@@ -667,5 +673,9 @@ config KEYBOARD_CROS_EC
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called cros_ec_keyb.
+
+source "drivers/input/keyboard/cypress_touchkey_h/Kconfig"
+source "drivers/input/keyboard/cypress_touchkey_t/Kconfig"
+source "drivers/input/keyboard/cypress_touchkey/Kconfig"
 
 endif

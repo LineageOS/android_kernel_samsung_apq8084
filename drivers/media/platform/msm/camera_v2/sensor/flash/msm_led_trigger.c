@@ -14,11 +14,21 @@
 #define pr_fmt(fmt) "%s:%d " fmt, __func__, __LINE__
 
 #include <linux/module.h>
+
+#if defined(CONFIG_LEDS_MAX77804K)
+#include <linux/leds-max77804k.h>
+#include <linux/gpio.h>
+#endif
+#if defined(CONFIG_LEDS_MAX77828)
+#include <linux/leds-max77828.h>
+#endif
+#if defined(CONFIG_LEDS_MIC2873)
+#include <linux/leds-mic2873.h>
+#endif
 #include "msm_led_flash.h"
 
 #define FLASH_NAME "camera-led-flash"
 
-/*#define CONFIG_MSMB_CAMERA_DEBUG*/
 #undef CDBG
 #ifdef CONFIG_MSMB_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_err(fmt, ##args)
@@ -26,11 +36,23 @@
 #define CDBG(fmt, args...) do { } while (0)
 #endif
 
-extern int32_t msm_led_torch_create_classdev(
-				struct platform_device *pdev, void *data);
-
-static enum flash_type flashtype;
 static struct msm_led_flash_ctrl_t fctrl;
+
+struct device *flash_dev;
+
+#if defined(CONFIG_LEDS_MAX77804K)
+extern int led_flash_en;
+extern int led_torch_en;
+#define MAX77804K_DRIVER "max77804k"
+#endif
+
+#if defined(CONFIG_LEDS_MAX77828)
+#define MAX77828_DRIVER "max77828"
+#endif
+
+#if defined(CONFIG_LEDS_MIC2873)
+#define MIC2873_DRIVER "mic2873"
+#endif
 
 static int32_t msm_led_trigger_get_subdev_id(struct msm_led_flash_ctrl_t *fctrl,
 	void *arg)
@@ -49,9 +71,8 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 	void *data)
 {
 	int rc = 0;
+
 	struct msm_camera_led_cfg_t *cfg = (struct msm_camera_led_cfg_t *)data;
-	uint32_t i;
-	uint32_t curr_l, max_curr_l;
 	CDBG("called led_state %d\n", cfg->cfgtype);
 
 	if (!fctrl) {
@@ -59,63 +80,268 @@ static int32_t msm_led_trigger_config(struct msm_led_flash_ctrl_t *fctrl,
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_LEDS_MAX77804K) && defined(CONFIG_LEDS_MAX77828)
+    if (!strcmp(fctrl->flash_driver, MAX77804K_DRIVER)) {
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("%s : CAM Flash OFF\n", fctrl->flash_driver);
+            max77804k_led_en(0, 0);
+            max77804k_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("%s : CAM Pre Flash ON\n", fctrl->flash_driver);
+            max77804k_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("%s : CAM Flash ON\n", fctrl->flash_driver);
+            max77804k_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            max77804k_led_en(0, 0);
+            max77804k_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+    } else if (!strcmp(fctrl->flash_driver, MAX77828_DRIVER)){ //max77828
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("%s : CAM Flash OFF\n", fctrl->flash_driver);
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("%s : CAM Pre Flash ON\n", fctrl->flash_driver);
+            max77828_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("%s : CAM Flash ON\n", fctrl->flash_driver);
+            max77828_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+    }else {
+        pr_err("%s : can't find valid flash driver\n", __FUNCTION__);
+        pr_err("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        rc = -EINVAL;
+    }
+#elif defined(CONFIG_LEDS_MIC2873) && defined(CONFIG_LEDS_MAX77828)
+    if (!strcmp(fctrl->flash_driver, MIC2873_DRIVER)) {//mic2873
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("%s : CAM Flash OFF\n", fctrl->flash_driver);
+            mic2873_led_en(0, 0);
+            mic2873_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("%s : CAM Pre Flash ON\n", fctrl->flash_driver);
+            mic2873_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("%s : CAM Flash ON\n", fctrl->flash_driver);
+            mic2873_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            mic2873_led_en(0, 0);
+            mic2873_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+    } else if (!strcmp(fctrl->flash_driver, MAX77828_DRIVER)){ //max77828
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("%s : CAM Flash OFF\n", fctrl->flash_driver);
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("%s : CAM Pre Flash ON\n", fctrl->flash_driver);
+            max77828_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("%s : CAM Flash ON\n", fctrl->flash_driver);
+            max77828_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+    }else {
+        pr_err("%s : can't find valid flash driver\n", __FUNCTION__);
+        pr_err("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        rc = -EINVAL;
+    }
+#elif defined(CONFIG_LEDS_MAX77804K)
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("CAM Flash OFF\n");
+            max77804k_led_en(0, 0);
+            max77804k_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("CAM Pre Flash ON\n");
+            max77804k_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("CAM Flash ON\n");
+            max77804k_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            max77804k_led_en(0, 0);
+            max77804k_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+#elif defined(CONFIG_LEDS_MAX77828)
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("CAM Flash OFF\n");
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("CAM Pre Flash ON\n");
+            max77828_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("CAM Flash ON\n");
+            max77828_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            max77828_led_en(0, 0);
+            max77828_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+#elif defined(CONFIG_LEDS_MIC2873)
+        CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
+        switch (cfg->cfgtype) {
+        case MSM_CAMERA_LED_OFF:
+            pr_info("CAM Flash OFF\n");
+            mic2873_led_en(0, 0);
+            mic2873_led_en(0, 1);
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+            pr_info("CAM Pre Flash ON\n");
+            mic2873_led_en(1, 0);
+            break;
+
+        case MSM_CAMERA_LED_HIGH:
+            pr_info("CAM Flash ON\n");
+            mic2873_led_en(1, 1);
+            break;
+
+        case MSM_CAMERA_LED_INIT:
+            break;
+
+        case MSM_CAMERA_LED_RELEASE:
+            pr_info("%s : CAM Flash OFF & release\n", fctrl->flash_driver);
+            mic2873_led_en(0, 0);
+            mic2873_led_en(0, 1);
+            break;
+
+        default:
+            rc = -EFAULT;
+            break;
+        }
+#else
+	CDBG("%s : driver is %s\n", __FUNCTION__, fctrl->flash_driver);
 	switch (cfg->cfgtype) {
 	case MSM_CAMERA_LED_OFF:
-		for (i = 0; i < fctrl->num_sources; i++)
-			if (fctrl->flash_trigger[i])
-				led_trigger_event(fctrl->flash_trigger[i], 0);
-		if (fctrl->torch_trigger)
-			led_trigger_event(fctrl->torch_trigger, 0);
+		led_trigger_event(fctrl->led_trigger[0], 0);
 		break;
 
 	case MSM_CAMERA_LED_LOW:
-		if (fctrl->torch_trigger) {
-			max_curr_l = fctrl->torch_max_current;
-			if (cfg->torch_current > 0 &&
-				cfg->torch_current < max_curr_l) {
-				curr_l = cfg->torch_current;
-			} else {
-				curr_l = fctrl->torch_op_current;
-				pr_debug("LED current clamped to %d\n",
-					curr_l);
-			}
-			led_trigger_event(fctrl->torch_trigger,
-				curr_l);
-		}
+		led_trigger_event(fctrl->led_trigger[0],
+			fctrl->max_current[0] / 2);
 		break;
 
 	case MSM_CAMERA_LED_HIGH:
-		if (fctrl->torch_trigger)
-			led_trigger_event(fctrl->torch_trigger, 0);
-		for (i = 0; i < fctrl->num_sources; i++)
-			if (fctrl->flash_trigger[i]) {
-				max_curr_l = fctrl->flash_max_current[i];
-				if (cfg->flash_current[i] > 0 &&
-					cfg->flash_current[i] < max_curr_l) {
-					curr_l = cfg->flash_current[i];
-				} else {
-					curr_l = fctrl->flash_op_current[i];
-					pr_debug("LED current clamped to %d\n",
-						curr_l);
-				}
-				led_trigger_event(fctrl->flash_trigger[i],
-					curr_l);
-			}
+		led_trigger_event(fctrl->led_trigger[0], fctrl->max_current[0]);
 		break;
 
 	case MSM_CAMERA_LED_INIT:
 	case MSM_CAMERA_LED_RELEASE:
-		for (i = 0; i < fctrl->num_sources; i++)
-			if (fctrl->flash_trigger[i])
-				led_trigger_event(fctrl->flash_trigger[i], 0);
-		if (fctrl->torch_trigger)
-			led_trigger_event(fctrl->torch_trigger, 0);
+		led_trigger_event(fctrl->led_trigger[0], 0);
 		break;
 
 	default:
 		rc = -EFAULT;
 		break;
 	}
+#endif
 	CDBG("flash_set_led_state: return %d\n", rc);
 	return rc;
 }
@@ -137,11 +363,10 @@ static struct platform_driver msm_led_trigger_driver = {
 
 static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 {
-	int32_t rc = 0, rc_1 = 0, i = 0;
+	int32_t rc = 0, i = 0;
 	struct device_node *of_node = pdev->dev.of_node;
 	struct device_node *flash_src_node = NULL;
 	uint32_t count = 0;
-	struct led_trigger *temp = NULL;
 
 	CDBG("called\n");
 
@@ -151,7 +376,6 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 	}
 
 	fctrl.pdev = pdev;
-	fctrl.num_sources = 0;
 
 	rc = of_property_read_u32(of_node, "cell-index", &pdev->id);
 	if (rc < 0) {
@@ -160,10 +384,12 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 	}
 	CDBG("pdev id %d\n", pdev->id);
 
-	rc = of_property_read_u32(of_node,
-			"qcom,flash-type", &flashtype);
+	rc = of_property_read_string(of_node, "flash-driver",
+		&fctrl.flash_driver);
+	pr_info("[%s] Flash driver is %s\n", __FUNCTION__,
+		fctrl.flash_driver);
 	if (rc < 0) {
-		pr_err("flash-type: read failed\n");
+		pr_err("%s failed %d\n", __FUNCTION__, __LINE__);
 		return -EINVAL;
 	}
 
@@ -171,10 +397,9 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 		count /= sizeof(uint32_t);
 		CDBG("count %d\n", count);
 		if (count > MAX_LED_TRIGGERS) {
-			pr_err("invalid count\n");
+			pr_err("failed\n");
 			return -EINVAL;
 		}
-		fctrl.num_sources = count;
 		for (i = 0; i < count; i++) {
 			flash_src_node = of_parse_phandle(of_node,
 				"qcom,flash-source", i);
@@ -185,98 +410,32 @@ static int32_t msm_led_trigger_probe(struct platform_device *pdev)
 
 			rc = of_property_read_string(flash_src_node,
 				"linux,default-trigger",
-				&fctrl.flash_trigger_name[i]);
+				&fctrl.led_trigger_name[i]);
 			if (rc < 0) {
-				pr_err("default-trigger: read failed\n");
+				pr_err("failed\n");
 				of_node_put(flash_src_node);
 				continue;
 			}
 
-			CDBG("default trigger %s\n",
-				fctrl.flash_trigger_name[i]);
+			CDBG("default trigger %s\n", fctrl.led_trigger_name[i]);
 
-			if (flashtype == GPIO_FLASH) {
-				/* use fake current */
-				fctrl.flash_op_current[i] = LED_FULL;
-			} else {
-				rc = of_property_read_u32(flash_src_node,
-					"qcom,current",
-					&fctrl.flash_op_current[i]);
-				rc_1 = of_property_read_u32(flash_src_node,
-					"qcom,max-current",
-					&fctrl.flash_max_current[i]);
-				if ((rc < 0) || (rc_1 < 0)) {
-					pr_err("current: read failed\n");
-					of_node_put(flash_src_node);
-					continue;
-				}
-			}
-
-			of_node_put(flash_src_node);
-
-			CDBG("max_current[%d] %d\n",
-				i, fctrl.flash_op_current[i]);
-
-			led_trigger_register_simple(fctrl.flash_trigger_name[i],
-				&fctrl.flash_trigger[i]);
-
-			if (flashtype == GPIO_FLASH)
-				if (fctrl.flash_trigger[i])
-					temp = fctrl.flash_trigger[i];
-		}
-
-		/* Torch source */
-		flash_src_node = of_parse_phandle(of_node, "qcom,torch-source",
-			0);
-		if (flash_src_node) {
-			rc = of_property_read_string(flash_src_node,
-				"linux,default-trigger",
-				&fctrl.torch_trigger_name);
+			rc = of_property_read_u32(flash_src_node,
+				"qcom,max-current", &fctrl.max_current[i]);
 			if (rc < 0) {
-				pr_err("default-trigger: read failed\n");
-				goto torch_failed;
+				pr_err("failed rc %d\n", rc);
+				of_node_put(flash_src_node);
+				continue;
 			}
 
-			CDBG("default trigger %s\n",
-				fctrl.torch_trigger_name);
-
-			if (flashtype == GPIO_FLASH) {
-				/* use fake current */
-				fctrl.torch_op_current = LED_FULL;
-				if (temp)
-					fctrl.torch_trigger = temp;
-				else
-					led_trigger_register_simple(
-						fctrl.torch_trigger_name,
-						&fctrl.torch_trigger);
-			} else {
-				rc = of_property_read_u32(flash_src_node,
-					"qcom,current",
-					&fctrl.torch_op_current);
-				rc_1 = of_property_read_u32(flash_src_node,
-					"qcom,max-current",
-					&fctrl.torch_max_current);
-
-				if ((rc < 0) || (rc_1 < 0)) {
-					pr_err("current: read failed\n");
-					goto torch_failed;
-				}
-
-				CDBG("torch max_current %d\n",
-					fctrl.torch_op_current);
-
-				led_trigger_register_simple(
-					fctrl.torch_trigger_name,
-					&fctrl.torch_trigger);
-			}
-torch_failed:
 			of_node_put(flash_src_node);
+
+			CDBG("max_current[%d] %d\n", i, fctrl.max_current[i]);
+
+			led_trigger_register_simple(fctrl.led_trigger_name[i],
+				&fctrl.led_trigger[i]);
 		}
 	}
-
 	rc = msm_led_flash_create_v4lsubdev(pdev, &fctrl);
-	if (!rc)
-		msm_led_torch_create_classdev(pdev, &fctrl);
 
 	return rc;
 }

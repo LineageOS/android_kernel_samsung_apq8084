@@ -100,7 +100,7 @@ static int sysmon_send_hsic(struct sysmon_subsys *ss, const char *tx_buf,
 	int ret;
 	size_t actual_len;
 
-	pr_debug("Sending HSIC message: %s\n", tx_buf);
+	pr_info("Sending HSIC message: %s\n", tx_buf);
 	ret = hsic_sysmon_write(HSIC_SYSMON_DEV_EXT_MODEM,
 				tx_buf, len, TIMEOUT_MS);
 	if (ret)
@@ -201,6 +201,43 @@ int sysmon_send_shutdown(enum subsys_id dest_ss)
 {
 	struct sysmon_subsys *ss = &subsys[dest_ss];
 	const char tx_buf[] = "system:shutdown";
+	const char expect[] = "system:ack";
+	size_t prefix_len = ARRAY_SIZE(expect) - 1;
+	int ret;
+
+	if (ss->dev == NULL)
+		return -ENODEV;
+
+	if (dest_ss < 0 || dest_ss >= SYSMON_NUM_SS)
+		return -EINVAL;
+
+	mutex_lock(&ss->lock);
+	ret = sysmon_send_msg(ss, tx_buf, ARRAY_SIZE(tx_buf));
+	if (ret)
+		goto out;
+
+	if (strncmp(ss->rx_buf, expect, prefix_len))
+		ret = -ENOSYS;
+out:
+	mutex_unlock(&ss->lock);
+	return ret;
+}
+
+/**
+ * sysmon_send_diag() - send noti about diag to a subsystem.
+ * @dest_ss:	ID of subsystem to send to.
+ *
+ * Returns 0 for success, -EINVAL for an invalid destination, -ENODEV if
+ * the SMD transport channel is not open, -ETIMEDOUT if the destination
+ * subsystem does not respond, and -ENOSYS if the destination subsystem
+ * responds with something unexpected.
+ *
+ * If CONFIG_MSM_SYSMON_COMM is not defined, always return success (0).
+ */
+int sysmon_send_diag_disable_noti(enum subsys_id dest_ss)
+{
+	struct sysmon_subsys *ss = &subsys[dest_ss];
+	const char tx_buf[] = "system:diag_channel_disabled";
 	const char expect[] = "system:ack";
 	size_t prefix_len = ARRAY_SIZE(expect) - 1;
 	int ret;

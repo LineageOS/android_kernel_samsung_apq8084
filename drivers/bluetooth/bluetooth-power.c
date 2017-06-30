@@ -34,9 +34,14 @@
 #define BT_PWR_INFO(fmt, arg...) pr_info("%s: " fmt "\n" , __func__ , ## arg)
 #define BT_PWR_ERR(fmt, arg...)  pr_err("%s: " fmt "\n" , __func__ , ## arg)
 
+#define EXT_LDO_1_18_V_MAX		1187500
+#define EXT_LDO_1_18_V_MIN		1187500
+#define EXT_LDO_1_20_V_MAX		1200000
+#define EXT_LDO_1_20_V_MIN		1200000
+
+extern unsigned int system_rev;
 
 static struct of_device_id bt_power_match_table[] = {
-	{	.compatible = "qca,ar3002" },
 	{	.compatible = "qca,qca6174" },
 	{}
 };
@@ -171,6 +176,11 @@ static int bt_configure_gpios(int on)
 			BT_PWR_ERR("Unable to set direction\n");
 			return rc;
 		}
+/*
+		Add 50msec delay between BT_EN gpio line toggle from 0 to 1
+		during BT turn on process to allow settling time for the controller
+		to recongnize the BT_EN pin toggle.
+*/
 		msleep(50);
 		rc = gpio_direction_output(bt_reset_gpio, 1);
 		if (rc) {
@@ -189,7 +199,7 @@ static int bluetooth_power(int on)
 {
 	int rc = 0;
 
-	BT_PWR_DBG("on: %d", on);
+	BT_PWR_INFO("on: %d", on);
 
 	if (on) {
 		if (bt_power_pdata->bt_vdd_io) {
@@ -207,6 +217,18 @@ static int bluetooth_power(int on)
 			}
 		}
 		if (bt_power_pdata->bt_vdd_ldo) {
+#ifdef CONFIG_SEC_LENTIS_PROJECT
+			pr_err("%s: system_rev=%d\n", __func__, system_rev);
+			if(system_rev == 7) {
+				bt_power_pdata->bt_vdd_ldo->low_vol_level = EXT_LDO_1_20_V_MIN;
+				bt_power_pdata->bt_vdd_ldo->high_vol_level = EXT_LDO_1_20_V_MAX;
+			} else if(system_rev > 7) {
+				bt_power_pdata->bt_vdd_ldo->low_vol_level = EXT_LDO_1_18_V_MIN;
+				bt_power_pdata->bt_vdd_ldo->high_vol_level = EXT_LDO_1_18_V_MAX;
+			} else {
+				BT_PWR_ERR("bt_power HW rev under 0x06");
+			}
+#endif
 			rc = bt_configure_vreg(bt_power_pdata->bt_vdd_ldo);
 			if (rc < 0) {
 				BT_PWR_ERR("bt_power vddldo config failed");
@@ -394,9 +416,15 @@ static int bt_power_populate_dt_pinfo(struct platform_device *pdev)
 		return -ENOMEM;
 
 	if (pdev->dev.of_node) {
+#ifdef USE_GPIO_EXPANDER_BT_EN
+		rc = of_property_read_u32(pdev->dev.of_node,
+						"qca,bt-reset-gpio", &bt_power_pdata->bt_gpio_sys_rst);
+		BT_PWR_DBG("GPIO_EXPANDER rc : %d", rc);
+#else
 		bt_power_pdata->bt_gpio_sys_rst =
 			of_get_named_gpio(pdev->dev.of_node,
 						"qca,bt-reset-gpio", 0);
+#endif
 		if (bt_power_pdata->bt_gpio_sys_rst < 0) {
 			BT_PWR_ERR("bt-reset-gpio not provided in device tree");
 			return bt_power_pdata->bt_gpio_sys_rst;
@@ -509,7 +537,6 @@ static struct platform_driver bt_power_driver = {
 static int __init bluetooth_power_init(void)
 {
 	int ret;
-
 	ret = platform_driver_register(&bt_power_driver);
 	return ret;
 }

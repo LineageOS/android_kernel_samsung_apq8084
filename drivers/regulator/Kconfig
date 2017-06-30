@@ -260,6 +260,40 @@ config REGULATOR_MAX77686
 	  via I2C bus. The provided regulator is suitable for
 	  Exynos-4 chips to control VARM and VINT voltages.
 
+config REGULATOR_MAX77803
+	tristate "Maxim 777803 regulator"
+	depends on MFD_MAX77803
+	help
+	   This driver provides support for the voltage regulators of the
+ 	   MAX77803 PMIC
+	   The MAX77803 is a companion power management IC for the smart phones
+	   The Maxim Max 77803 handles PMIC, MUIC, and the flash LED control.
+
+config REGULATOR_MAX77826
+	tristate "Maxim 77826 regulator"
+	depends on I2C
+	help
+	  This driver provides support for the voltage regulators of the MAX77826.
+	  The MAX77826 is a companion power management IC for the smart phones.
+	  The Max77826 handles LDO and BUCK control.
+
+config REGULATOR_MAX77828
+	tristate "Maxim 777828 regulator"
+	depends on MFD_MAX77828
+	help
+	   This driver provides support for the voltage regulators of the
+	   MAX77828 PMIC
+	   The MAX77828 is a companion power management IC for the smart phones
+	   The Maxim Max 77828 handles PMIC, MUIC, and the flash LED control.
+
+config REGULATOR_S2MPB01
+	tristate "S.LSI S2MPB01 regulator"
+	depends on I2C
+	help
+	  This driver provides support for the voltage regulators of the S2MPB01.
+	  The S2MPB01 is a companion power management IC for the smart phones.
+	  The S2MPB01 handles LDO and BUCK control.
+
 config REGULATOR_ONSEMI_NCP6335D
 	tristate "OnSemi NCP6335D regulator support"
 	depends on I2C

@@ -24,6 +24,7 @@
 #include <media/msm_media_info.h>
 
 #include <linux/msm_iommu_domains.h>
+#include <trace/events/irq.h>
 
 #include "mdss_fb.h"
 #include "mdss_mdp.h"
@@ -127,7 +128,7 @@ static inline void mdss_mdp_intr_done(int index)
 irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 {
 	struct mdss_data_type *mdata = ptr;
-	u32 isr, mask, hist_isr, hist_mask;
+	u32 isr, mask, hist_isr, hist_mask = 0x12344321;
 
 
 	isr = readl_relaxed(mdata->mdp_base + MDSS_MDP_REG_INTR_STATUS);
@@ -137,9 +138,13 @@ irqreturn_t mdss_mdp_isr(int irq, void *ptr)
 
 
 	mask = readl_relaxed(mdata->mdp_base + MDSS_MDP_REG_INTR_EN);
+#if 0 //defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+	xlog(__func__, isr , mask, 0, 0, 0, 0);
+#endif
 	writel_relaxed(isr, mdata->mdp_base + MDSS_MDP_REG_INTR_CLEAR);
 
 	pr_debug("%s: isr=%x mask=%x\n", __func__, isr, mask);
+	trace_mdss_mdp_isr_start(irq, isr, mask);
 
 	isr &= mask;
 	if (isr == 0)
@@ -230,6 +235,7 @@ mdp_isr_done:
 		goto hist_isr_done;
 	mdss_mdp_hist_intr_done(hist_isr);
 hist_isr_done:
+	trace_mdss_mdp_isr_end(irq, hist_isr, hist_mask);
 	return IRQ_HANDLED;
 }
 
@@ -627,9 +633,8 @@ static int mdss_mdp_map_buffer(struct mdss_mdp_img_data *data)
 						0, SZ_4K, 0, &data->addr,
 						&data->len, 0, 0);
 			if (ret && (domain == MDSS_IOMMU_DOMAIN_SECURE))
-				msm_ion_unsecure_buffer(iclient,
-						data->srcp_ihdl);
-
+				msm_ion_unsecure_buffer(iclient,	
+				data->srcp_ihdl);
 			data->mapped = true;
 		} else {
 			ret = ion_phys(iclient, data->srcp_ihdl,

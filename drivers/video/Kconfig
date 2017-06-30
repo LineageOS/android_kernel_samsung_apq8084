@@ -2494,4 +2494,7 @@ config FB_SSD1307
 	  This driver implements support for the Solomon SSD1307
 	  OLED controller over I2C.
 
+config SEC_DISP_CLK_TUNNING
+	tristate "Samsung Diplay Clock Tunning"
+
 endmenu

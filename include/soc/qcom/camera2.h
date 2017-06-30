@@ -35,7 +35,7 @@ enum msm_bus_perf_setting {
 	S_LIVESHOT,
 	S_DUAL,
 	S_EXIT
-};
+}; 
 
 struct msm_camera_slave_info {
 	uint16_t sensor_slave_addr;
@@ -74,8 +74,8 @@ struct msm_camera_power_ctrl_t {
 	struct msm_camera_i2c_conf *i2c_conf;
 	struct msm_cam_clk_info *clk_info;
 	uint16_t clk_info_size;
+	bool check_power_on;
 };
-
 struct msm_camera_sensor_board_info {
 	const char *sensor_name;
 	const char *eeprom_name;

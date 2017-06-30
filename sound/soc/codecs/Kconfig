@@ -48,6 +48,8 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_MAX98088 if I2C
 	select SND_SOC_MAX98090 if I2C
 	select SND_SOC_MAX98095 if I2C
+	select SND_SOC_MAX98504 if I2C
+	select SND_SOC_MAX98504A if I2C
 	select SND_SOC_MAX9850 if I2C
 	select SND_SOC_MAX9877 if I2C
 	select SND_SOC_MC13783 if MFD_MC13XXX
@@ -282,6 +284,36 @@ config SND_SOC_MAX98090
 config SND_SOC_MAX98095
        tristate
 
+config SND_SOC_MAX98504
+	bool "Support MAX98504"
+	depends on I2C
+	help
+	MAX98504 driver
+
+config SND_SOC_MAX98504A
+	bool "Support MAX98504"
+	depends on I2C
+	help
+	MAX98504 driver
+
+config SND_SOC_3MIC_SUPPORT
+	tristate "ES705 3MIC"
+	default n
+	help
+		To add support for ES705 3MI
+
+config SND_SOC_ES705_FOR_VOIP
+	tristate "ES705 VOIP"
+	default n
+	help
+		To add support for ES705 VOIP
+
+config SND_SOC_MAXIM_DSM
+	bool "Support MAXIM DSM"
+	depends on SND_SOC_MAX98504 || SND_SOC_MAX98505
+	help
+	MAXIM DSM driver
+
 config SND_SOC_MAX9850
 	tristate
 
@@ -380,6 +412,18 @@ config SND_SOC_MSM8X16_WCD
 config SND_SOC_WCD_CPE
 	tristate
 	default y if SND_SOC_WCD9330=y
+
+config SND_SOC_ES705
+	tristate "eS705"
+	default n		
+        ---help---
+        Valid configurations:
+         * SLIMbus
+         * I2C and I2S
+         * SPI and I2S
+         * UART and I2S
+
+        NOTE: Only one configuration should be enabled.
 
 config SND_SOC_WL1273
 	tristate
@@ -556,3 +600,5 @@ config SND_SOC_MSM_HDMI_CODEC_RX
 	help
 	HDMI audio drivers should be built only if the platform
         supports hdmi panel.
+        
+source "sound/soc/codecs/dbmd2/Kconfig"

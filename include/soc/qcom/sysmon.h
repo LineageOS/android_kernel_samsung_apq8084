@@ -39,6 +39,7 @@ int sysmon_send_event(const char *dest_ss, const char *event_ss,
 				enum subsys_notif_type notif);
 int sysmon_get_reason(enum subsys_id dest_ss, char *buf, size_t len);
 int sysmon_send_shutdown(enum subsys_id dest_ss);
+int sysmon_send_diag_disable_noti(enum subsys_id dest_ss);
 #else
 static inline int sysmon_send_event(const char *dest_ss,
 				    const char *event_ss,

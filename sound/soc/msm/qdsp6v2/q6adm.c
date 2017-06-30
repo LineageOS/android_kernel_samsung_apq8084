@@ -510,8 +510,11 @@ int adm_get_params(int port_id, uint32_t module_id, uint32_t param_id,
 		(1+adm_get_parameters[0])) &&
 		(params_length/sizeof(uint32_t) >=
 		adm_get_parameters[0])) {
-		for (i = 0; i < adm_get_parameters[0]; i++)
-			params_data[i] = adm_get_parameters[1+i];
+		if (module_id != 0x10001050)
+			for (i = 0; i < adm_get_parameters[0]; i++)
+				params_data[i] = adm_get_parameters[1+i];
+		else
+				params_data[0] = adm_get_parameters[1];
 	} else {
 		pr_err("%s: Get param data not copied! get_param array size %zd, index %d, params array size %zd, index %d\n",
 		__func__, ARRAY_SIZE(adm_get_parameters),
@@ -885,6 +888,8 @@ void send_adm_custom_topology(int port_id)
 	int				index;
 	int				result;
 	int				size = 4096;
+	
+	pr_info("%s:\n", __func__);
 
 	get_adm_custom_topology(&cal_block);
 	if (cal_block.cal_size == 0) {
@@ -913,7 +918,7 @@ void send_adm_custom_topology(int port_id)
 		if (result < 0) {
 			pr_err("%s: mmap did not work! size = %zd result %d\n",
 				__func__, cal_block.cal_size, result);
-			pr_debug("%s: mmap did not work! addr = 0x%pa, size = %zd\n",
+			pr_info("%s: mmap did not work! addr = 0x%pa, size = %zd\n",
 				__func__, &cal_block.cal_paddr,
 			       cal_block.cal_size);
 			goto done;
@@ -947,7 +952,7 @@ void send_adm_custom_topology(int port_id)
 	if (result < 0) {
 		pr_err("%s: Set topologies failed port = 0x%x result %d\n",
 			__func__, port_id, result);
-		pr_debug("%s: Set topologies failed port = 0x%x payload = 0x%pa\n",
+		pr_info("%s: Set topologies failed port = 0x%x payload = 0x%pa\n",
 			__func__, port_id, &cal_block.cal_paddr);
 		goto done;
 	}
@@ -958,7 +963,7 @@ void send_adm_custom_topology(int port_id)
 	if (!result) {
 		pr_err("%s: Set topologies timed out port = 0x%x\n",
 			__func__, port_id);
-		pr_debug("%s: Set topologies timed out port = 0x%x, payload = 0x%pa\n",
+		pr_info("%s: Set topologies timed out port = 0x%x, payload = 0x%pa\n",
 			__func__, port_id, &cal_block.cal_paddr);
 		goto done;
 	}
@@ -1150,7 +1155,7 @@ static void send_adm_cal(int port_id, int path, int perf_mode)
 int adm_map_rtac_block(struct rtac_cal_block_data *cal_block)
 {
 	int	result = 0;
-	pr_debug("%s:\n", __func__);
+	pr_info("%s:\n", __func__);
 
 	if (cal_block == NULL) {
 		pr_err("%s: cal_block is NULL!\n",
@@ -1196,7 +1201,7 @@ done:
 int adm_unmap_rtac_block(uint32_t *mem_map_handle)
 {
 	int	result = 0;
-	pr_debug("%s:\n", __func__);
+	pr_info("%s:\n", __func__);
 
 	if (mem_map_handle == NULL) {
 		pr_debug("%s: Map handle is NULL, nothing to unmap\n",
@@ -1240,6 +1245,8 @@ int adm_unmap_cal_blocks(void)
 	int	i;
 	int	result = 0;
 	int	result2 = 0;
+
+	pr_info("%s:\n", __func__);
 
 	for (i = 0; i < ADM_MAX_CAL_TYPES; i++) {
 		if (atomic_read(&this_adm.mem_map_cal_handles[i]) != 0) {
@@ -1423,12 +1430,14 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 			else
 				open.flags = ADM_LEGACY_DEVICE_SESSION;
 
-			open.topology_id = topology;
-			if ((open.topology_id ==
-				VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
-				(open.topology_id ==
-				VPM_TX_DM_FLUENCE_COPP_TOPOLOGY))
-					rate = 16000;
+		open.topology_id = topology;
+		if ((open.topology_id == VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
+			(open.topology_id == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY) ||
+		   	 (open.topology_id == VPM_TX_SM_LVVE_COPP_TOPOLOGY) ||
+			/* LVVE for Barge-in */
+			(open.topology_id == 0x1000BFF0) ||
+			(open.topology_id == 0x1000BFF1))
+				rate = 16000;
 
 			if (perf_mode == ULTRA_LOW_LATENCY_PCM_MODE) {
 				open.topology_id = NULL_COPP_TOPOLOGY;
@@ -1522,7 +1531,6 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 			open.endpoint_id_2 = this_adm.ec_ref_rx;
 			this_adm.ec_ref_rx = -1;
 		}
-
 
 		pr_debug("%s: port_id=0x%x rate=%d topology_id=0x%X\n",
 			__func__, open.endpoint_id_1, open.sample_rate,
@@ -1742,7 +1750,7 @@ int adm_memory_map_regions(int port_id,
 	int     cmd_size = 0;
 	int     index = 0;
 
-	pr_debug("%s:\n", __func__);
+	pr_info("%s:\n", __func__);
 	if (this_adm.apr == NULL) {
 		this_adm.apr = apr_register("ADSP", "ADM", adm_callback,
 						0xFFFFFFFF, &this_adm);
@@ -1787,7 +1795,7 @@ int adm_memory_map_regions(int port_id,
 	mmap_regions->num_regions = bufcnt & 0x00ff;
 	mmap_regions->property_flag = 0x00;
 
-	pr_debug("%s: map_regions->num_regions = %d\n", __func__,
+	pr_info("%s: map_regions->num_regions = %d\n", __func__,
 				mmap_regions->num_regions);
 	payload = ((u8 *) mmap_region_cmd +
 				sizeof(struct avs_cmd_shared_mem_map_regions));
@@ -1827,7 +1835,7 @@ int adm_memory_unmap_regions(int32_t port_id)
 	int     ret = 0;
 	int     index = 0;
 
-	pr_debug("%s:\n", __func__);
+	pr_info("%s:\n", __func__);
 
 	if (this_adm.apr == NULL) {
 		pr_err("%s: APR handle NULL\n", __func__);

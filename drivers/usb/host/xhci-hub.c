@@ -259,6 +259,8 @@ int xhci_find_slot_id_by_port(struct usb_hcd *hcd, struct xhci_hcd *xhci,
 	return slot_id;
 }
 
+extern void xhci_dump_phy_info(struct xhci_hcd *xhci);
+
 /*
  * Stop device
  * It issues stop endpoint command for EP 0 to 30. And wait the last command
@@ -300,6 +302,7 @@ static int xhci_stop_device(struct xhci_hcd *xhci, int slot_id, int suspend)
 	if (timeleft <= 0) {
 		xhci_warn(xhci, "%s while waiting for stop endpoint command\n",
 				timeleft == 0 ? "Timeout" : "Signal");
+		xhci_dump_phy_info(xhci);
 		spin_lock_irqsave(&xhci->lock, flags);
 		/* The timeout might have raced with the event ring handler, so
 		 * only delete from the list if the item isn't poisoned.
@@ -1170,11 +1173,18 @@ int xhci_hub_status_data(struct usb_hcd *hcd, char *buf)
 	u32 temp, status;
 	u32 mask;
 	int i, retval;
-	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
+	struct xhci_hcd	*xhci;
 	int max_ports;
 	__le32 __iomem **port_array;
 	struct xhci_bus_state *bus_state;
 	bool reset_change = false;
+
+	if (!hcd) {
+		pr_err("xhci_hub_status_data: hcd is null\n");
+		return -ENODEV;
+	}
+
+	xhci = hcd_to_xhci(hcd);
 
 	max_ports = xhci_get_ports(hcd, &port_array);
 	bus_state = &xhci->bus_state[hcd_index(hcd)];

@@ -237,8 +237,8 @@ enum mxt_device_state { INIT, APPMODE, BOOTLOADER };
 #define MXT_VOLTAGE_STEP	10000
 
 /* Analog voltage @2.7 V */
-#define MXT_VTG_MIN_UV		2700000
-#define MXT_VTG_MAX_UV		3300000
+#define MXT_VTG_MIN_UV		1800000
+#define MXT_VTG_MAX_UV		1800000
 #define MXT_ACTIVE_LOAD_UA	15000
 #define MXT_LPM_LOAD_UA		10
 /* Digital voltage @1.8 V */

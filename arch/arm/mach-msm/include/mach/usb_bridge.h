@@ -76,7 +76,7 @@ struct timestamp_info {
 #define DBG_DATA_MSG	128UL
 
 /* Maximum timestamp messages */
-#define DBG_DATA_MAX	32UL
+#define DBG_DATA_MAX	2048UL
 
 /* timestamp buffer descriptor */
 struct timestamp_buf {

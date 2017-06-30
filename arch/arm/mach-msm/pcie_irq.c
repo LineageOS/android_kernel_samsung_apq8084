@@ -28,6 +28,10 @@
 #include <linux/delay.h>
 #include "pcie.h"
 
+#if defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+extern unsigned int system_rev;
+#endif /* CONFIG_SEC_TRLTE_PROJECT || CONFIG_SEC_TBLTE_PROJECT  */
+
 /* Any address will do here, as it won't be dereferenced */
 #define MSM_PCIE_MSI_PHY 0xa0000000
 
@@ -164,6 +168,8 @@ static irqreturn_t handle_linkdown_irq(int irq, void *data)
 	PCIE_DBG(dev,
 		"PCIe: No. %ld linkdown IRQ for RC%d.\n",
 		dev->linkdown_counter, dev->rc_idx);
+
+	PCIE_DUMP_ALL_REG(dev);
 
 	if (!dev->enumerated || dev->link_status != MSM_PCIE_LINK_ENABLED) {
 		PCIE_DBG(dev,
@@ -503,6 +509,9 @@ int32_t msm_pcie_irq_init(struct msm_pcie_dev_t *dev)
 	int rc;
 	int msi_start =  0;
 	struct device *pdev = &dev->pdev->dev;
+#if defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+        int gpio_wlan_host_wake = 78;
+#endif /* CONFIG_SEC_TRLTE_PROJECT || CONFIG_SEC_TBLTE_PROJECT  */
 
 	PCIE_DBG(dev, "RC%d\n", dev->rc_idx);
 
@@ -539,7 +548,31 @@ int32_t msm_pcie_irq_init(struct msm_pcie_dev_t *dev)
 		return rc;
 	}
 
+#if defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if ((system_rev > 9) && (dev->rc_idx == 0)) {
+		rc = devm_request_irq(pdev,
+			gpio_to_irq(gpio_wlan_host_wake), handle_wake_irq,
+			IRQF_TRIGGER_RISING, "msm_pcie_host_wake", dev);
+		if (rc) {
+			PCIE_ERR(dev, "PCIe: RC%d: Unable to request wake interrupt\n",
+				dev->rc_idx);
+			return rc;
+		}
+	}
+#endif /* CONFIG_SEC_TRLTE_PROJECT || CONFIG_SEC_TBLTE_PROJECT  */
+
 	INIT_WORK(&dev->handle_wake_work, handle_wake_func);
+
+#if defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)
+	if ((system_rev > 9) && (dev->rc_idx == 0)) {
+		rc = enable_irq_wake(gpio_to_irq(gpio_wlan_host_wake));
+		if (rc) {
+			PCIE_ERR(dev, "PCIe: RC%d: Unable to enable wake interrupt\n",
+				dev->rc_idx);
+			return rc;
+		}
+	}
+#endif /* CONFIG_SEC_TRLTE_PROJECT || CONFIG_SEC_TBLTE_PROJECT  */
 
 	rc = enable_irq_wake(dev->wake_n);
 	if (rc) {

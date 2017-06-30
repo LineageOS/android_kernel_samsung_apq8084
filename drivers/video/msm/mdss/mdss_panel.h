@@ -76,6 +76,9 @@ enum {
 	MDSS_PANEL_BLANK_BLANK = 0,
 	MDSS_PANEL_BLANK_UNBLANK,
 	MDSS_PANEL_BLANK_LOW_POWER,
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	MDSS_PANEL_BLANK_READY_TO_UNBLANK,
+#endif
 };
 
 enum {
@@ -163,10 +166,23 @@ enum mdss_intf_events {
 	MDSS_EVENT_CONT_SPLASH_FINISH,
 	MDSS_EVENT_PANEL_UPDATE_FPS,
 	MDSS_EVENT_FB_REGISTERED,
+	MDSS_EVENT_FRAME_UPDATE,
 	MDSS_EVENT_PANEL_CLK_CTRL,
 	MDSS_EVENT_DSI_CMDLIST_KOFF,
+	MDSS_EVENT_MDNIE_DEFAULT_UPDATE,
 	MDSS_EVENT_ENABLE_PARTIAL_ROI,
 	MDSS_EVENT_DSI_STREAM_SIZE,
+#if defined(CONFIG_FB_MSM_MIPI_SAMSUNG_OCTA_CMD_FHD_FA2_PT_PANEL)
+	MDSS_EVENT_TE_UPDATE,
+	MDSS_EVENT_TE_UPDATE2,
+	MDSS_EVENT_TE_SET,
+	MDSS_EVENT_TE_RESTORE,
+#endif
+	MDSS_EVENT_READ_LDI_STATUS,
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	MDSS_SAMSUNG_EVENT_FRAME_UPDATE,
+	MDSS_SAMSUNG_EVENT_FB_EVENT_CALLBACK,
+#endif
 };
 
 struct lcd_panel_info {
@@ -304,11 +320,24 @@ struct mdss_mdp_pp_tear_check {
 	u32 refx100;
 };
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+struct esd_recovery {
+	spinlock_t irq_lock;
+	bool esd_recovery_init;
+	bool is_enabled_esd_recovery;
+	int esd_gpio;
+	unsigned long irqflags;
+	void (*esd_irq_enable) (bool enable, bool nosync, void *data);
+};
+#endif
+
 struct mdss_panel_info {
 	u32 xres;
 	u32 yres;
 	u32 physical_width;
 	u32 physical_height;
+	u32 width;
+	u32 height;
 	u32 bpp;
 	u32 type;
 	u32 wait_cycle;
@@ -325,14 +354,25 @@ struct mdss_panel_info {
 	u32 out_format;
 	u32 rst_seq[MDSS_DSI_RST_SEQ_LEN];
 	u32 rst_seq_len;
+	u32 early_lcd_on;
 	u32 vic; /* video identification code */
 	struct mdss_rect roi;
+	u32 roi_x;
+	u32 roi_y;
+	u32 roi_w;
+	u32 roi_h;
+	u32 dsi_roi_x;
+	u32 dsi_roi_y;
+	u32 dsi_roi_w;
+	u32 dsi_roi_h;
 	int bklt_ctrl;	/* backlight ctrl */
 	int pwm_pmic_gpio;
 	int pwm_lpg_chan;
 	int pwm_period;
 	bool dynamic_fps;
 	bool ulps_feature_enabled;
+	bool esd_check_enabled;
+	bool split_display;
 	char dfps_update;
 	int new_fps;
 	u32 mode_gpio_state;
@@ -352,6 +392,8 @@ struct mdss_panel_info {
 	int blank_state;
 	bool is_split_display;
 
+	int dsi_on_status;
+
 	uint32_t panel_dead;
 
 	struct mdss_mdp_pp_tear_check te;
@@ -362,6 +404,11 @@ struct mdss_panel_info {
 	struct mipi_panel_info mipi;
 	struct lvds_panel_info lvds;
 	struct edp_panel_info edp;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	struct esd_recovery esd_recovery;
+	int panel_state;
+#endif
+
 };
 
 struct mdss_panel_data {
@@ -384,6 +431,10 @@ struct mdss_panel_data {
 	int (*event_handler) (struct mdss_panel_data *pdata, int e, void *arg);
 
 	struct mdss_panel_data *next;
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	void *panel_private;
+#endif
 };
 
 /**

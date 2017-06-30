@@ -44,3 +44,6 @@ choice
 
 endchoice
 
+config SECURE_DEMUX_ENABLE
+	bool "secure demux enable"
+	default n

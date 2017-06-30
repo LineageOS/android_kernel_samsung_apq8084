@@ -23,6 +23,9 @@
 
 #include "xhci.h"
 
+
+extern struct dbg_data dbg_hsic;
+
 #define XHCI_INIT_VALUE 0x0
 
 /* Add verbose debugging later, just print everything for now */
@@ -650,6 +653,35 @@ get_hex_data(char *dbuf, struct urb *urb, int event, int status, size_t max_len)
 	}
 
 	return dbuf;
+}
+
+void xhci_dbg_urb_event(char *func, unsigned delta, unsigned cdelta, unsigned latency)
+{
+	unsigned long flags;
+	char tbuf[TIME_BUF_LEN];
+	struct dbg_data *d = &dbg_hsic;
+
+	write_lock_irqsave(&d->ctrl_lck, flags);
+	scnprintf(d->ctrl_buf[d->ctrl_idx], DBG_MSG_LEN,
+		"%s: %s %u %u %u", get_timestamp(tbuf), func, delta, cdelta, latency);
+	dbg_inc(&d->ctrl_idx);
+	write_unlock_irqrestore(&d->ctrl_lck, flags);
+	return;
+}
+EXPORT_SYMBOL_GPL(xhci_dbg_urb_event);
+
+void xhci_dbg_irq_event(struct dbg_data *d, unsigned int min_t, unsigned int max_t,
+		unsigned cnt, unsigned irq_delta, unsigned ep_map)
+{
+	unsigned long flags;
+	char tbuf[TIME_BUF_LEN];
+
+	write_lock_irqsave(&d->ctrl_lck, flags);
+	scnprintf(d->ctrl_buf[d->ctrl_idx], DBG_MSG_LEN,
+		"%s: %u %u %u %u %x", get_timestamp(tbuf), min_t, max_t, cnt, irq_delta, ep_map);
+	dbg_inc(&d->ctrl_idx);
+	write_unlock_irqrestore(&d->ctrl_lck, flags);
+	return;
 }
 
 void __maybe_unused

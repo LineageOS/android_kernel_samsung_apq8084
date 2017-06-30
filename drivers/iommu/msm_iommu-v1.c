@@ -1200,6 +1200,10 @@ irqreturn_t msm_iommu_fault_handler_v2(int irq, void *dev_id)
 			pr_err("Interesting registers:\n");
 			__print_ctx_regs(drvdata->cb_base,
 					ctx_drvdata->num, fsr);
+			if (strcmp(drvdata->name, "mdp_iommu") == 0) {
+					extern void msm_fb_iommu_page_fault(void);
+					msm_fb_iommu_page_fault();
+			}
 		}
 
 		if (ret != -EBUSY)

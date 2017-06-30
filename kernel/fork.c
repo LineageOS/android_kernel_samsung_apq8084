@@ -518,7 +518,24 @@ static inline int mm_alloc_pgd(struct mm_struct *mm)
 
 static inline void mm_free_pgd(struct mm_struct *mm)
 {
+#ifdef CONFIG_TIMA_RKP_DEBUG
+	int i;
+#endif
 	pgd_free(mm, mm->pgd);
+#ifdef CONFIG_TIMA_RKP_DEBUG
+        /* with debug infrastructure, check if a page was
+	 * unprotected after being freed. Scream if not.
+	 */ 
+	#ifdef CONFIG_TIMA_RKP_L1_TABLES
+	for(i=0; i<4; i++) {
+		if (tima_debug_page_protection(((unsigned long)mm->pgd + i*0x1000), 5, 0) == 1) {
+			tima_debug_signal_failure(0x3f80f221, 5);
+			//tima_send_cmd((unsigned long)mm->pgd, 0x3f80e221);
+			//printk(KERN_ERR"TIMA: New L1 PGT still protected! mm_free_pgd\n");
+		}
+	}
+	#endif
+#endif 
 }
 #else
 #define dup_mmap(mm, oldmm)	(0)
@@ -1189,6 +1206,14 @@ static void posix_cpu_timers_init(struct task_struct *tsk)
 	INIT_LIST_HEAD(&tsk->cpu_timers[2]);
 }
 
+#ifdef CONFIG_TIMA_RKP_RO_CRED
+void rkp_assign_pgd(struct task_struct *p)
+{
+	unsigned int pgd;
+	pgd = (unsigned int)(p->mm ? p->mm->pgd :swapper_pg_dir);
+	tima_send_cmd2((unsigned int)p->cred, (unsigned int)pgd, 0x3f843221);
+}
+#endif /*CONFIG_TIMA_RKP_RO_CRED*/
 /*
  * This creates a new process as a copy of the old one,
  * but does not actually start it yet.
@@ -1563,6 +1588,9 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	perf_event_fork(p);
 
 	trace_task_newtask(p, clone_flags);
+#ifdef CONFIG_TIMA_RKP_RO_CRED
+	rkp_assign_pgd(p);
+#endif/*CONFIG_TIMA_RKP_RO_CRED*/
 
 	return p;
 

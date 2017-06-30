@@ -33,6 +33,9 @@
 #define MAX_DIAG_BRIDGE_DEVS	2
 #define AUTOSUSP_DELAY_WITH_USB 1000
 
+extern void xhci_dbg_urb_event(const char* func, unsigned sdelta, unsigned cdelta, unsigned latency);
+extern ktime_t handle_start_time;
+
 struct diag_bridge {
 	struct usb_device	*udev;
 	struct usb_interface	*ifc;
@@ -141,6 +144,11 @@ static void diag_bridge_read_cb(struct urb *urb)
 {
 	struct diag_bridge	*dev = urb->context;
 	struct diag_bridge_ops	*cbs = dev->ops;
+	ktime_t t1;
+	ktime_t t3;
+	ktime_t t4;
+
+	t1 = ktime_get();
 
 	dev_dbg(&dev->ifc->dev, "%s: status:%d actual:%d\n", __func__,
 			urb->status, urb->actual_length);
@@ -149,15 +157,18 @@ static void diag_bridge_read_cb(struct urb *urb)
 	if (urb->status == -EPROTO)
 		dev->err = urb->status;
 
+	t3 = ktime_get();
 	if (cbs && cbs->read_complete_cb)
 		cbs->read_complete_cb(cbs->ctxt,
 			urb->transfer_buffer,
 			urb->transfer_buffer_length,
 			urb->status < 0 ? urb->status : urb->actual_length);
+	t4 = ktime_get();
 
 	dev->bytes_to_host += urb->actual_length;
 	dev->pending_reads--;
 	kref_put(&dev->kref, diag_bridge_delete);
+	xhci_dbg_urb_event("diag_read_cb", ktime_to_us(ktime_sub(t1, handle_start_time)), ktime_to_us(ktime_sub(t4, t3)), ktime_to_us(ktime_sub(ktime_get(), t1)));
 }
 
 int diag_bridge_read(int id, char *data, int size)

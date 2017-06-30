@@ -38,6 +38,13 @@
 #include "timer.h"
 #include "wdog_debug.h"
 
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#include <linux/notifier.h>
+#include <linux/ftrace.h>
+#endif
+
+
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
 #define WDT0_BARK_TIME	0x4C
@@ -85,7 +92,7 @@ static struct notifier_block panic_blk = {
 	.notifier_call	= panic_prep_restart,
 };
 
-static void set_dload_mode(int on)
+void set_dload_mode(int on)
 {
 	if (dload_mode_addr) {
 		__raw_writel(on ? 0xE47B337D : 0, dload_mode_addr);
@@ -93,8 +100,14 @@ static void set_dload_mode(int on)
 		       dload_mode_addr + sizeof(unsigned int));
 		mb();
 		dload_mode_enabled = on;
+#ifdef CONFIG_SEC_DEBUG
+		pr_err("set_dload_mode <%d> ( %x )\n", on,
+					(unsigned int) CALLER_ADDR0);
+#endif		
 	}
 }
+
+EXPORT_SYMBOL(set_dload_mode);
 
 static bool get_dload_mode(void)
 {
@@ -182,7 +195,7 @@ static void __msm_power_off(int lower_pshold)
 	set_dload_mode(0);
 #endif
 	pm8xxx_reset_pwr_off(0);
-	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
+	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN+1);
 
 	if (lower_pshold) {
 		halt_spmi_pmic_arbiter();
@@ -200,8 +213,14 @@ static void msm_power_off(void)
 	__msm_power_off(1);
 }
 
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+extern int poweroff_charging;
+#endif
 static void msm_restart_prepare(const char *cmd)
 {
+	unsigned long value;
+
+#ifndef CONFIG_SEC_DEBUG
 #ifdef CONFIG_MSM_DLOAD_MODE
 
 	/* This looks like a normal reboot at this point. */
@@ -218,14 +237,57 @@ static void msm_restart_prepare(const char *cmd)
 	if (!download_mode)
 		set_dload_mode(0);
 #endif
+#endif
+
+#ifdef CONFIG_SEC_DEBUG_LOW_LOG
+#ifdef CONFIG_MSM_DLOAD_MODE
+#ifdef CONFIG_SEC_DEBUG
+	if (sec_debug_is_enabled()
+	&& ((restart_mode == RESTART_DLOAD) || in_panic))
+		set_dload_mode(1);
+	else
+		set_dload_mode(0);
+#else
+	set_dload_mode(0);
+	set_dload_mode(in_panic);
+	if (restart_mode == RESTART_DLOAD)
+		set_dload_mode(1);
+#endif
+#endif
+#endif
 
 	pm8xxx_reset_pwr_off(1);
-
+#if 0 /* FIXME */
 	/* Hard reset the PMIC unless memory contents must be maintained. */
 	if (get_dload_mode() || (cmd != NULL && cmd[0] != '\0'))
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 	else
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
+#else
+		get_dload_mode(); // Only for suppressing a warning message
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+	if (poweroff_charging) {
+		if (in_panic) {
+			qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+		} else {
+#ifdef CONFIG_MAINTENANCE_MODE
+/* When user push pwd key to turn on Device.
+ * Because of Hard reset device turn to Maintenance mode.
+*/
+			qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+#else
+			qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET+1);
+#endif
+		}
+		pr_err("%s : LPM Charging Mode!!, [%d]\n", __func__, in_panic);
+	} else {
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+		pr_err("%s : Normal mode Mode!!\n", __func__);
+	}
+#else
+	qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+#endif /* CONFIG_SAMSUNG_LPM_MODE */
+#endif /* FIXME */
 
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
@@ -238,12 +300,50 @@ static void msm_restart_prepare(const char *cmd)
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
+#ifdef CONFIG_SEC_DEBUG
+		} else if (!strncmp(cmd, "sec_debug_hw_reset", 18)) {
+			__raw_writel(0x776655ee, restart_reason);
+#endif
+		} else if (!strncmp(cmd, "download", 8)) {
+		    __raw_writel(0x12345671, restart_reason);
+		} else if (!strncmp(cmd, "sud", 3)) {
+			__raw_writel(0xabcf0000 | (cmd[3] - '0'),
+					restart_reason);
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
+		} else if (!strncmp(cmd, "debug", 5)
+				&& !kstrtoul(cmd + 5, 0, &value)) {
+			__raw_writel(0xabcd0000 | value, restart_reason);
+#ifdef CONFIG_SEC_SSR_DEBUG_LEVEL_CHK
+		} else if (!strncmp(cmd, "cpdebug", 7) /* set cp debug level */
+				&& !kstrtoul(cmd + 7, 0, &value)) {
+			__raw_writel(0xfedc0000 | value, restart_reason);
+#endif
+#if defined(CONFIG_SWITCH_DUAL_MODEM) || defined(CONFIG_MUIC_SUPPORT_RUSTPROOF)
+		} else if (!strncmp(cmd, "swsel", 5) /* set switch value */
+				&& !kstrtoul(cmd + 5, 0, &value)) {
+			__raw_writel(0xabce0000 | value, restart_reason);
+#endif
+		} else if (strlen(cmd) == 0 ) {
+			pr_notice("%s : value of cmd is NULL.\n",__func__);
+			__raw_writel(0x12345678, restart_reason);
+		} else if (strlen(cmd) == 0) {
+		    printk(KERN_NOTICE "%s : value of cmd is NULL.\n", __func__);
+		    __raw_writel(0x12345678, restart_reason);
+#ifdef CONFIG_SEC_PERIPHERAL_SECURE_CHK
+		} else if (!strncmp(cmd, "peripheral_hw_reset", 19)) {
+			__raw_writel(0x77665507, restart_reason);
+#endif
 		} else {
 			__raw_writel(0x77665501, restart_reason);
 		}
+	} 
+#ifdef CONFIG_SEC_DEBUG	
+	else {
+			pr_notice("%s : clear reset flag.\n",__func__);
+			__raw_writel(0x12345678, restart_reason);
 	}
+#endif
 
 	flush_cache_all();
 	outer_flush_all();
@@ -263,6 +363,19 @@ void msm_restart(char mode, const char *cmd)
 	mdelay(10000);
 	printk(KERN_ERR "Restarting has failed\n");
 }
+
+#ifdef CONFIG_SEC_DEBUG
+static int dload_mode_normal_reboot_handler(struct notifier_block *nb,
+				unsigned long l, void *p)
+{
+	set_dload_mode(0);
+	return 0;
+}
+
+static struct notifier_block dload_reboot_block = {
+	.notifier_call = dload_mode_normal_reboot_handler
+};
+#endif
 
 static int __init msm_restart_init(void)
 {
@@ -297,6 +410,14 @@ static int __init msm_restart_init(void)
 		goto err_edl_mode;
 	}
 
+#ifdef CONFIG_SEC_DEBUG
+	register_reboot_notifier(&dload_reboot_block);
+#endif
+#ifdef CONFIG_SEC_DEBUG_LOW_LOG
+	if (!sec_debug_is_enabled()) {
+		set_dload_mode(0);
+	} else
+#endif
 	set_dload_mode(download_mode);
 #endif
 	msm_tmr0_base = msm_timer_get_timer0_base();

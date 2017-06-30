@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2014, The Linux Foundataion. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundataion. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -110,12 +110,12 @@ void msm_camera_io_memcpy(void __iomem *dest_addr,
 void msm_camera_io_memcpy_mb(void __iomem *dest_addr,
 	void __iomem *src_addr, u32 len)
 {
-	int i;
-	u32 *d = (u32 *) dest_addr;
-	u32 *s = (u32 *) src_addr;
+    int i;
+    u32 *d = (u32 *) dest_addr;
+    u32 *s = (u32 *) src_addr;
 
-	for (i = 0; i < (len / 4); i++)
-		msm_camera_io_w_mb(*s++, d++);
+    for (i = 0; i < (len / 4); i++)
+	msm_camera_io_w_mb(*s++, d++);
 }
 
 int msm_cam_clk_sel_src(struct device *dev, struct msm_cam_clk_info *clk_info,
@@ -272,7 +272,7 @@ int msm_camera_config_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 				reg_ptr[j] = NULL;
 				goto vreg_get_fail;
 			}
-			if (regulator_count_voltages(reg_ptr[j]) > 0) {
+			if (curr_vreg->type == REG_LDO) {
 				rc = regulator_set_voltage(
 					reg_ptr[j],
 					curr_vreg->min_voltage,
@@ -307,7 +307,7 @@ int msm_camera_config_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 				j = i;
 			curr_vreg = &cam_vreg[j];
 			if (reg_ptr[j]) {
-				if (regulator_count_voltages(reg_ptr[j]) > 0) {
+				if (curr_vreg->type == REG_LDO) {
 					if (curr_vreg->op_mode >= 0) {
 						regulator_set_optimum_mode(
 							reg_ptr[j], 0);
@@ -324,11 +324,11 @@ int msm_camera_config_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
 	return 0;
 
 vreg_unconfig:
-if (regulator_count_voltages(reg_ptr[j]) > 0)
+if (curr_vreg->type == REG_LDO)
 	regulator_set_optimum_mode(reg_ptr[j], 0);
 
 vreg_set_opt_mode_fail:
-if (regulator_count_voltages(reg_ptr[j]) > 0)
+if (curr_vreg->type == REG_LDO)
 	regulator_set_voltage(reg_ptr[j], 0,
 		curr_vreg->max_voltage);
 
@@ -485,51 +485,90 @@ int msm_camera_config_single_vreg(struct device *dev,
 	struct camera_vreg_t *cam_vreg, struct regulator **reg_ptr, int config)
 {
 	int rc = 0;
+
 	if (config) {
-		if (dev == NULL || cam_vreg == NULL || reg_ptr == NULL) {
-			pr_err("%s: get failed NULL parameter\n", __func__);
-			goto vreg_get_fail;
+		if (cam_vreg->type == REG_SUB_LDO) {
+			if (cam_vreg->sub_reg_name == NULL) {
+				pr_err("%s : can't find sub reg name", __func__);
+				goto vreg_get_fail;
+			}
+			CDBG("%s enable %s\n", __func__, cam_vreg->sub_reg_name);
+		} else {
+			if (cam_vreg->reg_name == NULL) {
+				pr_err("%s : can't find reg name", __func__);
+				goto vreg_get_fail;
+			}
+	            CDBG("%s enable %s\n", __func__, cam_vreg->reg_name);
+		}
+		if (cam_vreg->type == REG_SUB_LDO) {
+			*reg_ptr = regulator_get(dev, cam_vreg->sub_reg_name);
+			if (IS_ERR(*reg_ptr)) {
+				pr_err("%s: %s get failed\n", __func__,
+				cam_vreg->sub_reg_name);
+				*reg_ptr = NULL;
+				goto vreg_get_fail;
+			}
+		} else {
+			*reg_ptr = regulator_get(dev, cam_vreg->reg_name);
+			if (IS_ERR(*reg_ptr)) {
+				pr_err("%s: %s get failed\n", __func__,
+					cam_vreg->reg_name);
+				*reg_ptr = NULL;
+				goto vreg_get_fail;
+			}
 		}
 
-		CDBG("%s enable %s\n", __func__, cam_vreg->reg_name);
-		*reg_ptr = regulator_get(dev, cam_vreg->reg_name);
-		if (IS_ERR(*reg_ptr)) {
-			pr_err("%s: %s get failed\n", __func__,
-				cam_vreg->reg_name);
-			*reg_ptr = NULL;
-			goto vreg_get_fail;
-		}
-		if (regulator_count_voltages(*reg_ptr) > 0) {
+		if (cam_vreg->type == REG_LDO || cam_vreg->type == REG_SUB_LDO) {
 			rc = regulator_set_voltage(
 				*reg_ptr, cam_vreg->min_voltage,
 				cam_vreg->max_voltage);
 			if (rc < 0) {
-				pr_err("%s: %s set voltage failed\n",
-					__func__, cam_vreg->reg_name);
+				if (cam_vreg->type == REG_SUB_LDO)
+					pr_err("%s: %s set voltage failed\n",
+						__func__, cam_vreg->sub_reg_name);
+				else
+					pr_err("%s: %s set voltage failed\n",
+						__func__, cam_vreg->reg_name);
+
 				goto vreg_set_voltage_fail;
 			}
 			if (cam_vreg->op_mode >= 0) {
 				rc = regulator_set_optimum_mode(*reg_ptr,
 					cam_vreg->op_mode);
 				if (rc < 0) {
-					pr_err(
-					"%s: %s set optimum mode failed\n",
-					__func__, cam_vreg->reg_name);
+					if (cam_vreg->type == REG_SUB_LDO)
+						pr_err(
+							"%s: %s set optimum mode failed\n",
+							__func__, cam_vreg->sub_reg_name);
+					else
+						pr_err(
+							"%s: %s set optimum mode failed\n",
+							__func__, cam_vreg->reg_name);
+
 					goto vreg_set_opt_mode_fail;
 				}
 			}
 		}
 		rc = regulator_enable(*reg_ptr);
 		if (rc < 0) {
-			pr_err("%s: %s enable failed\n",
-				__func__, cam_vreg->reg_name);
+			if (cam_vreg->type == REG_SUB_LDO)
+				pr_err("%s: %s enable failed\n",
+					__func__, cam_vreg->sub_reg_name);
+			else
+				pr_err("%s: %s enable failed\n",
+					__func__, cam_vreg->reg_name);
+
 			goto vreg_unconfig;
 		}
 	} else {
 		if (*reg_ptr) {
-			CDBG("%s disable %s\n", __func__, cam_vreg->reg_name);
+			if (cam_vreg->type == REG_SUB_LDO)
+				CDBG("%s disable %s\n", __func__, cam_vreg->sub_reg_name);
+			else
+				CDBG("%s disable %s\n", __func__, cam_vreg->reg_name);
+
 			regulator_disable(*reg_ptr);
-			if (regulator_count_voltages(*reg_ptr) > 0) {
+			if (cam_vreg->type == REG_LDO || cam_vreg->type == REG_SUB_LDO) {
 				if (cam_vreg->op_mode >= 0)
 					regulator_set_optimum_mode(*reg_ptr, 0);
 				regulator_set_voltage(
@@ -537,16 +576,21 @@ int msm_camera_config_single_vreg(struct device *dev,
 			}
 			regulator_put(*reg_ptr);
 			*reg_ptr = NULL;
+		} else {
+			if (cam_vreg->type == REG_SUB_LDO)
+				pr_err("%s can't disable %s\n", __func__, cam_vreg->sub_reg_name);
+			else
+				pr_err("%s can't disable %s\n", __func__, cam_vreg->reg_name);
 		}
 	}
 	return 0;
 
 vreg_unconfig:
-if (regulator_count_voltages(*reg_ptr) > 0)
+if (cam_vreg->type == REG_LDO)
 	regulator_set_optimum_mode(*reg_ptr, 0);
 
 vreg_set_opt_mode_fail:
-if (regulator_count_voltages(*reg_ptr) > 0)
+if (cam_vreg->type == REG_LDO)
 	regulator_set_voltage(*reg_ptr, 0, cam_vreg->max_voltage);
 
 vreg_set_voltage_fail:
@@ -560,7 +604,7 @@ vreg_get_fail:
 int msm_camera_request_gpio_table(struct gpio *gpio_tbl, uint8_t size,
 	int gpio_en)
 {
-	int rc = 0, i = 0, err = 0;
+	int rc = 0, i = 0;
 
 	if (!gpio_tbl || !size) {
 		pr_err("%s:%d invalid gpio_tbl %p / size %d\n", __func__,
@@ -573,17 +617,17 @@ int msm_camera_request_gpio_table(struct gpio *gpio_tbl, uint8_t size,
 	}
 	if (gpio_en) {
 		for (i = 0; i < size; i++) {
-			err = gpio_request_one(gpio_tbl[i].gpio,
+			rc = gpio_request_one(gpio_tbl[i].gpio,
 				gpio_tbl[i].flags, gpio_tbl[i].label);
-			if (err) {
+			if (rc) {
 				/*
 				* After GPIO request fails, contine to
-				* apply new gpios, outout a error message
+				* apply new gpios, output a error message
 				* for driver bringup debug
 				*/
-				pr_err("%s:%d gpio %d:%s request fails\n",
+				pr_err("%s:%d gpio %d:%s request fails retval %d\n",
 					__func__, __LINE__,
-					gpio_tbl[i].gpio, gpio_tbl[i].label);
+					gpio_tbl[i].gpio, gpio_tbl[i].label,rc);
 			}
 		}
 	} else {

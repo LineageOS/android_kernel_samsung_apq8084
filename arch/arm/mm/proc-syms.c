@@ -19,6 +19,9 @@
 EXPORT_SYMBOL(cpu_dcache_clean_area);
 #ifdef CONFIG_MMU
 EXPORT_SYMBOL(cpu_set_pte_ext);
+#ifdef CONFIG_TIMA_RKP_L2_TABLES
+EXPORT_SYMBOL(cpu_tima_set_pte_ext);
+#endif
 #endif
 #else
 EXPORT_SYMBOL(processor);

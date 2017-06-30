@@ -496,6 +496,79 @@ out:
 }
 EXPORT_SYMBOL_GPL(cpu_up);
 
+#ifdef CONFIG_IRLED_GPIO
+int __cpuinit gpio_ir_cpu_up(int count)
+{
+	int err = 0;
+	int cpu = 0;
+	int online_count;
+
+#ifdef	CONFIG_MEMORY_HOTPLUG
+	int nid;
+	pg_data_t	*pgdat;
+#endif
+
+#ifdef	CONFIG_MEMORY_HOTPLUG
+	/* If you must use this CONFIG_MEMORY_HOTPLUG,
+		this routine is must be tested for gpio ir */
+	for (cpu = 0; cpu < NR_CPUS; cpu++) {
+		if (cpu_possible(cpu)) {
+			nid = cpu_to_node(cpu);
+			if (!node_online(nid)) {
+				err = mem_online_node(nid);
+				if (err)
+					goto out2;
+			}
+
+			pgdat = NODE_DATA(nid);
+			if (!pgdat) {
+				printk(KERN_ERR
+					"Can't online cpu %d due to NULL pgdat\n", cpu);
+				return -ENOMEM;
+			}
+
+			if (pgdat->node_zonelists->_zonerefs->zone == NULL) {
+				mutex_lock(&zonelists_mutex);
+				build_all_zonelists(NULL, NULL);
+				mutex_unlock(&zonelists_mutex);
+			}
+		} else {
+			pr_err("[GPIO_IR][%s] cpu %d is not possible\n", __func__, cpu);
+		}
+	}
+#endif
+	cpu_maps_update_begin();
+
+	online_count = num_online_cpus();
+	for (cpu = 0; cpu < NR_CPUS && online_count < count; cpu++) {
+		if (cpu_possible(cpu)) {
+			if (!cpu_online(cpu)) {
+				err = _cpu_up(cpu, 0);
+				if (err) {
+					pr_err("[GPIO_IR][%s] Error (%d) online core %d\n",
+						__func__, err, cpu);
+					goto out;
+				}
+				online_count++;
+			}
+		} else {
+			pr_err("[GPIO_IR][%s] cpu %d is not possible\n", __func__, cpu);
+		}
+	}
+
+	cpu_hotplug_disabled = 1;
+
+out:
+	cpu_maps_update_done();
+#ifdef	CONFIG_MEMORY_HOTPLUG
+out2:
+#endif
+	return err;
+}
+#endif
+
+
+
 #ifdef CONFIG_PM_SLEEP_SMP
 static cpumask_var_t frozen_cpus;
 

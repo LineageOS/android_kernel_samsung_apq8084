@@ -107,6 +107,9 @@ int msm_dss_ioremap_byname(struct platform_device *pdev,
 		return -ENODEV;
 	}
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	io_data->physical_base = res->start;
+#endif
 	io_data->len = (u32)resource_size(res);
 	io_data->base = ioremap(res->start, io_data->len);
 	if (!io_data->base) {
@@ -232,7 +235,7 @@ int msm_dss_enable_vreg(struct dss_vreg *in_vreg, int num_vreg, int enable)
 			}
 			rc = regulator_enable(in_vreg[i].vreg);
 			if (in_vreg[i].post_on_sleep)
-				msleep(in_vreg[i].post_on_sleep);
+				usleep_range(in_vreg[i].post_on_sleep, in_vreg[i].post_on_sleep);
 			if (rc < 0) {
 				DEV_ERR("%pS->%s: %s enable failed\n",
 					__builtin_return_address(0), __func__,

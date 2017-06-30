@@ -776,6 +776,21 @@ static DEFINE_CLK_VOTER(ocmemgx_core_clk, &ocmemgx_clk.c, LONG_MAX);
 static DEFINE_CLK_VOTER(pnoc_keepalive_a_clk, &pnoc_a_clk.c, LONG_MAX);
 static DEFINE_CLK_VOTER(pnoc_sps_clk, &pnoc_clk.c, 0);
 
+#ifdef CONFIG_MSM_BUSPM_DEV
+static DEFINE_CLK_VOTER(pnoc_buspm_clk, &pnoc_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(snoc_buspm_clk, &snoc_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(cnoc_buspm_clk, &cnoc_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(pnoc_buspm_a_clk, &pnoc_a_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(snoc_buspm_a_clk, &snoc_a_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(cnoc_buspm_a_clk, &cnoc_a_clk.c, LONG_MAX);
+
+static DEFINE_CLK_VOTER(bimc_buspm_clk, &bimc_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(bimc_buspm_a_clk, &bimc_a_clk.c, LONG_MAX);
+#endif
+
+static DEFINE_CLK_VOTER(bimc_sec_bsp_clk, &bimc_clk.c, LONG_MAX);
+static DEFINE_CLK_VOTER(bimc_sec_bsp_a_clk, &bimc_a_clk.c, LONG_MAX);
+
 static DEFINE_CLK_BRANCH_VOTER(cxo_otg_clk, &xo_clk_src.c);
 static DEFINE_CLK_BRANCH_VOTER(cxo_dwc3_clk, &xo_clk_src.c);
 static DEFINE_CLK_BRANCH_VOTER(cxo_lpm_clk, &xo_clk_src.c);
@@ -958,6 +973,7 @@ static struct clk_freq_tbl ftbl_gcc_blsp1_2_qup1_6_spi_apps_clk[] = {
 	F( 15000000,      gpll0,   10, 1, 4),
 	F( 19200000,         xo,    1, 0, 0),
 	F( 25000000,      gpll0,   12, 1, 2),
+	F( 48000000,      gpll0,    5, 2, 5),
 	F( 50000000,      gpll0,   12, 0, 0),
 	F_END
 };
@@ -1539,6 +1555,7 @@ static struct rcg_clk ce3_clk_src = {
 
 static struct clk_freq_tbl ftbl_gcc_gp1_3_clk[] = {
 	F( 19200000,         xo,    1, 0, 0),
+	F( 24000000,      gpll0,    5, 1, 5),
 	F(100000000,      gpll0,    6, 0, 0),
 	F(200000000,      gpll0,    3, 0, 0),
 	F_END
@@ -5924,13 +5941,32 @@ static struct clk_lookup apq_clocks_8084[] = {
 
 	CLK_LOOKUP("measure",	measure_clk.c,	"debug"),
 	/* NFC */
+#if defined (CONFIG_NFC_PN547_8084_USE_BBCLK2) || \
+	defined(CONFIG_NFC_N5_8084_USE_BBCLK2)
+    CLK_LOOKUP("nfc_clk",			 bb_clk2_pin.c, NULL),
+#else
 	CLK_LOOKUP("ref_clk",            bb_clk2_a_pin.c, "3-000e"),
+#endif
 	/* RPM clocks */
 	CLK_LOOKUP("bus_clk", snoc_clk.c, ""),
 	CLK_LOOKUP("bus_clk", pnoc_clk.c, ""),
 	CLK_LOOKUP("bus_clk", cnoc_clk.c, ""),
 	CLK_LOOKUP("mem_clk", bimc_clk.c, ""),
 	CLK_LOOKUP("mem_clk", ocmemgx_clk.c, ""),
+#ifdef CONFIG_MSM_BUSPM_DEV
+	CLK_LOOKUP("snoc_clk", snoc_buspm_clk.c, "msm-buspm"),
+	CLK_LOOKUP("pnoc_clk", pnoc_buspm_clk.c, "msm-buspm"),
+	CLK_LOOKUP("cnoc_clk", cnoc_buspm_clk.c, "msm-buspm"),
+	CLK_LOOKUP("bimc_clk", bimc_buspm_clk.c, "msm-buspm"),
+
+	CLK_LOOKUP("snoc_a_clk", snoc_buspm_a_clk.c, "msm-buspm"),
+	CLK_LOOKUP("pnoc_a_clk", pnoc_buspm_a_clk.c, "msm-buspm"),
+	CLK_LOOKUP("cnoc_a_clk", cnoc_buspm_a_clk.c, "msm-buspm"),
+	CLK_LOOKUP("bimc_a_clk", bimc_buspm_a_clk.c, "msm-buspm"),
+#endif
+	CLK_LOOKUP("bimc_clk", bimc_sec_bsp_clk.c, "sec_bsp"),
+	CLK_LOOKUP("bimc_a_clk", bimc_sec_bsp_a_clk.c, "sec_bsp"),
+
 	CLK_LOOKUP("bus_clk", snoc_a_clk.c, ""),
 	CLK_LOOKUP("bus_clk", pnoc_a_clk.c, ""),
 	CLK_LOOKUP("bus_clk", cnoc_a_clk.c, ""),
@@ -5994,26 +6030,32 @@ static struct clk_lookup apq_clocks_8084[] = {
 
 	CLK_LOOKUP("dma_bam_pclk", gcc_bam_dma_ahb_clk.c, "msm_sps"),
 
+
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c, "f9960000.uart"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_uart4_apps_clk.c, "f9960000.uart"),
+
 	/* BLSP1 clocks */
 	CLK_LOOKUP("iface_clk",	gcc_blsp1_ahb_clk.c,	"f991e000.serial"),
 	CLK_LOOKUP("iface_clk",	gcc_blsp1_ahb_clk.c,	"f991f000.serial"),
 	CLK_LOOKUP("iface_clk",	gcc_blsp1_ahb_clk.c,	"f9923000.spi"),
+	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c,    "f9924000.spi"),
+	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c,    "f9924000.i2c"),
 	CLK_LOOKUP("iface_clk",	gcc_blsp1_ahb_clk.c,	"f9925000.i2c"),
 	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c,	"f9922000.uart"),
 	/* NFC */
 	CLK_LOOKUP("iface_clk",	gcc_blsp1_ahb_clk.c,	"f9926000.i2c"),
-	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c,	"f9927000.i2c"),
+	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c,	"f9927000.spi"),
 	CLK_LOOKUP("",	gcc_blsp1_qup1_i2c_apps_clk.c,	""),
 	CLK_LOOKUP("core_clk",	gcc_blsp1_qup1_spi_apps_clk.c,	"f9923000.spi"),
-	CLK_LOOKUP("",	gcc_blsp1_qup2_i2c_apps_clk.c,	""),
-	CLK_LOOKUP("",	gcc_blsp1_qup2_spi_apps_clk.c,	""),
+	CLK_LOOKUP("core_clk",  gcc_blsp1_qup2_spi_apps_clk.c,	"f9924000.spi"),
+	CLK_LOOKUP("core_clk",  gcc_blsp1_qup2_i2c_apps_clk.c,	"f9924000.i2c"),
 	CLK_LOOKUP("core_clk",	gcc_blsp1_qup3_i2c_apps_clk.c, "f9925000.i2c"),
 	CLK_LOOKUP("",	gcc_blsp1_qup3_spi_apps_clk.c,	""),
 	/* NFC */
 	CLK_LOOKUP("core_clk",	gcc_blsp1_qup4_i2c_apps_clk.c,	"f9926000.i2c"),
 	CLK_LOOKUP("",	gcc_blsp1_qup4_spi_apps_clk.c,	""),
-	CLK_LOOKUP("core_clk", gcc_blsp1_qup5_i2c_apps_clk.c, "f9927000.i2c"),
-	CLK_LOOKUP("",	gcc_blsp1_qup5_spi_apps_clk.c,	""),
+	CLK_LOOKUP("core_clk", gcc_blsp1_qup5_i2c_apps_clk.c, ""),
+	CLK_LOOKUP("core_clk",	gcc_blsp1_qup5_spi_apps_clk.c,	"f9927000.spi"),
 	CLK_LOOKUP("",	gcc_blsp1_qup6_i2c_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp1_qup6_spi_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp1_uart1_apps_clk.c,	""),
@@ -6022,22 +6064,59 @@ static struct clk_lookup apq_clocks_8084[] = {
 	CLK_LOOKUP("",	gcc_blsp1_uart4_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp1_uart5_apps_clk.c,	""),
 	CLK_LOOKUP("core_clk", gcc_blsp1_uart6_apps_clk.c,  "f9922000.uart"),
-
+	CLK_LOOKUP("iface_clk", gcc_blsp1_ahb_clk.c, "f9920000.serial"),
+	CLK_LOOKUP("core_clk", gcc_blsp1_uart4_apps_clk.c, "f9920000.serial"),
 	/* BLSP2  clocks */
 	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f995d000.uart"),
 	CLK_LOOKUP("iface_clk",	gcc_blsp2_ahb_clk.c,	"f995e000.serial"),
 	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9966000.i2c"),
-	CLK_LOOKUP("",	gcc_blsp2_qup1_i2c_apps_clk.c,	""),
+#if defined(CONFIG_SEC_TBLTE_JPN)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9967000.i2c"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_qup5_i2c_apps_clk.c, "f9967000.i2c"), /* BLSP#11 */
+#endif
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,    "f9965000.spi"),
+#if defined(CONFIG_INPUT_WACOM)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,    "f9968000.i2c"),
+#endif
+#if (defined(CONFIG_SEC_LENTIS_PROJECT) || defined(CONFIG_SEC_KCCAT6_PROJECT)) && defined(CONFIG_MSMB_CAMERA)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9968000.i2c"),
+#endif
+
+#if defined(CONFIG_TDMB_SPI)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9963000.spi"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_qup1_spi_apps_clk.c, "f9963000.spi"),
+#else
 	CLK_LOOKUP("",	gcc_blsp2_qup1_spi_apps_clk.c,	""),
+#endif
+
+#if defined(CONFIG_SEC_TRLTE_PROJECT) && defined(CONFIG_LINK_DEVICE_SPI)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9963000.spi"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_qup1_spi_apps_clk.c, "f9963000.spi"),
+#elif (defined(CONFIG_SEC_TRLTE_PROJECT) || defined(CONFIG_SEC_TBLTE_PROJECT)) && defined(CONFIG_MSMB_CAMERA)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9963000.i2c"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_qup1_i2c_apps_clk.c, "f9963000.i2c"),
+#elif defined(CONFIG_TDMB_I2C) || defined(CONFIG_ISDBT_FC8300)
+	CLK_LOOKUP("iface_clk", gcc_blsp2_ahb_clk.c,	"f9963000.i2c"),
+	CLK_LOOKUP("core_clk", gcc_blsp2_qup1_i2c_apps_clk.c, "f9963000.i2c"),
+#else
+	CLK_LOOKUP("",	gcc_blsp2_qup1_i2c_apps_clk.c,	""),
+#endif
+
 	CLK_LOOKUP("",	gcc_blsp2_qup2_i2c_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp2_qup2_spi_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp2_qup3_i2c_apps_clk.c,	""),
-	CLK_LOOKUP("",	gcc_blsp2_qup3_spi_apps_clk.c,	""),
+	CLK_LOOKUP("core_clk",	gcc_blsp2_qup3_spi_apps_clk.c,	"f9965000.spi"),
 	CLK_LOOKUP("core_clk", gcc_blsp2_qup4_i2c_apps_clk.c,	"f9966000.i2c"),
 	CLK_LOOKUP("",	gcc_blsp2_qup4_spi_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp2_qup5_i2c_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp2_qup5_spi_apps_clk.c,	""),
+#if defined(CONFIG_INPUT_WACOM)
+	CLK_LOOKUP("core_clk",	gcc_blsp2_qup6_i2c_apps_clk.c,	"f9968000.i2c"),
+#elif (defined(CONFIG_SEC_LENTIS_PROJECT) || defined(CONFIG_SEC_KCCAT6_PROJECT)) && defined(CONFIG_MSMB_CAMERA)
+	CLK_LOOKUP("core_clk",	gcc_blsp2_qup6_i2c_apps_clk.c,	"f9968000.i2c"),
+#else
 	CLK_LOOKUP("",	gcc_blsp2_qup6_i2c_apps_clk.c,	""),
+#endif
 	CLK_LOOKUP("",	gcc_blsp2_qup6_spi_apps_clk.c,	""),
 	CLK_LOOKUP("",	gcc_blsp2_uart1_apps_clk.c, ""),
 	CLK_LOOKUP("core_clk", gcc_blsp2_uart1_apps_clk.c, "f995d000.uart"),
@@ -6078,7 +6157,7 @@ static struct clk_lookup apq_clocks_8084[] = {
 
 	CLK_LOOKUP("",	gcc_gp1_clk.c,	""),
 	CLK_LOOKUP("",	gcc_gp2_clk.c,	""),
-	CLK_LOOKUP("",	gcc_gp3_clk.c,	""),
+	CLK_LOOKUP("gcc_gp3_clk",gcc_gp3_clk.c,NULL),
 
 	CLK_LOOKUP("bus_clk",	gcc_lpass_q6_axi_clk.c,	"fe200000.qcom,lpass"),
 	CLK_LOOKUP("core_clk",	dummy_clk,	"fe200000.qcom,lpass"),
@@ -6151,9 +6230,10 @@ static struct clk_lookup apq_clocks_8084[] = {
 
 	CLK_LOOKUP("",	gcc_tsif_ahb_clk.c,	""),
 	CLK_LOOKUP("",	gcc_tsif_ref_clk.c,	""),
+#if defined(CONFIG_TDMB_TSIF_QC) || defined(CONFIG_ISDBT_FC8300)
 	CLK_LOOKUP("iface_clk", gcc_tsif_ahb_clk.c, "f99d8000.msm_tspp"),
 	CLK_LOOKUP("ref_clk", gcc_tsif_ref_clk.c, "f99d8000.msm_tspp"),
-
+#endif
 	/* UFS clocks */
 	CLK_LOOKUP("ref_clk", rf_clk1.c,                 "msm_ufs.1"),
 	CLK_LOOKUP("bus_clk", gcc_sys_noc_ufs_axi_clk.c, "msm_ufs.1"),
@@ -6579,15 +6659,19 @@ static struct clk_lookup apq_clocks_8084[] = {
 	CLK_LOOKUP("iface_clk", camss_vfe_vfe_ahb_clk.c,
 						"fda04000.qcom,cpp"),
 	/* Camera Sensor Clocks */
-	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,eeprom"),
-	CLK_LOOKUP("cam_src_clk", mclk1_clk_src.c, "90.qcom,camera"),
+	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "20.qcom,camera"),
 	CLK_LOOKUP("cam_src_clk", mclk0_clk_src.c, "0.qcom,camera"),
+	CLK_LOOKUP("",	mclk1_clk_src.c,	""),
+	CLK_LOOKUP("cam_src_clk",	mclk2_clk_src.c, "6d.qcom,camera"),
+	CLK_LOOKUP("cam_src_clk",	mclk2_clk_src.c, "1.qcom,camera"),
 	CLK_LOOKUP("cam_src_clk",	mclk1_clk_src.c, "1.qcom,camera"),
 	CLK_LOOKUP("cam_src_clk",	mclk2_clk_src.c, "2.qcom,camera"),
 	CLK_LOOKUP("",	mclk3_clk_src.c,	""),
-	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,eeprom"),
-	CLK_LOOKUP("cam_clk", camss_mclk1_clk.c, "90.qcom,camera"),
+	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "20.qcom,camera"),
 	CLK_LOOKUP("cam_clk", camss_mclk0_clk.c, "0.qcom,camera"),
+	CLK_LOOKUP("",	camss_mclk1_clk.c,	""),
+	CLK_LOOKUP("cam_clk", camss_mclk2_clk.c, "6d.qcom,camera"),
+	CLK_LOOKUP("cam_clk", camss_mclk2_clk.c, "1.qcom,camera"),
 	CLK_LOOKUP("cam_clk",	camss_mclk1_clk.c, "1.qcom,camera"),
 	CLK_LOOKUP("cam_clk", camss_mclk2_clk.c, "2.qcom,camera"),
 	CLK_LOOKUP("",	camss_mclk3_clk.c,	""),
@@ -6764,6 +6848,11 @@ static struct clk_lookup apq_clocks_8084[] = {
 	/* QCA1530 clocks */
 	CLK_LOOKUP("qca,rtc_clk",	div_clk3.c, "qca1530.1"),
 	CLK_LOOKUP("qca,tcxo_clk",	rf_clk2_pin.c, "qca1530.1"),
+#ifdef CONFIG_SAMSUNG_BATTERY_DISALLOW_DEEP_SLEEP
+	/* QMCK: Enable xo shutdown in chargng mode*/
+	CLK_LOOKUP("xo_chr", xo_clk_src.c, "charger"),
+#endif
+	CLK_LOOKUP("xtal_mhl",	rf_clk1.c, "spi32766.0"),
 };
 
 static struct pll_config_regs mmpll0_regs __initdata = {

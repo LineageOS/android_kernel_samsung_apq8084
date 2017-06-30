@@ -1126,6 +1126,7 @@ static int test_init_queue(struct request_queue *q, struct elevator_type *e)
 	ptd = kmalloc_node(sizeof(struct test_data), GFP_KERNEL,
 			     q->node);
 	if (!ptd) {
+		kobject_put(&eq->kobj);
 		pr_err("%s: failed to allocate test data", __func__);
 		kobject_put(&eq->kobj);
 		return -ENOMEM;

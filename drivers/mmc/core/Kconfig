@@ -17,6 +17,12 @@ config MMC_UNSAFE_RESUME
 	  This option sets a default which can be overridden by the
 	  module parameter "removable=0" or "removable=1".
 
+config MMC_QC_CMD_LOGGING
+	bool "MMC host cmd logging"
+	help
+	  This is for debugging. 512 CMDs can be saved at the specific moment.
+	  This is made by dh0421.hwang in system memory lab.
+
 config MMC_CLKGATE
 	bool "MMC host clock gating"
 	help

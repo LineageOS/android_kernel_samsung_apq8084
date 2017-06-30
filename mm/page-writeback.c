@@ -300,6 +300,14 @@ void global_dirty_limits(unsigned long *pbackground, unsigned long *pdirty)
 	else
 		background = (dirty_background_ratio * available_memory) / 100;
 
+#if defined(CONFIG_MIN_DIRTY_THRESH_PAGES) && CONFIG_MIN_DIRTY_THRESH_PAGES > 0
+	if (!vm_dirty_bytes && dirty < CONFIG_MIN_DIRTY_THRESH_PAGES) {
+		dirty = CONFIG_MIN_DIRTY_THRESH_PAGES;
+		if (!dirty_background_bytes)
+			background = dirty / 2;
+	}
+#endif
+
 	if (background >= dirty)
 		background = dirty / 2;
 	tsk = current;
@@ -330,6 +338,17 @@ static unsigned long zone_dirty_limit(struct zone *zone)
 			zone_memory / global_dirtyable_memory();
 	else
 		dirty = vm_dirty_ratio * zone_memory / 100;
+
+#if defined(CONFIG_MIN_DIRTY_THRESH_PAGES) && CONFIG_MIN_DIRTY_THRESH_PAGES > 0
+	if (!vm_dirty_bytes) {
+		unsigned long min_zone_dirty;
+
+		min_zone_dirty = CONFIG_MIN_DIRTY_THRESH_PAGES *
+				zone_memory / global_dirtyable_memory();
+		if (dirty < min_zone_dirty)
+			dirty = min_zone_dirty;
+	}
+#endif
 
 	if (tsk->flags & PF_LESS_THROTTLE || rt_task(tsk))
 		dirty += dirty / 4;

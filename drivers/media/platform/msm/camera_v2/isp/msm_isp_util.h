@@ -1,4 +1,4 @@
-/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,12 +17,14 @@
 /* #define CONFIG_MSM_ISP_DBG 1 */
 
 #ifdef CONFIG_MSM_ISP_DBG
-#define ISP_DBG(fmt, args...) printk(fmt, ##args)
+#define ISP_DBG(fmt, args...) pr_err(fmt, ##args)
 #else
 #define ISP_DBG(fmt, args...) pr_debug(fmt, ##args)
 #endif
 
 #define ALT_VECTOR_IDX(x) {x = 3 - x; }
+#define LIMIT_LOG 10
+
 struct msm_isp_bandwidth_info {
 	uint32_t active;
 	uint64_t ab;

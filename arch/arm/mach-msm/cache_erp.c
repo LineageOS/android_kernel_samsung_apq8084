@@ -574,6 +574,7 @@ static int msm_cache_erp_probe(struct platform_device *pdev)
 		goto fail_l1;
 	}
 
+	set_l2_indirect_reg(L2ESR_IND_ADDR, (get_l2_indirect_reg(L2ESR_IND_ADDR) & L2ESR_MPDCD));
 	l2_erp_irq = r->start;
 	ret = request_irq(l2_erp_irq, msm_l2_erp_irq, 0, "MSM_L2", NULL);
 

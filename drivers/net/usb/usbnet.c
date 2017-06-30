@@ -47,6 +47,8 @@
 #include <linux/kernel.h>
 #include <linux/pm_runtime.h>
 
+extern void xhci_dbg_urb_event(char *func, unsigned sdelta, unsigned cdelta, unsigned latency);
+ktime_t skbs, skbe;
 #define DRIVER_VERSION		"22-Aug-2005"
 
 
@@ -95,6 +97,7 @@ static int msg_level = -1;
 module_param (msg_level, int, 0);
 MODULE_PARM_DESC (msg_level, "Override default message level");
 
+extern ktime_t handle_start_time;
 /*-------------------------------------------------------------------------*/
 
 /* handles CDC Ethernet and many other network "bulk data" interfaces */
@@ -452,7 +455,7 @@ static int rx_submit (struct usbnet *dev, struct urb *urb, gfp_t flags)
 		usb_free_urb(urb);
 		return -ENOLINK;
 	}
-
+	skbs = ktime_get();
 	skb = __netdev_alloc_skb_ip_align(dev->net, size, flags);
 	if (!skb) {
 		netif_dbg(dev, rx_err, dev->net, "no rx skb\n");
@@ -460,7 +463,8 @@ static int rx_submit (struct usbnet *dev, struct urb *urb, gfp_t flags)
 		usb_free_urb (urb);
 		return -ENOMEM;
 	}
-
+	
+	skbe = ktime_get();
 	entry = (struct skb_data *) skb->cb;
 	entry->urb = urb;
 	entry->dev = dev;
@@ -550,6 +554,9 @@ static void rx_complete(struct urb *urb)
 	struct usbnet		*dev = entry->dev;
 	int			urb_status = urb->status;
 	enum skb_state		state;
+	ktime_t t1, t2, t3;
+
+	t1 = ktime_get();
 
 	skb_put (skb, urb->actual_length);
 	state = rx_done;
@@ -625,8 +632,11 @@ block:
 		if (netif_running (dev->net) &&
 		    !test_bit (EVENT_RX_HALT, &dev->flags) &&
 		    state != unlink_start) {
+		    t2 = ktime_get();
 			rx_submit (dev, urb, GFP_ATOMIC);
+			t3 = ktime_get();
 			usb_mark_last_busy(dev->udev);
+			xhci_dbg_urb_event("rx_complete", ktime_to_us(ktime_sub(t1, handle_start_time)), ktime_to_us(ktime_sub(skbe, skbs)), ktime_to_us(ktime_sub(ktime_get(), t1)));
 			return;
 		}
 		usb_free_urb (urb);

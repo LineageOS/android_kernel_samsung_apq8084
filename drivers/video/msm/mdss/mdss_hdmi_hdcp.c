@@ -18,7 +18,9 @@
 #include <soc/qcom/scm.h>
 
 #include "mdss_hdmi_hdcp.h"
+#if !defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
 #include "video/msm_hdmi_hdcp_mgr.h"
+#endif
 
 #define HDCP_STATE_NAME (hdcp_state_name(hdcp_ctrl->hdcp_state))
 
@@ -45,6 +47,10 @@ struct hdmi_hdcp_reg_data {
 	u32 reg_val;
 };
 
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+struct hdmi_hdcp_ctrl *hdcp_ctrl_global = NULL;
+EXPORT_SYMBOL(hdcp_ctrl_global);
+#else//QC.org -> moved to mdss_hdmi_hdcp.h
 struct hdmi_hdcp_ctrl {
 	u32 auth_retries;
 	u32 tp_msgid;
@@ -58,6 +64,7 @@ struct hdmi_hdcp_ctrl {
 	struct completion r0_checked;
 	struct hdmi_hdcp_init_data init_data;
 };
+#endif
 
 const char *hdcp_state_name(enum hdmi_hdcp_state hdcp_state)
 {
@@ -187,11 +194,11 @@ static void hdmi_hdcp_hw_ddc_clean(struct hdmi_hdcp_ctrl *hdcp_ctrl)
 		do {
 			hdcp_ddc_status = DSS_REG_R(io, HDMI_HDCP_DDC_STATUS);
 			ddc_hw_status = DSS_REG_R(io, HDMI_DDC_HW_STATUS);
-			ddc_xfer_done = (hdcp_ddc_status & BIT(10)) ;
-			ddc_xfer_req = (hdcp_ddc_status & BIT(4)) ;
-			ddc_hw_done = (ddc_hw_status & BIT(3)) ;
-			ddc_hw_not_ready = ((ddc_xfer_done != 1) ||
-			(ddc_xfer_req != 0) || (ddc_hw_done != 1));
+			ddc_xfer_done = hdcp_ddc_status & BIT(10);
+			ddc_xfer_req = hdcp_ddc_status & BIT(4);
+			ddc_hw_done = ddc_hw_status & BIT(3);
+			ddc_hw_not_ready = !ddc_xfer_done ||
+				ddc_xfer_req || !ddc_hw_done;
 
 			DEV_DBG("%s: %s: timeout count(%d):ddc hw%sready\n",
 				__func__, HDCP_STATE_NAME, timeout_count,
@@ -236,13 +243,18 @@ static int hdmi_hdcp_authentication_part1(struct hdmi_hdcp_ctrl *hdcp_ctrl)
 
 	phy_addr = hdcp_ctrl->init_data.phy_addr;
 
+#if !defined (CONFIG_SEC_MHL_AP_HDCP_PART1)
 	if (HDCP_STATE_AUTHENTICATING != hdcp_ctrl->hdcp_state) {
 		DEV_DBG("%s: %s: invalid state. returning\n", __func__,
 			HDCP_STATE_NAME);
 		rc = -EINVAL;
 		goto error;
 	}
-
+#else
+	/* put some delay to guarantee ddc_bypass(true) behavior
+	 * in case of AP_HDCP_PART1 */
+	msleep(200);
+#endif
 	bksv = hdcp_ctrl->current_tp.bksv;
 
 	io = hdcp_ctrl->init_data.core_io;
@@ -612,13 +624,86 @@ error:
 		DEV_ERR("%s: %s: Authentication Part I failed\n", __func__,
 			HDCP_STATE_NAME);
 	} else {
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+		DSS_REG_W(io, HDMI_HDCP_CTRL, BIT(0));
+
+		/* if REPEATER (Bit 6), perform Part2 Authentication */
+		if (!(bcaps & BIT(6))) {
+			DEV_INFO("%s: %s: auth part II skipped, no repeater\n",
+				__func__, HDCP_STATE_NAME);
+		} else {
+			/* Wait until READY bit is set in BCAPS */
+			timeout_count = 50;
+			while (!(bcaps & BIT(5)) && timeout_count) {
+				msleep(100);
+				timeout_count--;
+				/* Read BCAPS at offset 0x40 */
+				memset(&ddc_data, 0, sizeof(ddc_data));
+				ddc_data.dev_addr = 0x74;
+				ddc_data.offset = 0x40;
+				ddc_data.data_buf = &bcaps;
+				ddc_data.data_len = 1;
+				ddc_data.request_len = 1;
+				ddc_data.retry = 5;
+				ddc_data.what = "Bcaps";
+				ddc_data.no_align = false;
+				rc = hdmi_ddc_read(hdcp_ctrl->init_data.ddc_ctrl, &ddc_data);
+				if (rc) {
+					DEV_ERR("%s: %s: BCAPS read failed\n", __func__,
+						HDCP_STATE_NAME);
+					break;
+				}
+				else
+					DEV_INFO("%s: BCAPS=0x%02X\n", __func__, *(ddc_data.data_buf));
+			}
+		}
+
+		if (timeout_count == 0)
+			rc = -EINVAL;
+		else {
+			DEV_INFO("%s: %s: Authentication Part I successful\n",
+				__func__, HDCP_STATE_NAME);
+		}
+
+		/* put some delay to guarantee ddc_bypass(false) behavior
+		 * in case of AP_HDCP_PART1 */
+		msleep(100);
+#else
 		/* Enable HDCP Encryption */
 		DSS_REG_W(io, HDMI_HDCP_CTRL, BIT(0) | BIT(8));
 		DEV_INFO("%s: %s: Authentication Part I successful\n",
 			__func__, HDCP_STATE_NAME);
+#endif
 	}
 	return rc;
 } /* hdmi_hdcp_authentication_part1 */
+
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+static int hdcp_return_value;
+static void hdmi_hdcp_auth_part1_work(struct work_struct *work)
+{
+	struct delayed_work *dw = to_delayed_work(work);
+	struct hdmi_hdcp_ctrl *hdcp_ctrl = container_of(dw,
+		struct hdmi_hdcp_ctrl, hdcp_auth_work);
+
+	if (!hdcp_ctrl) {
+		DEV_ERR("%s: invalid input\n", __func__);
+		return;
+	}
+
+	hdcp_return_value =
+		hdmi_hdcp_authentication_part1(hdcp_ctrl);
+}
+
+int hdmi_hdcp_authentication_part1_start(struct hdmi_hdcp_ctrl *hdcp_ctrl)
+{
+	queue_delayed_work(hdcp_ctrl->init_data.workq,
+		&hdcp_ctrl->hdcp_auth_work, 0);
+
+	flush_delayed_work(&hdcp_ctrl->hdcp_auth_work);
+	return hdcp_return_value;
+}
+#endif
 
 #define READ_WRITE_V_H(off, name, reg, wr) \
 do { \
@@ -640,6 +725,7 @@ do { \
 	} \
 } while (0);
 
+#if !defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
 static int hdmi_hdcp_transfer_v_h(struct hdmi_hdcp_ctrl *hdcp_ctrl)
 {
 	char what[20];
@@ -1100,6 +1186,7 @@ static void hdmi_hdcp_notify_topology(struct hdmi_hdcp_ctrl *hdcp_ctrl)
 	DEV_DBG("%s Event Sent: %s msgID = %s srcID = %s\n", __func__,
 			envp[0], envp[1], envp[2]);
 }
+#endif
 
 static void hdmi_hdcp_int_work(struct work_struct *work)
 {
@@ -1122,6 +1209,7 @@ static void hdmi_hdcp_int_work(struct work_struct *work)
 	}
 } /* hdmi_hdcp_int_work */
 
+#if !defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
 static void hdmi_hdcp_auth_work(struct work_struct *work)
 {
 	int rc;
@@ -1207,6 +1295,7 @@ error:
 	}
 	return;
 } /* hdmi_hdcp_auth_work */
+#endif
 
 int hdmi_hdcp_authenticate(void *input)
 {
@@ -1568,7 +1657,11 @@ void *hdmi_hdcp_init(struct hdmi_hdcp_init_data *init_data)
 		goto error;
 	}
 
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+	INIT_DELAYED_WORK(&hdcp_ctrl->hdcp_auth_work, hdmi_hdcp_auth_part1_work);
+#else
 	INIT_DELAYED_WORK(&hdcp_ctrl->hdcp_auth_work, hdmi_hdcp_auth_work);
+#endif
 	INIT_WORK(&hdcp_ctrl->hdcp_int_work, hdmi_hdcp_int_work);
 
 	hdcp_ctrl->hdcp_state = HDCP_STATE_INACTIVE;
@@ -1587,7 +1680,9 @@ void *hdmi_hdcp_init(struct hdmi_hdcp_init_data *init_data)
 
 	DEV_DBG("%s: HDCP module initialized. HDCP_STATE=%s", __func__,
 		HDCP_STATE_NAME);
-
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+	hdcp_ctrl_global = hdcp_ctrl;
+#endif
 error:
 	return (void *)hdcp_ctrl;
 } /* hdmi_hdcp_init */

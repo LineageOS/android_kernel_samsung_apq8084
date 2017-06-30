@@ -14,6 +14,9 @@
 #define __MDSS_HDMI_HDCP_H__
 
 #include "mdss_hdmi_util.h"
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+#include "video/msm_hdmi_hdcp_mgr.h"
+#endif
 
 enum hdmi_hdcp_state {
 	HDCP_STATE_INACTIVE,
@@ -36,6 +39,23 @@ struct hdmi_hdcp_init_data {
 	u32 phy_addr;
 };
 
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+/* moved from mdss_hdmi_hdcp.c */
+struct hdmi_hdcp_ctrl {
+	u32 auth_retries;
+	u32 tp_msgid;
+	u32 tz_hdcp;
+	bool cancel_requested;
+	enum hdmi_hdcp_state hdcp_state;
+	struct HDCP_V2V1_MSG_TOPOLOGY cached_tp;
+	struct HDCP_V2V1_MSG_TOPOLOGY current_tp;
+	struct delayed_work hdcp_auth_work;
+	struct work_struct hdcp_int_work;
+	struct completion r0_checked;
+	struct hdmi_hdcp_init_data init_data;
+};
+#endif
+
 const char *hdcp_state_name(enum hdmi_hdcp_state hdcp_state);
 void *hdmi_hdcp_init(struct hdmi_hdcp_init_data *init_data);
 void hdmi_hdcp_deinit(void *input);
@@ -44,4 +64,7 @@ int hdmi_hdcp_reauthenticate(void *input);
 int hdmi_hdcp_authenticate(void *hdcp_ctrl);
 void hdmi_hdcp_off(void *hdcp_ctrl);
 void hdmi_hdcp_cancel_auth(void *input, bool req);
+#if defined(CONFIG_SEC_MHL_AP_HDCP_PART1)
+int hdmi_hdcp_authentication_part1_start(struct hdmi_hdcp_ctrl *hdcp_ctrl);
+#endif
 #endif /* __MDSS_HDMI_HDCP_H__ */

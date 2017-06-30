@@ -139,6 +139,12 @@ void pcie_phy_init(struct msm_pcie_dev_t *dev)
 	write_phy(dev->phy, QSERDES_COM_PLL_CP_SETI,		0x3f);
 	write_phy(dev->phy, QSERDES_COM_PLL_IP_SETP,		0x07);
 	write_phy(dev->phy, QSERDES_COM_PLL_CP_SETP,		0x03);
+
+	if(dev->rc_idx == 1) {
+		write_phy(dev->phy, QSERDES_TX_TX_EMP_POST1_LVL,		0x21);
+		write_phy(dev->phy, QSERDES_TX_TX_DRV_LVL,		0x18);
+	}
+
 	write_phy(dev->phy, QSERDES_RX_CDR_CONTROL,			0xf3);
 	write_phy(dev->phy, QSERDES_RX_CDR_CONTROL2,		0x6b);
 	write_phy(dev->phy, QSERDES_COM_RESETSM_CNTRL,		0x10);
@@ -146,12 +152,81 @@ void pcie_phy_init(struct msm_pcie_dev_t *dev)
 	write_phy(dev->phy, QSERDES_RX_RX_EQ_GAIN12,		0x54);
 	write_phy(dev->phy, PCIE_PHY_POWER_STATE_CONFIG1,		0xa3);
 	write_phy(dev->phy, PCIE_PHY_POWER_STATE_CONFIG2,		0x4b);
+	if(dev->rc_idx == 0) {
+		write_phy(dev->phy, QSERDES_RX_SIGDET_CNTRL,		0x50);
+	}
 	write_phy(dev->phy, QSERDES_COM_PLL_RXTXEPCLK_EN,		0x10);
 	write_phy(dev->phy, PCIE_PHY_ENDPOINT_REFCLK_DRIVE,		0x10);
 	write_phy(dev->phy, PCIE_PHY_SW_RESET,			0x00);
 	write_phy(dev->phy, PCIE_PHY_START,				0x03);
 }
 #endif
+
+void pcie_phy_dump(struct msm_pcie_dev_t *dev)
+{
+	int i;
+	int control_offset[2] = {0x60, 0x70};
+
+	PCIE_DBG(dev, "RC%d\n", dev->rc_idx);
+
+	for (i = 0; i < 2; i++) {
+		write_phy(dev->phy, PCIE_PHY_TEST_CONTROL, control_offset[i]);
+		PCIE_REG(dev, "RC%d: TEST_CONTROL: 0x%08x\n",
+			 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_TEST_CONTROL));
+		PCIE_REG(dev, "RC%d: DEBUG_BUS_0_STATUS: 0x%08x\n",
+			 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_DEBUG_BUS_0_STATUS));
+		PCIE_REG(dev, "RC%d: DEBUG_BUS_1_STATUS: 0x%08x\n",
+			 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_DEBUG_BUS_1_STATUS));
+		PCIE_REG(dev, "RC%d: DEBUG_BUS_2_STATUS: 0x%08x\n",
+			 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_DEBUG_BUS_2_STATUS));
+		PCIE_REG(dev, "RC%d: DEBUG_BUS_3_STATUS: 0x%08x\n",
+			 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_DEBUG_BUS_3_STATUS));
+	}
+	PCIE_REG(dev, "RC%d QSERDES_COM_PLL_VCO_HIGH: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_COM_PLL_VCO_HIGH));
+	PCIE_REG(dev, "RC%d QSERDES_COM_RESET_SM: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_COM_RESET_SM));
+	PCIE_REG(dev, "RC%d QSERDES_RX_PI_CTRL1: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_PI_CTRL1));
+	PCIE_REG(dev, "RC%d QSERDES_RX_PI_CTRL2: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_PI_CTRL2));
+	PCIE_REG(dev, "RC%d QSERDES_RX_PI_QUAD: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_PI_QUAD));
+	PCIE_REG(dev, "RC%d QSERDES_RX_IDATA1: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_IDATA1));
+	PCIE_REG(dev, "RC%d QSERDES_RX_IDATA2: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_IDATA2));
+	PCIE_REG(dev, "RC%d QSERDES_RX_AUX_DATA1: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_AUX_DATA1));
+	PCIE_REG(dev, "RC%d QSERDES_RX_AUX_DATA2: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_AUX_DATA2));
+	PCIE_REG(dev, "RC%d QSERDES_RX_AC_JTAG_OUTP: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_AC_JTAG_OUTP));
+	PCIE_REG(dev, "RC%d QSERDES_RX_AC_JTAG_OUTN: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_RX_AC_JTAG_OUTN));
+	PCIE_REG(dev, "RC%d QSERDES_TX_BIST_STATUS: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_TX_BIST_STATUS));
+	PCIE_REG(dev, "RC%d QSERDES_TX_BIST_ERROR_COUNT1: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_TX_BIST_ERROR_COUNT1));
+	PCIE_REG(dev, "RC%d QSERDES_TX_BIST_ERROR_COUNT2: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + QSERDES_TX_BIST_ERROR_COUNT2));
+	PCIE_REG(dev, "RC%d PCIE_PHY_BIST_CHK_ERR_CNT_L: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_BIST_CHK_ERR_CNT_L));
+	PCIE_REG(dev, "RC%d PCIE_PHY_BIST_CHK_ERR_CNT_H: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_BIST_CHK_ERR_CNT_H));
+	PCIE_REG(dev, "RC%d PCIE_PHY_BIST_CHK_STATUS: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_BIST_CHK_STATUS));
+	PCIE_REG(dev, "RC%d PCIE_PHY_PCS_STATUS: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_PCS_STATUS));
+	PCIE_REG(dev, "RC%d PCIE_PHY_REVISION_ID0: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_REVISION_ID0));
+	PCIE_REG(dev, "RC%d PCIE_PHY_REVISION_ID1: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_REVISION_ID1));
+	PCIE_REG(dev, "RC%d PCIE_PHY_REVISION_ID2: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_REVISION_ID2));
+	PCIE_REG(dev, "RC%d PCIE_PHY_REVISION_ID3: 0x%x\n",
+		 dev->rc_idx, readl_relaxed(dev->phy + PCIE_PHY_REVISION_ID3));
+}
 
 bool pcie_phy_is_ready(struct msm_pcie_dev_t *dev)
 {

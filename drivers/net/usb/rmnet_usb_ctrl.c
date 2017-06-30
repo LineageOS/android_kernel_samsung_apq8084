@@ -81,7 +81,7 @@ enum {
 do { \
 	if (ctl_msg_dbg_mask & MSM_USB_CTL_DUMP_BUFFER) \
 			print_hex_dump(KERN_INFO, prestr, DUMP_PREFIX_NONE, \
-					16, 1, buf, cnt, false); \
+					16, 1, buf, (cnt < 16 ? cnt : 16), false); \
 } while (0)
 
 #define DBG(x...) \

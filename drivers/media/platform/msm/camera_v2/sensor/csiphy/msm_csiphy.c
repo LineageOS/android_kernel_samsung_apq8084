@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -132,6 +132,9 @@ static irqreturn_t msm_csiphy_irq(int irq_num, void *data)
 	uint32_t irq;
 	int i;
 	struct csiphy_device *csiphy_dev = data;
+
+	if (!csiphy_dev || !csiphy_dev->base)
+			 return IRQ_HANDLED;
 
 	for (i = 0; i < 8; i++) {
 		irq = msm_camera_io_r(
@@ -386,6 +389,11 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 		return -EINVAL;
 	}
 
+	CDBG("%s csiphy_params, lane assign %x mask = %x\n",
+		__func__,
+		csi_lane_params->csi_lane_assign,
+		csi_lane_params->csi_lane_mask);
+
 	if (csiphy_dev->hw_version < CSIPHY_VERSION_V30) {
 		csiphy_dev->lane_mask[csiphy_dev->pdev->id] = 0;
 		for (i = 0; i < 4; i++)
@@ -468,6 +476,11 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 			csiphy_dev->csiphy_state);
 		return -EINVAL;
 	}
+
+	CDBG("%s csiphy_params, lane assign %x mask = %x\n",
+		__func__,
+		csi_lane_params->csi_lane_assign,
+		csi_lane_params->csi_lane_mask);
 
 	if (csiphy_dev->hw_version < CSIPHY_VERSION_V30) {
 		csiphy_dev->lane_mask[csiphy_dev->pdev->id] = 0;

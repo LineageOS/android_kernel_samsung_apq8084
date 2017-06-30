@@ -390,9 +390,13 @@ void msm_gpio_show_resume_irq(void)
 				name = "stray irq";
 			else if (desc->action && desc->action->name)
 				name = desc->action->name;
-
+#ifdef CONFIG_SEC_PM_DEBUG
+			pr_warning("%s: %d triggered %s, gpio-%d\n",
+					__func__, irq, name, i);
+#else
 			pr_warning("%s: %d triggered %s\n",
 					__func__, irq, name);
+#endif
 		}
 	}
 	spin_unlock_irqrestore(&tlmm_lock, irq_flags);

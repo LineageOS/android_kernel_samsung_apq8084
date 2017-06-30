@@ -4487,6 +4487,7 @@ void cfg80211_crit_proto_stopped(struct wireless_dev *wdev, gfp_t gfp);
  * @gfp: context flags
  */
 void cfg80211_ap_stopped(struct net_device *netdev, gfp_t gfp);
+
 /**
  * cfg80211_is_gratuitous_arp_unsolicited_na - packet is grat. ARP/unsol. NA
  * @skb: the input packet, must be an ethernet frame already

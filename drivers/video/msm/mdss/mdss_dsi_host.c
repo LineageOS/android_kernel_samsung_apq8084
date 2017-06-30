@@ -24,13 +24,18 @@
 #include <linux/msm_iommu_domains.h>
 
 #include "mdss.h"
+#include "mdss_mdp.h"
 #include "mdss_dsi.h"
 #include "mdss_panel.h"
 #include "mdss_debug.h"
 
 #define VSYNC_PERIOD 17
 
+static struct mdss_dsi_ctrl_pdata *left_ctrl_pdata;
+
 struct mdss_dsi_ctrl_pdata *ctrl_list[DSI_CTRL_MAX];
+
+static unsigned char *dsi_ctrl_base;
 
 struct mdss_hw mdss_dsi0_hw = {
 	.hw_ndx = MDSS_HW_DSI0,
@@ -67,6 +72,13 @@ struct mdss_dsi_event {
 static struct mdss_dsi_event dsi_event;
 
 static int dsi_event_thread(void *data);
+
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+struct mdss_dsi_ctrl_pdata **mdss_dsi_get_ctrl(void)
+{
+	return ctrl_list;
+}
+#endif
 
 void mdss_dsi_ctrl_init(struct mdss_dsi_ctrl_pdata *ctrl)
 {
@@ -245,6 +257,7 @@ void mdss_dsi_host_init(struct mdss_panel_data *pdata)
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
+	dsi_ctrl_base = ctrl_pdata->ctrl_base;
 
 	pinfo = &pdata->panel_info.mipi;
 
@@ -319,7 +332,12 @@ void mdss_dsi_host_init(struct mdss_panel_data *pdata)
 		dsi_ctrl |= BIT(5);
 	if (pinfo->data_lane0)
 		dsi_ctrl |= BIT(4);
-
+	if (mdss_dsi_sync_wait_enable(ctrl_pdata))
+		if (pdata->panel_info.pdest == DISPLAY_1) {
+			pr_info("%s: Broadcast mode enabled.\n",
+				 __func__);
+			left_ctrl_pdata = ctrl_pdata;
+		}
 
 	data = 0;
 	if (pinfo->te_sel)
@@ -1073,18 +1091,25 @@ end:
 	return rp->len;
 }
 
-#define DMA_TX_TIMEOUT 200
+#define DMA_TX_TIMEOUT 1000
 
 static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 					struct dsi_buf *tp)
 {
 	int len, ret = 0;
 	int domain = MDSS_IOMMU_DOMAIN_UNSECURE;
-	char *bp;
 	struct mdss_dsi_ctrl_pdata *mctrl = NULL;
-
+#ifdef DEBUG_CMD
+	char *bp;
+	int i;
 	bp = tp->data;
 
+	pr_err("%s: ", __func__);
+	for (i = 0; i < tp->len; i++)
+		pr_err("%x ", *bp++);
+
+	pr_err("\n");
+#endif
 	len = ALIGN(tp->len, 4);
 	ctrl->dma_size = ALIGN(tp->len, SZ_4K);
 
@@ -1131,8 +1156,19 @@ static int mdss_dsi_cmd_dma_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	ret = wait_for_completion_timeout(&ctrl->dma_comp,
 				msecs_to_jiffies(DMA_TX_TIMEOUT));
-	if (ret == 0)
-		ret = -ETIMEDOUT;
+	if(ret<=0)
+	{
+		pr_err("mdp clk rate=%ld\n", mdss_mdp_get_clk_rate(MDSS_CLK_MDP_SRC));
+		MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1", "panic");
+#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+				dumpreg();
+				mdp5_dump_regs();
+				mdss_mdp_debug_bus();
+				xlog_dump();
+				pr_err("mdp clk rate=%ld\n", mdss_mdp_get_clk_rate(MDSS_CLK_MDP_SRC));
+				panic("tx timeout");
+#endif
+	}
 	else
 		ret = tp->len;
 
@@ -1260,8 +1296,7 @@ void mdss_dsi_cmd_mdp_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 		if (!wait_for_completion_timeout(&ctrl->mdp_comp,
 					msecs_to_jiffies(DMA_TX_TIMEOUT))) {
 			pr_err("%s: timeout error\n", __func__);
-			MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1",
-						"edp", "hdmi", "panic");
+			MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1", "panic");
 		}
 	}
 	pr_debug("%s: done pid=%d\n", __func__, current->pid);
@@ -1321,7 +1356,6 @@ int mdss_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 
 	if (from_mdp)	/* from mdp kickoff */
 		mutex_lock(&ctrl->cmd_mutex);
-
 	req = mdss_dsi_cmdlist_get(ctrl);
 
 	MDSS_XLOG(ctrl->ndx, from_mdp, ctrl->mdp_busy, current->pid,
@@ -1391,6 +1425,101 @@ need_lock:
 	return ret;
 }
 
+#if 0
+void dumpreg(void)
+{
+	u32 tmp0x0,tmp0x4,tmp0x8,tmp0xc;
+	int i;
+
+	if (dsi_ctrl_base == NULL) {
+		pr_err("%s : dsi_ctrl_base is null!!..\n",__func__);
+		return;
+	}
+
+	pr_err("%s: =============DSI Reg DUMP==============\n", __func__);
+#if defined (CONFIG_FB_MSM_DUAL_DSI_MODE)
+	if (left_ctrl_pdata) {
+		for (i=0; i< 32; i++) {
+			tmp0x0 = MIPI_INP(left_ctrl_pdata->ctrl_base+(i*16)+0x0);
+			tmp0x4 = MIPI_INP(left_ctrl_pdata->ctrl_base+(i*16)+0x4);
+			tmp0x8 = MIPI_INP(left_ctrl_pdata->ctrl_base+(i*16)+0x8);
+			tmp0xc = MIPI_INP(left_ctrl_pdata->ctrl_base+(i*16)+0xc);
+
+			pr_err("[DSI0][%04x] : %08x %08x %08x %08x\n",i*16, tmp0x0,tmp0x4,tmp0x8,tmp0xc);
+		}
+	}
+	for (i=0; i< 32; i++) {
+		tmp0x0 = MIPI_INP(dsi_ctrl_base+(i*16)+0x0);
+		tmp0x4 = MIPI_INP(dsi_ctrl_base+(i*16)+0x4);
+		tmp0x8 = MIPI_INP(dsi_ctrl_base+(i*16)+0x8);
+		tmp0xc = MIPI_INP(dsi_ctrl_base+(i*16)+0xc);
+
+		pr_err("[DSI1][%04x] : %08x %08x %08x %08x\n",i*16, tmp0x0,tmp0x4,tmp0x8,tmp0xc);
+	}
+#else
+	for(i=0; i< 32; i++){
+		tmp0x0 = MIPI_INP(dsi_ctrl_base+(i*16)+0x0);
+		tmp0x4 = MIPI_INP(dsi_ctrl_base+(i*16)+0x4);
+		tmp0x8 = MIPI_INP(dsi_ctrl_base+(i*16)+0x8);
+		tmp0xc = MIPI_INP(dsi_ctrl_base+(i*16)+0xc);
+
+		pr_err("[%04x] : %08x %08x %08x %08x\n",i*16, tmp0x0,tmp0x4,tmp0x8,tmp0xc);
+	}
+#endif
+	pr_err("%s: ============= END ==============\n", __func__);
+}
+
+void mdss_dsi_debug_check_te(struct mdss_panel_data *pdata)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	u8 rc, te_count = 0;
+	u8 te_max = 250;
+	int ret;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return;
+	}
+	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+					panel_data);
+
+	pr_info(" ============ start waiting for TE ============\n");
+	for (te_count = 0; te_count < te_max; te_count++) {
+		rc = gpio_get_value(12);
+		if (rc != 0) {
+			pr_info("%s: gpio_get_value(disp_te_gpio) = %d ",
+						__func__, rc);
+			pr_info("te_count = %d\n", te_count);
+			break;
+		}
+		/* usleep suspends the calling thread whereas udelay is a
+		 * busy wait. Here the value of te_gpio is checked in a loop of
+		 * max count = 250. If this loop has to iterate multiple
+		 * times before the te_gpio is 1, the calling thread will end
+		 * up in suspend/wakeup sequence multiple times if usleep is
+		 * used, which is an overhead. So use udelay instead of usleep.
+		 */
+		udelay(80);
+	}
+
+	if(te_count == te_max)	{
+		pr_info("LDI doesn't generate TE");
+		ret = ctrl_pdata->event_handler(MDSS_EVENT_READ_LDI_STATUS);
+		MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1");
+		pr_err("mdp clk rate=%ld\n", mdss_mdp_get_clk_rate(MDSS_CLK_MDP_SRC));
+		panic("Check LDI HW side/ rddpm = 0x%02x\n", ret);
+#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+		dumpreg();
+		mdp5_dump_regs();
+		mdss_mdp_debug_bus();
+		xlog_dump();
+		pr_err("mdp clk rate=%ld\n", mdss_mdp_get_clk_rate(MDSS_CLK_MDP_SRC));
+		panic("Check LDI HW side/ rddpm = 0x%02x\n", ret);
+#endif
+	}
+	pr_info(" ============ finish waiting for TE ============\n");
+}
+#endif
 static void dsi_send_events(struct mdss_dsi_ctrl_pdata *ctrl, u32 events)
 {
 	struct dsi_event_q *evq;
@@ -1449,8 +1578,7 @@ static int dsi_event_thread(void *data)
 				mdss_dsi_sw_reset(ctrl, true);
 				ctrl->recovery->fxn(ctrl->recovery->data);
 			}
-			MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1",
-						"edp", "hdmi", "panic");
+			MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0", "dsi1", "panic");
 		}
 
 		if (todo & DSI_EV_MDP_BUSY_RELEASE) {
@@ -1600,7 +1728,7 @@ irqreturn_t mdss_dsi_isr(int irq, void *ptr)
 
 	if (isr & DSI_INTR_ERROR) {
 		MDSS_XLOG(ctrl->ndx, ctrl->mdp_busy, isr, 0x97);
-		pr_err("%s: ndx=%d isr=%x\n", __func__, ctrl->ndx, isr);
+		pr_err("%s: isr[%d]=%x %x", __func__, ctrl->ndx, isr, (int)DSI_INTR_ERROR);
 		mdss_dsi_error(ctrl);
 	}
 

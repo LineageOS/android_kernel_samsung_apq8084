@@ -43,6 +43,9 @@
 #include "idle.h"
 #include "clock.h"
 #include "pm-boot.h"
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/trace_msm_low_power.h>
@@ -75,7 +78,6 @@ enum msm_pc_count_offsets {
 	MSM_PC_ENTRY_COUNTER,
 	MSM_PC_EXIT_COUNTER,
 	MSM_PC_FALLTHRU_COUNTER,
-	MSM_PC_UNUSED,
 	MSM_PC_NUM_COUNTERS,
 };
 
@@ -315,8 +317,16 @@ static bool __ref msm_pm_spm_power_collapse(
 
 	msm_jtag_save_state();
 
+#ifdef CONFIG_SEC_DEBUG
+	secdbg_sched_msg("+pc(I:%d,R:%d)", from_idle, notify_rpm);
+#endif
+
 	collapsed = save_cpu_regs ?
 		!cpu_suspend(0, msm_pm_collapse) : msm_pm_pc_hotplug();
+
+#ifdef CONFIG_SEC_DEBUG
+	secdbg_sched_msg("-pc(%d)", collapsed);
+#endif
 
 	if (save_cpu_regs) {
 		spin_lock(&cpu_cnt_lock);
@@ -547,6 +557,43 @@ void msm_cpu_pm_enter_sleep(enum msm_pm_sleep_mode mode, bool from_idle)
 
 }
 
+void msm_pwr_debug_regs(void)
+{
+	void *base_addr;
+	int i, cpu;
+	int val;
+	unsigned long pwr_status_reg = 0xf9088000;
+	unsigned long glb = 0xf9011000;
+	unsigned long offset = 0x10000;
+
+	for_each_possible_cpu(cpu) {
+		pr_err("=========CPU%d=========\n", cpu);
+		base_addr = ioremap_nocache(pwr_status_reg + (offset * cpu), 80);
+		if (!base_addr)
+			return;
+		for (i = 0; i < 64; i += 4) {
+			val = __raw_readl(base_addr);
+			pr_err("0x%lx: 0x%x\n",
+				pwr_status_reg + (offset * cpu) + i, val);
+			base_addr += 4;
+		}
+		iounmap(base_addr);
+	}
+
+	pr_err("=========GLB==========\n");
+	base_addr = ioremap_nocache(glb, 80);
+	if (!base_addr)
+		return;
+	for (i = 0; i < 72; i += 4) {
+		val = __raw_readl(base_addr);
+		pr_err("0x%lx: 0x%x\n", glb + i, val);
+		base_addr += 4;
+	}
+	iounmap(base_addr);
+}
+
+static char __iomem *qgic_base[4];
+
 /**
  * msm_pm_wait_cpu_shutdown() - Wait for a core to be power collapsed during
  *				hotplug
@@ -583,9 +630,13 @@ int msm_pm_wait_cpu_shutdown(unsigned int cpu)
 		 */
 		if (++timeout == 20) {
 			msm_spm_dump_regs(cpu);
+			msm_pwr_debug_regs();
+			acc_sts = __raw_readl(msm_pm_slp_sts[cpu].base_addr);
 			__WARN_printf("CPU%u didn't collapse in 2ms, sleep status: 0x%x\n",
 					cpu, acc_sts);
 		}
+
+		BUG_ON(timeout == 100);
 	}
 
 	return -EBUSY;
@@ -1005,7 +1056,12 @@ static struct platform_driver msm_cpu_pm_driver = {
 
 static int __init msm_pm_drv_init(void)
 {
-	int rc;
+	int rc, cpu;
+
+	for (cpu = 0; cpu < 4; cpu++) {
+		qgic_base[cpu] = ioremap(0xF9080000 + cpu * 0x10000, 0x8000);
+		BUG_ON(!qgic_base[cpu]);
+	}
 
 	cpumask_clear(&retention_cpus);
 

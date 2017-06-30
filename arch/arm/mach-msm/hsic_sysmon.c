@@ -118,6 +118,7 @@ static int hsic_sysmon_readwrite(enum hsic_sysmon_device_id id, void *data,
 	int			ret;
 	const char		*opstr = (op == HSIC_SYSMON_OP_READ) ?
 						"read" : "write";
+	char *in_shutdown = (char *)data;
 
 	pr_debug("%s: id:%d, data len:%d, timeout:%d", opstr, id, len, timeout);
 
@@ -162,7 +163,13 @@ static int hsic_sysmon_readwrite(enum hsic_sysmon_device_id id, void *data,
 	else
 		atomic_add(*actual_len, &hs->dbg_bytecnt[op]);
 
-	usb_autopm_put_interface(hs->ifc);
+	/*if the command we sent is system:shutdown , the we will not let
+	 * hsic suspend happen */
+	if(!strncmp(in_shutdown, "system:shutdown",sizeof("system:shutdown")))
+		pr_err("%s: system is going to shutdown, so disable suspend in this case\n",__func__);
+	else
+		usb_autopm_put_interface(hs->ifc);
+
 	return ret;
 }
 

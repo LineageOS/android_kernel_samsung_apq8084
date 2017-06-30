@@ -89,13 +89,11 @@
 				      0x00012900 0x00012b00>;
                 qcom,mdss-pingpong-off = <0x00012F00 0x00013000 0x00013100
 					  0x00013200>;
-		qcom,mdss-ad-off = <0x0013500 0x00013700 0x00013900>;
 		qcom,mdss-highest-bank-bit = <0x3>;
 
 		qcom,mdss-has-bwc;
 		qcom,mdss-has-decimation;
 		qcom,mdss-wfd-mode = "intf";
-		qcom,mdss-has-source-split;
 
 		qcom,vbif-settings = <0x0B0 0x00080808>,
 				     <0x0B4 0x08000808>,
@@ -133,7 +131,7 @@
 		mdss_fb0: qcom,mdss_fb_primary {
 			cell-index = <0>;
 			compatible = "qcom,mdss-fb";
-			qcom,memblock-reserve = <0x03200000 0x01E00000>;
+			qcom,memblock-reserve = <0x03200000 0x00F00000>;
 		};
 
 		mdss_fb1: qcom,mdss_fb_external {
@@ -154,8 +152,10 @@
 		cell-index = <0>;
 		reg = 	<0xfd922800 0x200>,
 			<0xfd922b00 0x2b0>,
+			<0xfd922d80 0x100>,
 			<0xfd828000 0x108>;
-		reg-names = "dsi_ctrl", "dsi_phy", "mmss_misc_phys";
+		
+		reg-names = "dsi_ctrl", "dsi_phy", "dsi_regulator", "mmss_misc_phys";
 		gdsc-supply = <&gdsc_mdss>;
 		vdda-supply = <&pma8084_l2>;
 		vdd-supply = <&pma8084_l22>;
@@ -163,6 +163,7 @@
 		qcom,mdss-fb-map = <&mdss_fb0>;
 		qcom,mdss-mdp = <&mdss_mdp>;
 
+		qcom,platform-te-gpio = <&msmgpio 12 0>;
 		qcom,platform-strength-ctrl = [ff 06];
 		qcom,platform-bist-ctrl = [00 00 b1 ff 00 00];
 		qcom,platform-regulator-settings = [07 09 03 00 20 00 01];
@@ -206,7 +207,7 @@
 				qcom,supply-max-voltage = <1800000>;
 				qcom,supply-enable-load = <100000>;
 				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
+				qcom,supply-post-on-sleep = <0>;
 			};
 		};
 
@@ -216,23 +217,23 @@
 
 			qcom,panel-supply-entry@0 {
 				reg = <0>;
+				qcom,supply-name = "iovdd";
+				qcom,supply-min-voltage = <1800000>;
+				qcom,supply-max-voltage = <1800000>;
+				qcom,supply-enable-load = <100000>;
+				qcom,supply-disable-load = <100>;
+				qcom,supply-post-on-sleep = <0>;
+			};
+/*
+			qcom,panel-supply-entry@0 {
+				reg = <1>;
 				qcom,supply-name = "vdd";
 				qcom,supply-min-voltage = <3000000>;
 				qcom,supply-max-voltage = <3000000>;
 				qcom,supply-enable-load = <150000>;
 				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
-			};
-
-			qcom,panel-supply-entry@1 {
-				reg = <1>;
-				qcom,supply-name = "vddio";
-				qcom,supply-min-voltage = <1800000>;
-				qcom,supply-max-voltage = <1800000>;
-				qcom,supply-enable-load = <100000>;
-				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
-			};
+				qcom,supply-post-on-sleep = <0>;
+			};*/
 		};
 	};
 
@@ -242,8 +243,9 @@
 		cell-index = <1>;
 		reg = 	<0xfd922e00 0x200>,
 			<0xfd923100 0x2b0>,
+			<0xfd922d80 0x100>,
 			<0xfd828000 0x108>;
-		reg-names = "dsi_ctrl", "dsi_phy", "mmss_misc_phys";
+		reg-names = "dsi_ctrl", "dsi_phy", "dsi_regulator", "mmss_misc_phys";
 		gdsc-supply = <&gdsc_mdss>;
 		vdda-supply = <&pma8084_l2>;
 		vdd-supply = <&pma8084_l22>;
@@ -294,7 +296,7 @@
 				qcom,supply-max-voltage = <1800000>;
 				qcom,supply-enable-load = <100000>;
 				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
+				qcom,supply-post-on-sleep = <0>;
 			};
 		};
 
@@ -304,23 +306,23 @@
 
 			qcom,panel-supply-entry@0 {
 				reg = <0>;
+				qcom,supply-name = "iovdd";
+				qcom,supply-min-voltage = <1800000>;
+				qcom,supply-max-voltage = <1800000>;
+				qcom,supply-enable-load = <100000>;
+				qcom,supply-disable-load = <100>;
+				qcom,supply-post-on-sleep = <0>;
+			};
+
+/*			qcom,panel-supply-entry@0 {
+				reg = <1>;
 				qcom,supply-name = "vdd";
 				qcom,supply-min-voltage = <3000000>;
 				qcom,supply-max-voltage = <3000000>;
 				qcom,supply-enable-load = <150000>;
 				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
-			};
-
-			qcom,panel-supply-entry@1 {
-				reg = <1>;
-				qcom,supply-name = "vddio";
-				qcom,supply-min-voltage = <1800000>;
-				qcom,supply-max-voltage = <1800000>;
-				qcom,supply-enable-load = <100000>;
-				qcom,supply-disable-load = <100>;
-				qcom,supply-post-on-sleep = <20>;
-			};
+				qcom,supply-post-on-sleep = <0>;
+			};*/
 		};
 	};
 
@@ -342,9 +344,9 @@
 		qcom,enable-load = <0 0 0 300000 0>;
 		qcom,disable-load = <0 0 0 0 0>;
 
-		qcom,hdmi-tx-cec = <&msmgpio 31 0>;
-		qcom,hdmi-tx-ddc-clk = <&msmgpio 32 0>;
-		qcom,hdmi-tx-ddc-data = <&msmgpio 33 0>;
+		/*qcom,hdmi-tx-cec = <&msmgpio 31 0>;*/
+		/*qcom,hdmi-tx-ddc-clk = <&msmgpio 32 0>;*/
+		/*qcom,hdmi-tx-ddc-data = <&msmgpio 33 0>;*/
 		qcom,hdmi-tx-hpd = <&msmgpio 34 0>;
 		qcom,mdss-fb-map = <&mdss_fb1>;
 		qcom,msm-hdmi-audio-rx {

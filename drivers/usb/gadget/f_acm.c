@@ -81,6 +81,7 @@ struct f_acm {
 static unsigned int no_acm_tty_ports;
 static unsigned int no_acm_sdio_ports;
 static unsigned int no_acm_smd_ports;
+static unsigned int no_hsic_sports;
 static unsigned int nr_acm_ports;
 static unsigned int acm_next_free_port;
 
@@ -104,11 +105,11 @@ static inline struct f_acm *port_to_acm(struct gserial *p)
 
 int acm_port_setup(struct usb_configuration *c)
 {
-	int ret = 0, i;
+	int ret = 0, i, port_idx;
 
-	pr_debug("%s: no_acm_tty_ports:%u no_acm_sdio_ports: %u nr_acm_ports:%u\n",
+	pr_debug("%s: no_acm_tty_ports:%u no_acm_sdio_ports: %u nr_acm_ports:%u no_hsic_sports: %u\n",
 			__func__, no_acm_tty_ports, no_acm_sdio_ports,
-				nr_acm_ports);
+				nr_acm_ports, no_hsic_sports);
 
 	if (no_acm_tty_ports) {
 		for (i = 0; i < no_acm_tty_ports; i++) {
@@ -122,6 +123,24 @@ int acm_port_setup(struct usb_configuration *c)
 		ret = gsdio_setup(c->cdev->gadget, no_acm_sdio_ports);
 	if (no_acm_smd_ports)
 		ret = gsmd_setup(c->cdev->gadget, no_acm_smd_ports);
+	if (no_hsic_sports) {
+		port_idx = ghsic_data_setup(no_hsic_sports, USB_GADGET_SERIAL);
+		if (port_idx < 0)
+			return port_idx;
+
+		for (i = 0; i < nr_acm_ports; i++) {
+			if (gacm_ports[i].transport ==
+					USB_GADGET_XPORT_HSIC) {
+				gacm_ports[i].client_port_num = port_idx;
+				port_idx++;
+			}
+		}
+
+		/*clinet port num is same for data setup and ctrl setup*/
+		ret = ghsic_ctrl_setup(no_hsic_sports, USB_GADGET_SERIAL);
+		if (ret < 0)
+			return ret;
+	}
 
 	return ret;
 }
@@ -137,6 +156,7 @@ void acm_port_cleanup(void)
 static int acm_port_connect(struct f_acm *acm)
 {
 	unsigned port_num;
+	int ret = 0;
 
 	port_num = gacm_ports[acm->port_num].client_port_num;
 
@@ -154,6 +174,21 @@ static int acm_port_connect(struct f_acm *acm)
 		break;
 	case USB_GADGET_XPORT_SMD:
 		gsmd_connect(&acm->port, port_num);
+		break;
+	case USB_GADGET_XPORT_HSIC:
+		ret = ghsic_ctrl_connect(&acm->port, port_num);
+		if (ret) {
+			pr_err("%s: ghsic_ctrl_connect failed: err:%d\n",
+					__func__, ret);
+			return ret;
+		}
+		ret = ghsic_data_connect(&acm->port, port_num);
+		if (ret) {
+			pr_err("%s: ghsic_data_connect failed: err:%d\n",
+					__func__, ret);
+			ghsic_ctrl_disconnect(&acm->port, port_num);
+			return ret;
+		}
 		break;
 	default:
 		pr_err("%s: Un-supported transport: %s\n", __func__,
@@ -183,6 +218,10 @@ static int acm_port_disconnect(struct f_acm *acm)
 		break;
 	case USB_GADGET_XPORT_SMD:
 		gsmd_disconnect(&acm->port, port_num);
+		break;
+	case USB_GADGET_XPORT_HSIC:
+		ghsic_ctrl_disconnect(&acm->port, port_num);
+		ghsic_data_disconnect(&acm->port, port_num);
 		break;
 	default:
 		pr_err("%s: Un-supported transport:%s\n", __func__,
@@ -499,13 +538,16 @@ static int acm_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 		 * host sets the ACM_CTRL_DTR bit; and when it clears
 		 * that bit, we should return to that no-flow state.
 		 */
-		acm->port_handshake_bits = w_value;
+#ifdef CONFIG_USB_DUN_SUPPORT
+		notify_control_line_state((unsigned long)w_value);
+#endif
 		if (acm->port.notify_modem) {
 			unsigned port_num =
 				gacm_ports[acm->port_num].client_port_num;
 
 			acm->port.notify_modem(&acm->port, port_num, w_value);
 		}
+
 		break;
 
 	default:
@@ -647,8 +689,9 @@ static int acm_notify_serial_state(struct f_acm *acm)
 {
 	struct usb_composite_dev *cdev = acm->port.func.config->cdev;
 	int			status;
+	unsigned long flags;
 
-	spin_lock(&acm->lock);
+	spin_lock_irqsave(&acm->lock, flags);
 	if (acm->notify_req) {
 		DBG(cdev, "acm ttyGS%d serial state %04x\n",
 				acm->port_num, acm->serial_state);
@@ -658,7 +701,7 @@ static int acm_notify_serial_state(struct f_acm *acm)
 		acm->pending = true;
 		status = 0;
 	}
-	spin_unlock(&acm->lock);
+	spin_unlock_irqrestore(&acm->lock, flags);
 	return status;
 }
 
@@ -679,6 +722,19 @@ static void acm_cdc_notify_complete(struct usb_ep *ep, struct usb_request *req)
 	if (doit)
 		acm_notify_serial_state(acm);
 }
+
+#ifdef CONFIG_USB_DUN_SUPPORT
+void acm_notify(void *dev, u16 state)
+{
+	struct f_acm    *acm = (struct f_acm *)dev;
+
+	if (acm) {
+		acm->serial_state = state;
+	acm_notify_serial_state(acm);
+	}
+}
+EXPORT_SYMBOL(acm_notify);
+#endif
 
 /* connect == the TTY link is open */
 
@@ -729,22 +785,22 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_composite_dev *cdev = c->cdev;
 	struct f_acm		*acm = func_to_acm(f);
-	struct usb_string	*us;
 	int			status;
 	struct usb_ep		*ep;
 
 	/* REVISIT might want instance-specific strings to help
 	 * distinguish instances ...
 	 */
-
-	/* maybe allocate device-global string IDs, and patch descriptors */
-	us = usb_gstrings_attach(cdev, acm_strings,
-			ARRAY_SIZE(acm_string_defs));
-	if (IS_ERR(us))
-		return PTR_ERR(us);
-	acm_control_interface_desc.iInterface = us[ACM_CTRL_IDX].id;
-	acm_data_interface_desc.iInterface = us[ACM_DATA_IDX].id;
-	acm_iad_descriptor.iFunction = us[ACM_IAD_IDX].id;
+	if (acm_string_defs[0].id == 0) {
+		status = usb_string_ids_tab(c->cdev, acm_string_defs);
+		if (status < 0)
+			return status;
+		acm_control_interface_desc.iInterface =
+			acm_string_defs[ACM_CTRL_IDX].id;
+		acm_data_interface_desc.iInterface =
+			acm_string_defs[ACM_DATA_IDX].id;
+		acm_iad_descriptor.iFunction = acm_string_defs[ACM_IAD_IDX].id;
+	}
 
 	/* allocate instance-specific interface IDs, and patch descriptors */
 	status = usb_interface_id(c, f);
@@ -819,6 +875,10 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
 			gadget_is_dualspeed(c->cdev->gadget) ? "dual" : "full",
 			acm->port.in->name, acm->port.out->name,
 			acm->notify->name);
+	/* To notify serial state by datarouter*/
+	#ifdef CONFIG_USB_DUN_SUPPORT
+	modem_register(acm);
+	#endif
 	return 0;
 
 fail:
@@ -842,7 +902,12 @@ static void acm_unbind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct f_acm		*acm = func_to_acm(f);
 
+#ifdef CONFIG_USB_DUN_SUPPORT
+        modem_unregister();
+#endif
+#ifndef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 	acm_string_defs[0].id = 0;
+#endif
 	usb_free_all_descriptors(f);
 	if (acm->notify_req)
 		gs_free_req(acm->notify, acm->notify_req);
@@ -878,7 +943,13 @@ static struct usb_function *acm_alloc_func(struct usb_function_instance *fi)
 	acm->port.send_break = acm_send_break;
 	acm->port.send_modem_ctrl_bits = acm_send_modem_ctrl_bits;
 
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
+	acm->port.func.name = kasprintf(GFP_KERNEL, "acm%u", opts->port_num);
+#else
+	//acm->port.func.name = kasprintf(GFP_KERNEL, "acm%u", opts->port_num + 1);
 	acm->port.func.name = "acm";
+#endif
+	
 	acm->port.func.strings = acm_strings;
 	/* descriptors are per-instance copies */
 	acm->port.func.bind = acm_bind;
@@ -1008,6 +1079,13 @@ int acm_init_port(int port_num, const char *name)
 	case USB_GADGET_XPORT_SMD:
 		gacm_ports[port_num].client_port_num = no_acm_smd_ports;
 		no_acm_smd_ports++;
+		break;
+	case USB_GADGET_XPORT_HSIC:
+		ghsic_ctrl_set_port_name("serial_hsic", name);
+		ghsic_data_set_port_name("serial_hsic", name);
+
+		/*client port number will be updated in gport_setup*/
+		no_hsic_sports++;
 		break;
 	default:
 		pr_err("%s: Un-supported transport transport: %u\n",

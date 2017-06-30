@@ -1,5 +1,7 @@
 
 source "drivers/video/msm/vidc/Kconfig"
+source "drivers/video/msm/mhl_v2/Kconfig"
+source "drivers/video/msm/mhl_v3/Kconfig"
 
 config FB_MSM
 	tristate "MSM Framebuffer support"
@@ -230,19 +232,6 @@ config FB_MSM_LCDC_SAMSUNG_OLED_PT_PANEL
 	bool "LCDC Samsung OLED PT Panel"
 	---help---
 	  Support for LCDC Samsung OLED PT (480x800) panel
-
-config FB_MSM_LVDS_CHIMEI_WXGA_PANEL
-        bool "LVDS Chimei WXGA Panel"
-        ---help---
-          Support for LVDS Chimei WXGA(1366x768) panel
-
-config FB_MSM_LVDS_FRC_FHD_PANEL
-	bool "LVDS FRC FHD Panel"
-	---help---
-	  Support for LVDS Frc FHD(1920x1080) panel
-	  FRC(Frame Rate Converter) uses LVDS as input
-	  interface. It is treated as a HDMI panel with
-	  1920x1080 resolution.
 
 config FB_MSM_TRY_MDDI_CATCH_LCDC_PRISM
 	depends on FB_MSM_LCDC_HW

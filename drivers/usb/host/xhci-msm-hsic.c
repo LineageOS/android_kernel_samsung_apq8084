@@ -131,14 +131,14 @@ struct mxhci_hsic_hcd {
 
 	uint32_t		wakeup_int_cnt;
 	uint32_t		pwr_evt_irq_inlpm;
+	int			hsic_connected;
+
 	struct tasklet_struct	bh;
-	unsigned		handled_event_cnt;
-	unsigned		cpu_yield_cnt;
 };
 
 #define SYNOPSIS_DWC3_VENDOR	0x5533
 
-static struct dbg_data dbg_hsic = {
+struct dbg_data dbg_hsic = {
 	.ctrl_idx = 0,
 	.ctrl_lck = __RW_LOCK_UNLOCKED(clck),
 	.data_idx = 0,
@@ -647,7 +647,7 @@ static irqreturn_t mxhci_hsic_wakeup_irq(int irq, void *data)
 	int ret;
 
 	mxhci->wakeup_int_cnt++;
-	dev_dbg(mxhci->dev, "%s: remote wakeup interrupt cnt: %u\n",
+	dev_err(mxhci->dev, "%s: remote wakeup interrupt cnt: %u\n",
 			__func__, mxhci->wakeup_int_cnt);
 	xhci_dbg_log_event(&dbg_hsic, NULL, "Remote Wakeup IRQ",
 			mxhci->wakeup_int_cnt);
@@ -895,7 +895,7 @@ static int mxhci_hsic_suspend(struct mxhci_hsic_hcd *mxhci)
 
 	pm_relax(mxhci->dev);
 
-	dev_dbg(mxhci->dev, "HSIC-USB in low power mode\n");
+	dev_err(mxhci->dev, "HSIC-USB in low power mode\n");
 	xhci_dbg_log_event(&dbg_hsic, NULL, "Controller suspended", 0);
 
 	return 0;
@@ -958,7 +958,7 @@ static int mxhci_hsic_resume(struct mxhci_hsic_hcd *mxhci)
 
 	mxhci->in_lpm = 0;
 
-	dev_dbg(mxhci->dev, "HSIC-USB exited from low power mode\n");
+	dev_err(mxhci->dev, "HSIC-USB exited from low power mode\n");
 	xhci_dbg_log_event(&dbg_hsic, NULL, "Controller resumed", 0);
 
 	return 0;
@@ -996,7 +996,7 @@ int mxhci_hsic_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 
 	ret = xhci_hub_control(hcd, typeReq, wValue, wIndex, buf, wLength);
 
-	if (!hcd->primary_hcd)
+	if(!hcd->primary_hcd)
 		return ret;
 
 	mxhci = hcd_to_hsic(hcd->primary_hcd);
@@ -1085,10 +1085,8 @@ static irqreturn_t mxhci_irq(struct usb_hcd *hcd)
 	spin_lock(&xhci->lock);
 	/* Check if the xHC generated the interrupt, or the irq is shared */
 	status = xhci_readl(xhci, &xhci->op_regs->status);
-	if (status == 0xffffffff) {
-		spin_unlock(&xhci->lock);
-		return IRQ_HANDLED;
-	}
+	if (status == 0xffffffff)
+		goto hw_died;
 
 	if (!(status & STS_EINT)) {
 		spin_unlock(&xhci->lock);
@@ -1097,8 +1095,9 @@ static irqreturn_t mxhci_irq(struct usb_hcd *hcd)
 	if (status & STS_FATAL) {
 		xhci_warn(xhci, "WARNING: Host System Error\n");
 		xhci_halt(xhci);
+hw_died:
 		spin_unlock(&xhci->lock);
-		return IRQ_HANDLED;
+		return -ESHUTDOWN;
 	}
 
 	/*
@@ -1240,9 +1239,6 @@ static void mxhci_irq_bh(unsigned long param)
 	xhci_write_64(xhci, temp_64, &xhci->ir_set->erst_dequeue);
 	spin_unlock_irqrestore(&xhci->lock, flags);
 
-	mxhci->handled_event_cnt += event_cnt - 1;
-	mxhci->cpu_yield_cnt++;
-
 	if (schedule_again && !mxhci->xhci_remove_flag)
 		tasklet_schedule(&mxhci->bh);
 }
@@ -1367,6 +1363,11 @@ static int mxhci_hsic_probe(struct platform_device *pdev)
 	int irq;
 	u32 tmp[3];
 	u32 temp;
+
+#if defined(CONFIG_MACH_TRLTE_LDU) || defined(CONFIG_MACH_TBLTE_LDU)
+	dev_err(&pdev->dev, "LDU doesn't have modem, skip mxhci_hsic_probe\n");
+	return -ENODEV;
+#endif
 
 	if (usb_disabled())
 		return -ENODEV;
@@ -1688,7 +1689,6 @@ static int mxhci_hsic_remove(struct platform_device *pdev)
 
 	usb_remove_hcd(xhci->shared_hcd);
 	usb_put_hcd(xhci->shared_hcd);
-
 	usb_remove_hcd(hcd);
 
 	pm_runtime_put_noidle(mxhci->dev);

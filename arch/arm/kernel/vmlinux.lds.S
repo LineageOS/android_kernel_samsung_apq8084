@@ -279,6 +279,19 @@ SECTIONS
 	}
 	_edata_loc = __data_loc + SIZEOF(.data);
 
+#ifdef	CONFIG_TIMA_RKP_RO_CRED
+	 /* Creating a new section to store task credentials */
+	. = ALIGN(1<<SECTION_SHIFT);
+	.tima.rkp.initcred : {
+		__rkp_ro_start = .;
+	}
+	.tima.rkp.ro : {
+		. = __rkp_ro_start + 0x400000;
+		__rkp_ro_end = .;
+	}
+	. = ALIGN(1<<PAGE_SHIFT);
+#endif /* TIMA_RKP_RO_CRED */
+
 #ifdef CONFIG_HAVE_TCM
         /*
 	 * We align everything to a page boundary so we can

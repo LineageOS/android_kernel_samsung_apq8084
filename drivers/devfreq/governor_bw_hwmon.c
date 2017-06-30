@@ -296,6 +296,10 @@ static int devfreq_bw_hwmon_get_freq(struct devfreq *df,
 	unsigned long mbps;
 	struct hwmon_node *node = df->data;
 
+	if (node->mon_started != true) {
+		dev_err(df->dev.parent, "Unable to get hwmon freq. governor is not active!\n");
+		return -EINVAL;
+	}
 	mbps = measure_bw_and_set_irq(node);
 	compute_bw(node, mbps, freq, node->dev_ab);
 
@@ -399,7 +403,7 @@ int register_bw_hwmon(struct device *dev, struct bw_hwmon *hwmon)
 	}
 
 	node->tolerance_percent = 10;
-	node->guard_band_mbps = 100;
+	node->guard_band_mbps = 70;
 	node->decay_rate = 90;
 	node->io_percent = 16;
 	node->bw_step = 190;

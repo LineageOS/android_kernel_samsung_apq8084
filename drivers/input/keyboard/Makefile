@@ -57,3 +57,6 @@ obj-$(CONFIG_KEYBOARD_TNETV107X)	+= tnetv107x-keypad.o
 obj-$(CONFIG_KEYBOARD_TWL4030)		+= twl4030_keypad.o
 obj-$(CONFIG_KEYBOARD_XTKBD)		+= xtkbd.o
 obj-$(CONFIG_KEYBOARD_W90P910)		+= w90p910_keypad.o
+obj-$(CONFIG_KEYBOARD_CYPRESS_TOUCHKEY_H)	+= cypress_touchkey_h/
+obj-$(CONFIG_KEYBOARD_CYPRESS_TOUCHKEY_T)	+= cypress_touchkey_t/
+obj-$(CONFIG_KEYBOARD_CYPRESS_TOUCHKEY)	+= cypress_touchkey/

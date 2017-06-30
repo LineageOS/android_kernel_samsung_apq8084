@@ -263,7 +263,7 @@ void gic_show_pending_irq(void)
 			enabled = readl_relaxed(base +
 						GIC_DIST_ENABLE_SET + j * 4);
 			pending[j] = readl_relaxed(base +
-						GIC_DIST_PENDING_SET + j * 4);
+						   GIC_DIST_PENDING_SET + j * 4);
 			pending[j] &= enabled;
 			pr_err("Pending irqs[%d] %lx\n", j, pending[j]);
 		}
@@ -804,8 +804,7 @@ static void gic_cpu_restore(unsigned int gic_nr)
 
 	ptr = __this_cpu_ptr(gic_data[gic_nr].saved_ppi_enable);
 	for (i = 0; i < DIV_ROUND_UP(32, 32); i++)
-		writel_relaxed_no_log(ptr[i], dist_base +
-			GIC_DIST_ENABLE_SET + i * 4);
+		writel_relaxed(ptr[i], dist_base + GIC_DIST_ENABLE_SET + i * 4);
 
 	writel_relaxed_no_log(0xf0, cpu_base + GIC_CPU_PRIMASK);
 	writel_relaxed_no_log(saved_cpu_ctrl, cpu_base + GIC_CPU_CTRL);

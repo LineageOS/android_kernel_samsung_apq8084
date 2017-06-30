@@ -51,7 +51,7 @@ static long audio_slim_ioctl(struct file *file, unsigned int cmd,
 	case AUDIO_SLIMSLAVE_VOTE:
 		mutex_lock(&suspend_lock);
 		if (!vote_count && !suspend) {
-			pr_debug("%s:AUDIO_SLIMSLAVE_VOTE\n", __func__);
+			pr_err("%s:AUDIO_SLIMSLAVE_VOTE\n", __func__);
 			pm_runtime_get_sync(slim->dev.parent);
 			vote_count++;
 		}
@@ -60,7 +60,7 @@ static long audio_slim_ioctl(struct file *file, unsigned int cmd,
 	case AUDIO_SLIMSLAVE_UNVOTE:
 		mutex_lock(&suspend_lock);
 		if (vote_count && !suspend) {
-			pr_debug("%s:AUDIO_SLIMSLAVE_UNVOTE\n", __func__);
+			pr_err("%s:AUDIO_SLIMSLAVE_UNVOTE\n", __func__);
 			pm_runtime_mark_last_busy(slim->dev.parent);
 			pm_runtime_put(slim->dev.parent);
 			vote_count--;
@@ -88,12 +88,18 @@ struct miscdevice audio_slimslave_misc = {
 
 static int audio_slimslave_probe(struct slim_device *audio_slim)
 {
+	int ret;
 	pr_debug("%s:\n", __func__);
 
 	mutex_init(&suspend_lock);
 	suspend = false;
 	slim = audio_slim;
-	misc_register(&audio_slimslave_misc);
+	ret = misc_register(&audio_slimslave_misc);
+	if (ret) {
+		pr_err("%s : misc_register failed %d\n", __func__, ret);
+		return ret;
+	}
+		
 	return 0;
 }
 

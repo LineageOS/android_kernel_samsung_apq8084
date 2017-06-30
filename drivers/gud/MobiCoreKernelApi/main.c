@@ -1,11 +1,15 @@
 /*
- * MobiCore KernelApi module
+ * Copyright (c) 2013-2014 TRUSTONIC LIMITED
+ * All Rights Reserved.
  *
- * <-- Copyright Giesecke & Devrient GmbH 2009-2012 -->
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  */
 #include <linux/module.h>
 #include <linux/init.h>
@@ -92,16 +96,12 @@ void mcapi_remove_connection(uint32_t seq)
 static int mcapi_process(struct sk_buff *skb, struct nlmsghdr *nlh)
 {
 	struct connection *c;
-	int length;
 	int seq;
-	pid_t pid;
 	int ret;
 
-	pid = nlh->nlmsg_pid;
-	length = nlh->nlmsg_len;
 	seq = nlh->nlmsg_seq;
 	MCDRV_DBG_VERBOSE(mc_kapi, "nlmsg len %d type %d pid 0x%X seq %d\n",
-			  length, nlh->nlmsg_type, pid, seq);
+			  nlh->nlmsg_len, nlh->nlmsg_type, nlh->nlmsg_pid, seq);
 	do {
 		c = mcapi_find_connection(seq);
 		if (!c) {
@@ -139,28 +139,37 @@ static void mcapi_callback(struct sk_buff *skb)
 
 static int __init mcapi_init(void)
 {
-	struct netlink_kernel_cfg netlink_cfg;
+#if defined MC_NETLINK_COMPAT || defined MC_NETLINK_COMPAT_V37
+	struct netlink_kernel_cfg cfg = {
+		.input  = mcapi_callback,
+	};
+#endif
 
 	dev_set_name(mc_kapi, "mcapi");
 
 	dev_info(mc_kapi, "Mobicore API module initialized!\n");
 
-	netlink_cfg.groups = 0;
-	netlink_cfg.flags = 0;
-	netlink_cfg.input = mcapi_callback;
-	netlink_cfg.cb_mutex = NULL;
-	netlink_cfg.bind = NULL;
-
-	mod_ctx = kzalloc(sizeof(struct mc_kernelapi_ctx), GFP_KERNEL);
+	mod_ctx = kzalloc(sizeof(*mod_ctx), GFP_KERNEL);
 	if (mod_ctx == NULL) {
 		MCDRV_DBG_ERROR(mc_kapi, "Allocation failure");
 		return -ENOMEM;
 	}
-	/* start kernel thread */
+#ifdef MC_NETLINK_COMPAT_V37
 	mod_ctx->sk = netlink_kernel_create(&init_net, MC_DAEMON_NETLINK,
-						    &netlink_cfg);
+					    &cfg);
+#elif defined MC_NETLINK_COMPAT
+	mod_ctx->sk = netlink_kernel_create(&init_net, MC_DAEMON_NETLINK,
+					    THIS_MODULE, &cfg);
+#else
+	/* start kernel thread */
+	mod_ctx->sk = netlink_kernel_create(&init_net, MC_DAEMON_NETLINK, 0,
+					    mcapi_callback, NULL, THIS_MODULE);
+#endif
+
 	if (!mod_ctx->sk) {
 		MCDRV_ERROR(mc_kapi, "register of receive handler failed");
+		kfree(mod_ctx);
+		mod_ctx = NULL;
 		return -EFAULT;
 	}
 
@@ -183,6 +192,6 @@ static void __exit mcapi_exit(void)
 module_init(mcapi_init);
 module_exit(mcapi_exit);
 
-MODULE_AUTHOR("Giesecke & Devrient GmbH");
+MODULE_AUTHOR("Trustonic Limited");
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MobiCore API driver");

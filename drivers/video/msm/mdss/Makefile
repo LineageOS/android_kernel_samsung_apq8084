@@ -1,4 +1,6 @@
-mdss-mdp3-objs = mdp3.o mdp3_dma.o mdp3_ctrl.o
+ccflags-y += -I$(src)
+
+mdss-mdp3-objs = mdp3.o mdp3_dma.o mdp3_ctrl.o dsi_status_v2.o
 mdss-mdp3-objs += mdp3_ppp.o mdp3_ppp_hwio.o mdp3_ppp_data.o
 obj-$(CONFIG_FB_MSM_MDSS_MDP3) += mdss-mdp3.o
 
@@ -17,8 +19,16 @@ ifeq ($(CONFIG_FB_MSM_MDSS),y)
 obj-$(CONFIG_DEBUG_FS) += mdss_debug.o mdss_debug_xlog.o
 endif
 
+ifeq ($(CONFIG_FB_MSM_MDSS_DSI_DBG),y)
+ifeq ($(CONFIG_DEBUG_FS),y)
+obj-$(CONFIG_DEBUG_FS) += xlog.o
+endif
+endif
+
+ifneq ($(CONFIG_ARCH_MSM8909),y)
 dsi-v2-objs = dsi_v2.o dsi_host_v2.o dsi_io_v2.o
 obj-$(CONFIG_FB_MSM_MDSS_MDP3) += dsi-v2.o
+endif
 
 mdss-dsi-objs := mdss_dsi.o mdss_dsi_host.o mdss_dsi_cmd.o
 mdss-dsi-objs += mdss_dsi_panel.o
@@ -43,6 +53,11 @@ obj-$(CONFIG_FB_MSM_QPIC_ILI_QVGA_PANEL) += qpic_panel_ili_qvga.o
 
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_fb.o
 obj-$(CONFIG_COMPAT) += mdss_compat_utils.o
+
+ifeq ($(CONFIG_FB_MSM_MDSS_SAMSUNG),y)
+obj-$(CONFIG_FB_MSM_MDSS_FENCE_DBG) += xlog_fence.o
+obj-y += samsung/
+endif
 
 ifeq ($(CONFIG_FB_MSM_MDSS_MDP3),y)
 obj-$(CONFIG_FB_MSM_MDSS_DSI_CTRL_STATUS) += dsi_status_v2.o

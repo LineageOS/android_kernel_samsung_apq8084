@@ -23,6 +23,7 @@
 #include "mdss_mdp.h"
 #include "mdss_mdp_rotator.h"
 #include "mdss_fb.h"
+#include "mdss_mdp_trace.h"
 #include "mdss_debug.h"
 
 #define MAX_ROTATOR_SESSIONS 8
@@ -129,6 +130,7 @@ static int mdss_mdp_rotator_busy_wait(struct mdss_mdp_rotator_session *rot)
 		struct mdss_mdp_ctl *ctl = rot->pipe->mixer_left->ctl;
 		mdss_mdp_display_wait4comp(ctl);
 		rot->busy = false;
+		MDSS_XLOG(rot->session_id, 0x222);
 		if (ctl->shared_lock)
 			mutex_unlock(ctl->shared_lock);
 	}
@@ -284,6 +286,7 @@ static int mdss_mdp_rotator_queue_sub(struct mdss_mdp_rotator_session *rot,
 		pr_err("unable to queue rot data\n");
 		goto error;
 	}
+	MDSS_XLOG(rot->session_id, 0x111);
 	ATRACE_BEGIN("rotator_kickoff");
 	ret = mdss_mdp_rotator_kickoff(rot_ctl, rot, dst_data);
 	ATRACE_END("rotator_kickoff");
@@ -445,7 +448,8 @@ int mdss_mdp_rotator_setup(struct msm_fb_data_type *mfd,
 	u32 bwc_enabled;
 	bool format_changed = false;
 	int ret = 0;
-
+	
+	MDSS_XLOG(req->id, 0x11);
 	mutex_lock(&rotator_lock);
 
 	fmt = mdss_mdp_get_format_params(req->src.format);
@@ -476,13 +480,12 @@ int mdss_mdp_rotator_setup(struct msm_fb_data_type *mfd,
 			ret = -ENODEV;
 			goto rot_err;
 		}
-
+		// check if current work is pending to execute or busy(currently running) 
 		if (work_busy(&rot->commit_work)) {
 			mutex_unlock(&rotator_lock);
 			flush_work(&rot->commit_work);
 			mutex_lock(&rotator_lock);
 		}
-
 		if (rot->format != fmt->format)
 			format_changed = true;
 
@@ -563,6 +566,7 @@ int mdss_mdp_rotator_setup(struct msm_fb_data_type *mfd,
 		req->flags & MDP_ROT_90, req->flags & MDP_BWC_EN);
 
 	mutex_unlock(&rotator_lock);
+	MDSS_XLOG(req->id, 0x22);
 	return ret;
 }
 
@@ -576,7 +580,8 @@ static int mdss_mdp_rotator_finish(struct mdss_mdp_rotator_session *rot)
 
 	if (!rot)
 		return -ENODEV;
-
+	
+	MDSS_XLOG(rot->session_id, 0x333);
 	pr_debug("finish rot id=%x\n", rot->session_id);
 
 	if (rot->next)
@@ -614,6 +619,7 @@ static int mdss_mdp_rotator_finish(struct mdss_mdp_rotator_session *rot)
 			mixer = tmp->mixer_left;
 		mdss_mdp_wb_mixer_destroy(mixer);
 	}
+	MDSS_XLOG(rot->session_id, 0x44);
 	return ret;
 }
 
@@ -657,6 +663,8 @@ int mdss_mdp_rotator_play(struct msm_fb_data_type *mfd,
 	u32 flgs;
 
 	mutex_lock(&rotator_lock);
+
+	MDSS_XLOG(req->id, 0xB);
 	rot = mdss_mdp_rotator_session_get(req->id);
 	if (!rot) {
 		pr_err("invalid session id=%x\n", req->id);
@@ -710,6 +718,7 @@ int mdss_mdp_rotator_play(struct msm_fb_data_type *mfd,
 
 dst_buf_fail:
 	mdss_iommu_ctrl(0);
+	MDSS_XLOG(req->id, 0xE);
 session_fail:
 	mutex_unlock(&rotator_lock);
 	return ret;

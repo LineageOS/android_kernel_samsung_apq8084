@@ -996,12 +996,25 @@ static void usb_debugfs_cleanup(void)
 	debugfs_remove(usb_debug_root);
 }
 
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+extern int poweroff_charging;
+#endif
+
 /*
  * Init
  */
 static int __init usb_init(void)
 {
 	int retval;
+
+#ifdef CONFIG_SAMSUNG_LPM_MODE
+	if(poweroff_charging)
+	{
+		nousb = true;
+		return 0;
+	}
+#endif
+
 	if (nousb) {
 		pr_info("%s: USB support disabled\n", usbcore_name);
 		return 0;

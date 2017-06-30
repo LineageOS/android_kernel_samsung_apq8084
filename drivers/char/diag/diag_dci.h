@@ -61,7 +61,14 @@
 #define MAX_DCI_PACKET_SZ		8710
 
 #define DCI_LOCAL_PROC	0
-#define DCI_MDM_PROC	1
+#define DCI_REMOTE_BASE 1
+#define DCI_MDM_PROC	DCI_REMOTE_BASE
+#define DCI_REMOTE_LAST (DCI_REMOTE_BASE + 1)
+#ifndef CONFIG_DIAGFWD_BRIDGE_CODE
+#define NUM_DCI_PROC 1
+#else
+#define NUM_DCI_PROC DCI_REMOTE_LAST
+#endif
 
 #define DCI_BRIDGE_MDM_IDX	1
 #define DCI_HSIC_CH_IDX		0
@@ -157,6 +164,13 @@ struct diag_log_event_stats {
 	int client_id;
 	uint16_t code;
 	int is_set;
+} __packed;
+
+struct diag_dci_pkt_rsp_header_t {
+	int type;
+	int length;
+	uint8_t delete_flag;
+	int uid;
 } __packed;
 
 struct diag_dci_pkt_header_t {

@@ -24,6 +24,7 @@
 #include <linux/wakelock.h>
 #include <mach/msm_smd.h>
 #include <asm/atomic.h>
+#include <linux/ipc_logging.h>
 
 /* Size of the USB buffers used for read and write*/
 #define USB_MAX_OUT_BUF 4096
@@ -134,6 +135,26 @@
 #define MODE_CMD	41
 #define RESET_ID	2
 
+extern int diag_debug_lvl;
+extern void *diag_ipc_log;
+
+#define DIAG_IPC_LOG_PAGES	50
+#define DIAG_DEBUG_CRITICAL	0
+#define DIAG_DEBUG_HIGH		1
+#define DIAG_DEBUG_MED		2
+#define DIAG_DEBUG_LOW		3
+#define DIAG_DEBUG_VERBOSE	4
+#define DIAG_DEBUG_ERROR	5
+
+#define DIAG_LOG(log_lvl, msg, ...)					\
+	do {								\
+		if ((log_lvl) >= diag_debug_lvl)			\
+			pr_alert(msg, ##__VA_ARGS__);			\
+		if (diag_ipc_log)					\
+			ipc_log_string(diag_ipc_log, msg, ##__VA_ARGS__); \
+	} while (0)
+
+
 /*
  * The status bit masks when received in a signal handler are to be
  * used in conjunction with the peripheral list bit mask to determine the
@@ -160,8 +181,6 @@
 #define NUM_DCI_PERIPHERALS	(NUM_SMD_DATA_CHANNELS + 1)
 
 /* Indicates the number of processors that support DCI */
-#define NUM_DCI_PROC		2
-
 #define SMD_DATA_TYPE 0
 #define SMD_CNTL_TYPE 1
 #define SMD_DCI_TYPE 2
@@ -351,6 +370,7 @@ struct diagchar_dev {
 	struct diag_client_map *client_map;
 	int *data_ready;
 	int num_clients;
+	int num_dci_cmd;
 	int polling_reg_flag;
 	struct diag_write_device *buf_tbl;
 	unsigned int buf_tbl_size;

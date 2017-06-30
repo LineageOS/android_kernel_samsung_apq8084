@@ -1290,6 +1290,8 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	}
 
 	sock->type = type;
+	sock->knox_uid = current->cred->uid;
+	sock->knox_pid = current->tgid;
 
 #ifdef CONFIG_MODULES
 	/* Attempt to load a protocol module if the find failed.

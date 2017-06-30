@@ -154,12 +154,12 @@ void inet_sock_destruct(struct sock *sk)
 	sk_mem_reclaim(sk);
 
 	if (sk->sk_type == SOCK_STREAM && sk->sk_state != TCP_CLOSE) {
-		WARN(1, "Attempt to release TCP socket in state %d %p\n",
+		pr_err("Attempt to release TCP socket in state %d %p\n",
 		       sk->sk_state, sk);
 		return;
 	}
 	if (!sock_flag(sk, SOCK_DEAD)) {
-		WARN(1, "Attempt to release alive inet socket %p\n", sk);
+		pr_err("Attempt to release alive inet socket %p\n", sk);
 		return;
 	}
 
@@ -303,6 +303,9 @@ static int inet_create(struct net *net, struct socket *sock, int protocol,
 	if (unlikely(!inet_ehash_secret))
 		if (sock->type != SOCK_RAW && sock->type != SOCK_DGRAM)
 			build_ehash_secret();
+
+	if (protocol < 0 || protocol >= IPPROTO_MAX)
+		return -EINVAL;
 
 	sock->state = SS_UNCONNECTED;
 

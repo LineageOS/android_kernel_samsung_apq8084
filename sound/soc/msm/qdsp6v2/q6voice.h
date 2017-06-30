@@ -70,6 +70,13 @@ struct voice_rec_route_state {
 	u16 ul_flag;
 	u16 dl_flag;
 };
+#ifdef CONFIG_SEC_SOLUTION
+struct voice_dha_data {
+	short dha_mode;
+	short dha_select;
+	short dha_params[12];
+};
+#endif /* CONFIG_SEC_SOLUTION */
 
 enum {
 	VOC_INIT = 0,
@@ -99,6 +106,9 @@ struct mem_map_table {
 	struct ion_handle	*handle;
 	struct ion_client	*client;
 };
+#ifdef CONFIG_SEC_SOLUTION
+#define VSS_ICOMMON_CMD_DHA_SET 0x0001128A
+#endif /*CONFIG_SEC_SOLUTION*/
 
 /* Common */
 #define VSS_ICOMMON_CMD_SET_UI_PROPERTY 0x00011103
@@ -757,6 +767,52 @@ struct vss_icommon_cmd_set_ui_property_enable_t {
 	/* Reserved, set to 0. */
 };
 
+#ifdef CONFIG_SEC_SOLUTION
+
+#define VOICE_MODULE_DHA        0x10001020
+#define VOICE_PARAM_DHA_DYNAMIC  0x10001022
+
+#define VOICEPROC_MODULE_VENC          0x00010F07
+#define VOICE_PARAM_LOOPBACK_ENABLE  0x00010E18
+
+struct vss_icommon_cmd_set_loopback_enable_t {
+	uint32_t module_id;
+	/* Unique ID of the module. */
+	uint32_t param_id;
+	/* Unique ID of the parameter. */
+	uint16_t param_size;
+	/* Size of the parameter in bytes: MOD_ENABLE_PARAM_LEN */
+	uint16_t reserved;
+	/* Reserved; set to 0. */
+	uint16_t loopback_enable;
+	uint16_t reserved_field;
+	/* Reserved, set to 0. */
+};
+
+struct oem_dha_parm_send_t {
+	uint32_t module_id;
+	/* Unique ID of the module. */
+	uint32_t param_id;
+	/* Unique ID of the parameter. */
+	uint16_t param_size;
+	/* Size of the parameter in bytes: MOD_ENABLE_PARAM_LEN */
+	uint16_t reserved;
+	/* Reserved; set to 0. */
+	uint16_t eq_mode;
+	uint16_t select;
+	int16_t param[12];
+} __packed;
+
+struct oem_dha_parm_send_cmd {
+	struct apr_hdr hdr;
+	uint32_t mem_handle;
+	uint64_t mem_address;
+	uint32_t mem_size;
+	struct oem_dha_parm_send_t dha_send;
+} __packed;
+#endif /* CONFIG_SEC_SOLUTION*/
+
+
 /*
  * Event sent by the stream to the client that enables Rx DTMF
  * detection whenever DTMF is detected in the Rx path.
@@ -886,6 +942,15 @@ struct cvs_dec_buffer_ready_cmd {
 struct cvs_enc_buffer_consumed_cmd {
 	struct apr_hdr hdr;
 } __packed;
+#ifdef CONFIG_SEC_SOLUTION
+struct cvs_set_loopback_enable_cmd {
+	struct apr_hdr hdr;
+	uint32_t mem_handle;
+	uint64_t mem_address;
+	uint32_t mem_size;
+	struct vss_icommon_cmd_set_loopback_enable_t vss_set_loopback;
+} __packed;
+#endif
 
 struct vss_istream_cmd_set_oob_packet_exchange_config_t {
 	struct apr_hdr hdr;
@@ -1425,6 +1490,11 @@ struct voice_data {
 	struct incall_music_info music_info;
 
 	struct voice_rec_route_state rec_route_state;
+
+#ifdef CONFIG_SEC_SOLUTION
+	struct voice_dha_data sec_dha_data;
+#endif /* CONFIG_SEC_DHA_SOL_MAL */
+
 };
 
 struct cal_mem {
@@ -1532,6 +1602,10 @@ enum {
 #define VOWLAN_SESSION_VSID 0x10002000
 #define ALL_SESSION_VSID    0xFFFFFFFF
 #define VSID_MAX            ALL_SESSION_VSID
+#ifdef CONFIG_SEC_SOLUTION
+int voice_sec_set_dha_data(uint32_t session_id, short mode,
+					short select, short *parameters);
+#endif /* CONFIG_SEC_DHA_SOL_MAL*/
 
 #define APP_ID_MASK         0x3F000
 #define APP_ID_SHIFT		12
@@ -1598,6 +1672,10 @@ int voc_start_playback(uint32_t set, uint16_t port_id);
 int voc_start_record(uint32_t port_id, uint32_t set, uint32_t session_id);
 int voice_get_idx_for_session(u32 session_id);
 int voc_set_ext_ec_ref(uint16_t port_id, bool state);
+#ifdef CONFIG_SEC_SOLUTION
+int voc_get_loopback_enable(void);
+void voc_set_loopback_enable(int loopback_enable);
+#endif
 int voc_update_amr_vocoder_rate(uint32_t session_id);
 int voc_disable_device(uint32_t session_id);
 int voc_enable_device(uint32_t session_id);

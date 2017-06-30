@@ -1905,7 +1905,7 @@ config XEN
 
 config CP_ACCESS
 	tristate "CP register access tool"
-	default m
+	default n
 	help
 	  Provide support for Coprocessor register access using /sys
 	  interface. Read and write to CP registers from userspace

@@ -27,6 +27,8 @@
 #include "mdss_mdp_trace.h"
 #include "mdss_debug.h"
 
+#undef MDSS_BW_DEBUG
+
 static void mdss_mdp_xlog_mixer_reg(struct mdss_mdp_ctl *ctl);
 static inline u64 fudge_factor(u64 val, u32 numer, u32 denom)
 {
@@ -488,7 +490,10 @@ int mdss_mdp_perf_calc_pipe(struct mdss_mdp_pipe *pipe,
 	pr_debug("mixer=%d pnum=%d clk_rate=%u bw_overlap=%llu prefill=%d mode=%d\n",
 		 mixer->num, pipe->num, perf->mdp_clk_rate, perf->bw_overlap,
 		 perf->prefill_bytes, perf->bw_vote_mode);
-
+#ifdef MDSS_BW_DEBUG
+	pr_err("[MDSS_BW_DEBUG] mixer= %d pnum=%d fps = %d, src.w = %d, src_h = %d, perf->bw_overlap = %llu \n",
+	mixer->num, pipe->num, fps, src.w, src_h, perf->bw_overlap);
+#endif
 	return 0;
 }
 
@@ -543,6 +548,10 @@ static void mdss_mdp_perf_calc_mixer(struct mdss_mdp_mixer *mixer,
 		if (!pinfo)	/* perf for bus writeback */
 			perf->bw_overlap =
 				fps * mixer->width * mixer->height * 3;
+		/* for command mode, run as fast as the link allows us */
+		else if ((pinfo->type == MIPI_CMD_PANEL) &&
+			 (pinfo->mipi.dsi_pclk_rate > perf->mdp_clk_rate))
+			perf->mdp_clk_rate = pinfo->mipi.dsi_pclk_rate;
 	}
 
 	/*
@@ -844,6 +853,10 @@ static void mdss_mdp_perf_calc_ctl(struct mdss_mdp_ctl *ctl,
 			perf->bw_ctl = apply_fudge_factor(perf->bw_ctl,
 				&mdss_res->ib_factor);
 	}
+/* To avoid an underrun on HDMI TC, multiple additional factor value */
+	if(ctl->intf_type == MDSS_INTF_HDMI)
+		perf->bw_ctl = fudge_factor(perf->bw_ctl, 10, 6);
+
 	pr_debug("ctl=%d clk_rate=%u\n", ctl->num, perf->mdp_clk_rate);
 	pr_debug("bw_overlap=%llu bw_prefill=%llu prefill_bytes=%d mode:%d\n",
 		 perf->bw_overlap, perf->bw_prefill, perf->prefill_bytes,
@@ -1014,6 +1027,7 @@ static inline void mdss_mdp_ctl_perf_update_bus(struct mdss_data_type *mdata,
 	u32 bw_vote_mode = MDSS_MDP_BW_MODE_NONE;
 
 	ATRACE_BEGIN(__func__);
+
 	for (i = 0; i < mdata->nctl; i++) {
 		struct mdss_mdp_ctl *ctl;
 		ctl = mdata->ctl_off + i;
@@ -1049,6 +1063,9 @@ static inline void mdss_mdp_ctl_perf_update_bus(struct mdss_data_type *mdata,
 	mdss_bus_scale_set_quota(MDSS_HW_MDP, bus_ab_quota, bus_ib_quota);
 	pr_debug("ab=%llu ib=%llu mode=%d\n", bus_ab_quota, bus_ib_quota,
 		bw_vote_mode);
+#ifdef MDSS_BW_DEBUG
+	pr_err("[MDSS_BW_DEBUG] ab=%llu ib=%llu\n", bus_ab_quota, bus_ib_quota);
+#endif
 	ATRACE_END(__func__);
 }
 
@@ -1788,9 +1805,17 @@ struct mdss_mdp_ctl *mdss_mdp_ctl_init(struct mdss_panel_data *pdata,
 		ctl->intf_type = MDSS_INTF_HDMI;
 		ctl->opmode = MDSS_MDP_CTL_OP_VIDEO_MODE;
 		ctl->start_fnc = mdss_mdp_video_start;
+#ifndef CONFIG_SEC_MHL_SUPPORT
+/*
+* mdss_mdp_limited_lut_igc_config() is for make limited range
+* but we moved limited range in MHL driver side
+* so make it commented for avoiding duplication
+* it's made for MHL CTS 3.2.3.2, 3.2.3.2, 3.2.3.6
+*/
 		ret = mdss_mdp_limited_lut_igc_config(ctl);
 		if (ret)
 			pr_err("Unable to config IGC LUT data");
+#endif
 		break;
 	case WRITEBACK_PANEL:
 		ctl->intf_num = MDSS_MDP_NO_INTF;
@@ -2353,6 +2378,7 @@ static void mdss_mdp_mixer_setup(struct mdss_mdp_ctl *master_ctl,
 	if (mixer->rotator_mode) {
 		off = __mdss_mdp_ctl_get_mixer_off(mixer);
 		mdss_mdp_ctl_write(mixer->ctl, off, 0);
+		MDSS_XLOG(mixer->num, 0x1111);
 		return;
 	}
 
@@ -2510,6 +2536,7 @@ update_mixer:
 	mdp_mixer_write(mixer, MDSS_MDP_REG_LM_OP_MODE, mixer_op_mode);
 	off = __mdss_mdp_ctl_get_mixer_off(mixer);
 	mdss_mdp_ctl_write(ctl, off, mixercfg);
+	MDSS_XLOG(mixer->num, mixercfg, 0x2222);
 }
 
 int mdss_mdp_mixer_addr_setup(struct mdss_data_type *mdata,
@@ -2606,6 +2633,9 @@ int mdss_mdp_ctl_addr_setup(struct mdss_data_type *mdata,
 		head[i].base = (mdata->mdss_base) + ctl_offsets[i];
 		head[i].wb_base = (mdata->mdss_base) + wb_offsets[i];
 		head[i].ref_cnt = 0;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		head[i].physical_base = ctl_offsets[i];
+#endif
 	}
 
 	if (mdata->wfd_mode == MDSS_MDP_WFD_SHARED) {
@@ -2900,8 +2930,7 @@ int mdss_mdp_display_wait4comp(struct mdss_mdp_ctl *ctl)
 		reg_data = mdss_mdp_ctl_read(ctl, MDSS_MDP_REG_CTL_FLUSH);
 		flush_data = readl_relaxed(mdata->mdp_base + AHB_CLK_OFFSET);
 		if ((flush_data & BIT(28)) &&
-		    !(ctl->flush_reg_data & reg_data)) {
-
+			!(ctl->flush_reg_data & reg_data)) {
 			flush_data &= ~(BIT(28));
 			writel_relaxed(flush_data,
 					 mdata->mdp_base + AHB_CLK_OFFSET);
@@ -2935,6 +2964,10 @@ int mdss_mdp_display_wait4pingpong(struct mdss_mdp_ctl *ctl)
 	return ret;
 }
 
+#if defined (CONFIG_FB_MSM_MDSS_DSI_DBG)
+struct mdss_mdp_ctl *commit_ctl;
+#endif
+
 int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 	struct mdss_mdp_commit_cb *commit_cb)
 {
@@ -2942,6 +2975,11 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 	int ret = 0;
 	bool is_bw_released;
 	int split_enable;
+ #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	struct mdss_overlay_private *mdp5_data = NULL;
+	if(ctl->mfd)
+		mdp5_data = mfd_to_mdp5_data(ctl->mfd);
+#endif
 
 	if (!ctl) {
 		pr_err("display function not set\n");
@@ -3075,6 +3113,23 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg,
 	wmb();
 	ctl->flush_reg_data = ctl->flush_bits;
 	ctl->flush_bits = 0;
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	if (mdp5_data) {
+		mutex_lock(&mdp5_data->list_lock);
+		if (csc_change == 1) {
+			struct mdss_mdp_pipe *pipe, *next;
+			list_for_each_entry_safe(pipe, next, &mdp5_data->pipes_used, list) {
+				if (pipe->type == MDSS_MDP_PIPE_TYPE_VIG) {
+					pr_info(" mdss_mdp_csc_setup start\n");
+					mdss_mdp_csc_setup(MDSS_MDP_BLOCK_SSPP, pipe->num,1,
+									MDSS_MDP_CSC_YUV2RGB);
+					csc_change = 0;
+				}
+			}
+		}
+		mutex_unlock(&mdp5_data->list_lock);
+	}
+#endif
 
 	if (sctl && !ctl->valid_roi && sctl->valid_roi) {
 		/*

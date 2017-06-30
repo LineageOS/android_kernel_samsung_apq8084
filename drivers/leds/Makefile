@@ -55,6 +55,13 @@ obj-$(CONFIG_LEDS_MAX8997)		+= leds-max8997.o
 obj-$(CONFIG_LEDS_LM355x)		+= leds-lm355x.o
 obj-$(CONFIG_LEDS_BLINKM)		+= leds-blinkm.o
 obj-$(CONFIG_LEDS_MSM_GPIO_FLASH)	+= leds-msm-gpio-flash.o
+obj-$(CONFIG_LEDS_MAX77828_RGB)		+= leds-max77828-rgb.o
+obj-$(CONFIG_LEDS_MAX77843_RGB)		+= leds-max77843-rgb.o
+obj-$(CONFIG_LEDS_MAX77803)		+= leds-max77803.o
+obj-$(CONFIG_LEDS_MAX77804K)		+= leds-max77804k.o
+obj-$(CONFIG_LEDS_MAX77828)		+= leds-max77828.o
+obj-$(CONFIG_LEDS_AN30259A)             += leds-an30259a.o
+obj-$(CONFIG_LEDS_MIC2873)		+= leds-mic2873.o
 
 # LED SPI Drivers
 obj-$(CONFIG_LEDS_DAC124S085)		+= leds-dac124s085.o

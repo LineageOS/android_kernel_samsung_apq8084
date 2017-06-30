@@ -57,8 +57,18 @@
 #include "debug.h"
 #include "io.h"
 
-static void dwc3_gadget_usb2_phy_suspend(struct dwc3 *dwc, int suspend);
-static void dwc3_gadget_usb3_phy_suspend(struct dwc3 *dwc, int suspend);
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+#include <linux/module.h>
+
+#define EP0_HS_MPS 64
+#define EP0_SS_MPS 512
+#define WORK_CANCEL(udc)	cancel_work_sync(&udc->reconnect_work);
+#define WORK_SCHEDULE(udc)	schedule_work(&udc->reconnect_work);
+
+#else
+#define WORK_CANCEL(udc)
+#define WORK_SCHEDULE(udc)
+#endif
 
 /**
  * dwc3_gadget_set_test_mode - Enables USB2 Test Modes
@@ -322,7 +332,8 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
 
 	dbg_done(dep->number, req->request.actual, req->request.status);
 	spin_unlock(&dwc->lock);
-	req->request.complete(&dep->endpoint, &req->request);
+	if(req->request.complete)
+		req->request.complete(&dep->endpoint, &req->request);
 	spin_lock(&dwc->lock);
 }
 
@@ -356,16 +367,7 @@ int dwc3_send_gadget_generic_command(struct dwc3 *dwc, int cmd, u32 param)
 {
 	u32		timeout = 500;
 	u32		reg;
-	bool hsphy_suspend_enabled;
 	int ret;
-
-	/* Commands to controller will work only if PHY is not suspended */
-	hsphy_suspend_enabled = (dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0)) &
-						DWC3_GUSB2PHYCFG_SUSPHY);
-
-	/* Disable suspend of the USB2 PHY */
-	if (hsphy_suspend_enabled)
-		dwc3_gadget_usb2_phy_suspend(dwc, false);
 
 	dwc3_writel(dwc->regs, DWC3_DGCMDPAR, param);
 	dwc3_writel(dwc->regs, DWC3_DGCMD, cmd | DWC3_DGCMD_CMDACT);
@@ -391,10 +393,6 @@ int dwc3_send_gadget_generic_command(struct dwc3 *dwc, int cmd, u32 param)
 		udelay(1);
 	} while (1);
 
-	/* Enable suspend of the USB2 PHY */
-	if (hsphy_suspend_enabled)
-		dwc3_gadget_usb2_phy_suspend(dwc, true);
-
 	return ret;
 }
 
@@ -404,21 +402,12 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 	struct dwc3_ep		*dep = dwc->eps[ep];
 	u32			timeout = 1500;
 	u32			reg;
-	bool hsphy_suspend_enabled;
 	int ret;
 
 	dev_vdbg(dwc->dev, "%s: cmd '%s' params %08x %08x %08x\n",
 			dep->name,
 			dwc3_gadget_ep_cmd_string(cmd), params->param0,
 			params->param1, params->param2);
-
-	/* Commands to controller will work only if PHY is not suspended */
-	hsphy_suspend_enabled = (dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0)) &
-						DWC3_GUSB2PHYCFG_SUSPHY);
-
-	/* Disable suspend of the USB2 PHY */
-	if (hsphy_suspend_enabled)
-		dwc3_gadget_usb2_phy_suspend(dwc, false);
 
 	dwc3_writel(dwc->regs, DWC3_DEPCMDPAR0(ep), params->param0);
 	dwc3_writel(dwc->regs, DWC3_DEPCMDPAR1(ep), params->param1);
@@ -455,10 +444,6 @@ int dwc3_send_gadget_ep_cmd(struct dwc3 *dwc, unsigned ep,
 
 		udelay(1);
 	} while (1);
-
-	/* Enable suspend of the USB2 PHY */
-	if (hsphy_suspend_enabled)
-		dwc3_gadget_usb2_phy_suspend(dwc, true);
 
 	return ret;
 }
@@ -1125,8 +1110,13 @@ start_trb_queuing:
 			if (last_req)
 				last_one = 1;
 
-			dwc3_prepare_one_trb(dep, req, dma, length,
-					last_one, false, 0);
+			if((usb_endpoint_dir_in(dep->endpoint.desc)) ||
+					(dep->dwc->gadget.sg_supported == true))
+				dwc3_prepare_one_trb(dep, req, dma, length,
+						last_one, false, 0);
+			else if (dep->dwc->gadget.sg_supported == false) /* Only for NCM protocol */
+				dwc3_prepare_one_trb(dep, req, dma, length,
+						1, false, 0);
 
 			dbg_queue(dep->number, &req->request, 0);
 			if (last_one)
@@ -1673,6 +1663,8 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on)
 	u32			timeout = 500;
 	ktime_t start, diff;
 
+	printk(KERN_DEBUG"usb: %s is_on:%d\n",__func__, is_on);
+
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	if (is_on) {
 		if (dwc->revision <= DWC3_REVISION_187A) {
@@ -1766,7 +1758,7 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 		 */
 		return 0;
 	}
-
+	
 	pm_runtime_get_sync(dwc->dev);
 
 	spin_lock_irqsave(&dwc->lock, flags);
@@ -1819,6 +1811,9 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 {
 	struct dwc3 *dwc = gadget_to_dwc(_gadget);
 	unsigned long flags;
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	int cancel_work = 0;
+#endif
 
 	if (!dwc->dotg)
 		return -EPERM;
@@ -1826,6 +1821,11 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 	is_active = !!is_active;
 
 	spin_lock_irqsave(&dwc->lock, flags);
+
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+        if (!is_active)
+                dwc->ss_host_avail = -1;
+#endif
 
 	/* Mark that the vbus was powered */
 	dwc->vbus_active = is_active;
@@ -1842,6 +1842,11 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 			 */
 			dwc3_gadget_run_stop(dwc, 1);
 		} else {
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+			dwc->ss_host_avail = -1;
+			dwc->speed_limit = dwc->gadget.max_speed;
+			cancel_work = 1;
+#endif
 			dwc3_gadget_run_stop(dwc, 0);
 		}
 	}
@@ -1851,11 +1856,15 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 	 * Make sure to let gadget driver know in that case.
 	 */
 	if (!dwc->vbus_active) {
-		dev_dbg(dwc->dev, "calling disconnect from %s\n", __func__);
+		pr_info("calling disconnect from %s\n", __func__);
 		dwc3_gadget_disconnect_interrupt(dwc);
 	}
 
 	spin_unlock_irqrestore(&dwc->lock, flags);
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	if (cancel_work)
+		WORK_CANCEL(dwc);
+#endif
 	return 0;
 }
 
@@ -1864,7 +1873,9 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	struct dwc3_ep		*dep;
 	int			ret = 0;
 	u32			reg;
-
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	int			ep0_mps;
+#endif
 	reg = dwc3_readl(dwc->regs, DWC3_DCFG);
 	reg &= ~(DWC3_DCFG_SPEED_MASK);
 
@@ -1881,6 +1892,21 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	 * STAR#9000525659: Clock Domain Crossing on DCTL in
 	 * USB 2.0 Mode
 	 */
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	switch(dwc->speed_limit) {
+	case USB_SPEED_SUPER:
+		reg |= DWC3_DCFG_SUPERSPEED;
+		break;
+	case USB_SPEED_HIGH:
+		reg |= DWC3_DCFG_HIGHSPEED;
+		break;
+	case USB_SPEED_FULL:
+		reg |= DWC3_DCFG_FULLSPEED1;
+		break;
+	default:
+		reg |= DWC3_DCFG_SUPERSPEED;
+	}
+#else
 	if (dwc->revision < DWC3_REVISION_220A) {
 		reg |= DWC3_DCFG_SUPERSPEED;
 	} else {
@@ -1900,12 +1926,31 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 			reg |= DWC3_DSTS_SUPERSPEED;
 		}
 	}
+#endif
 	dwc3_writel(dwc->regs, DWC3_DCFG, reg);
 
 	dwc->start_config_issued = false;
 
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	switch (dwc->speed_limit) {
+	case USB_SPEED_FULL:
+	case USB_SPEED_HIGH:
+		ep0_mps = EP0_HS_MPS;
+		break;
+	case USB_SPEED_SUPER:
+		ep0_mps = EP0_SS_MPS;
+		break;
+	default:
+		dev_warn(dwc->dev, "%s: unsupported device speed\n", __func__);
+		ep0_mps = (dwc->gadget.max_speed == USB_SPEED_SUPER) ?
+		EP0_SS_MPS : EP0_HS_MPS;
+	}
+	dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(ep0_mps);
+#else
+
 	/* Start with SuperSpeed Default */
 	dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(512);
+#endif	/* CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU*/
 
 	dwc->delayed_status = false;
 	/* reinitialize physical ep0-1 */
@@ -1940,12 +1985,6 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 /* Required gadget re-initialization before switching to gadget in OTG mode */
 void dwc3_gadget_restart(struct dwc3 *dwc)
 {
-	/* automatic phy suspend only on recent versions */
-	if (dwc->revision >= DWC3_REVISION_194A) {
-		dwc3_gadget_usb2_phy_suspend(dwc, true);
-		dwc3_gadget_usb3_phy_suspend(dwc, true);
-	}
-
 	__dwc3_gadget_start(dwc);
 }
 
@@ -2545,7 +2584,7 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 {
 	int			reg;
 
-	dev_vdbg(dwc->dev, "%s\n", __func__);
+	pr_info("usb:: %s\n", __func__);
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	reg &= ~DWC3_DCTL_INITU1ENA;
@@ -2563,40 +2602,12 @@ static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc)
 	dwc->link_state = DWC3_LINK_STATE_SS_DIS;
 }
 
-static void dwc3_gadget_usb3_phy_suspend(struct dwc3 *dwc, int suspend)
-{
-	u32			reg;
-
-	reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(0));
-
-	if (suspend)
-		reg |= DWC3_GUSB3PIPECTL_SUSPHY;
-	else
-		reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
-
-	dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(0), reg);
-}
-
-static void dwc3_gadget_usb2_phy_suspend(struct dwc3 *dwc, int suspend)
-{
-	u32			reg;
-
-	reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
-
-	if (suspend)
-		reg |= DWC3_GUSB2PHYCFG_SUSPHY;
-	else
-		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
-
-	dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
-}
-
 static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 {
 	u32			reg;
 	struct dwc3_otg		*dotg = dwc->dotg;
 
-	dev_vdbg(dwc->dev, "%s\n", __func__);
+	pr_info("usb:: %s\n", __func__);
 
 	/*
 	 * WORKAROUND: DWC3 revisions <1.88a have an issue which
@@ -2632,13 +2643,6 @@ static void dwc3_gadget_reset_interrupt(struct dwc3 *dwc)
 	dbg_event(0xFF, "BUS RST", 0);
 	/* after reset -> Default State */
 	usb_gadget_set_state(&dwc->gadget, USB_STATE_DEFAULT);
-
-	/* Recent versions support automatic phy suspend and don't need this */
-	if (dwc->revision < DWC3_REVISION_194A) {
-		/* Resume PHYs */
-		dwc3_gadget_usb2_phy_suspend(dwc, false);
-		dwc3_gadget_usb3_phy_suspend(dwc, false);
-	}
 
 	if (dotg && dotg->otg.phy)
 		usb_phy_set_power(dotg->otg.phy, 0);
@@ -2687,20 +2691,6 @@ static void dwc3_update_ram_clk_sel(struct dwc3 *dwc, u32 speed)
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
 }
 
-static void dwc3_gadget_phy_suspend(struct dwc3 *dwc, u8 speed)
-{
-	switch (speed) {
-	case USB_SPEED_SUPER:
-		dwc3_gadget_usb2_phy_suspend(dwc, true);
-		break;
-	case USB_SPEED_HIGH:
-	case USB_SPEED_FULL:
-	case USB_SPEED_LOW:
-		dwc3_gadget_usb3_phy_suspend(dwc, true);
-		break;
-	}
-}
-
 static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 {
 	struct dwc3_ep		*dep;
@@ -2737,22 +2727,26 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(512);
 		dwc->gadget.ep0->maxpacket = 512;
 		dwc->gadget.speed = USB_SPEED_SUPER;
+		pr_info("usb:: %s (SS)\n", __func__);
 		break;
 	case DWC3_DCFG_HIGHSPEED:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(64);
 		dwc->gadget.ep0->maxpacket = 64;
 		dwc->gadget.speed = USB_SPEED_HIGH;
+		pr_info("usb:: %s (HS)\n", __func__);
 		break;
 	case DWC3_DCFG_FULLSPEED2:
 	case DWC3_DCFG_FULLSPEED1:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(64);
 		dwc->gadget.ep0->maxpacket = 64;
 		dwc->gadget.speed = USB_SPEED_FULL;
+		pr_info("usb:: %s (FS)\n", __func__);
 		break;
 	case DWC3_DCFG_LOWSPEED:
 		dwc3_gadget_ep0_desc.wMaxPacketSize = cpu_to_le16(8);
 		dwc->gadget.ep0->maxpacket = 8;
 		dwc->gadget.speed = USB_SPEED_LOW;
+		pr_info("usb:: %s (LS)\n", __func__);
 		break;
 	}
 
@@ -2760,9 +2754,11 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 
 	if ((dwc->revision > DWC3_REVISION_194A)
 			&& (speed != DWC3_DCFG_SUPERSPEED)) {
+#ifndef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 		reg = dwc3_readl(dwc->regs, DWC3_DCFG);
 		reg |= DWC3_DCFG_LPM_CAP;
 		dwc3_writel(dwc->regs, DWC3_DCFG, reg);
+#endif
 
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 		reg &= ~(DWC3_DCTL_HIRD_THRES_MASK | DWC3_DCTL_L1_HIBER_EN);
@@ -2774,12 +2770,6 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 		reg |= DWC3_DCTL_HIRD_THRES(12);
 
 		dwc3_writel(dwc->regs, DWC3_DCTL, reg);
-	}
-
-	/* Recent versions support automatic phy suspend and don't need this */
-	if (dwc->revision < DWC3_REVISION_194A) {
-		/* Suspend unneeded PHY */
-		dwc3_gadget_phy_suspend(dwc, dwc->gadget.speed);
 	}
 
 	dep = dwc->eps[0];
@@ -2803,11 +2793,33 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	 *
 	 * In both cases reset values should be sufficient.
 	 */
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+	/*
+	 * Incase of K-Prj we want to Probe whether Host for super speed
+	 * We Start the UDC with speed_limit always USB_SPEED_SUPER.
+	 * if we connect at USB_SPEED_SUPER then we set that the ss_host_avail = 1
+	 * We then change the speed_limit to USB_HIGH_SPEED and schedule
+	 * a work item to reconnect at HIGH SPEED.
+	 * In factory mode we do not need this logic. we should always connect USB3.0
+	 */
+#ifndef CONFIG_SEC_FACTORY
+	if (dwc->ss_host_avail == -1) {
+		if (dwc->gadget.speed == USB_SPEED_SUPER) {
+			dwc->ss_host_avail = 1;
+			dwc->speed_limit = USB_SPEED_HIGH;
+			dwc->reconnect = true;
+		} else {
+			printk(KERN_ERR"usb: Super speed host not available \n");
+			dwc->ss_host_avail = 0;
+		}
+	}
+#endif
+#endif
 }
 
 static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
 {
-	dev_vdbg(dwc->dev, "%s\n", __func__);
+	pr_info("usb:: %s\n", __func__);
 
 	/* Only perform resume from L2 or Early Suspend states */
 	if (dwc->link_state == DWC3_LINK_STATE_U3) {
@@ -2924,6 +2936,7 @@ static void dwc3_gadget_suspend_interrupt(struct dwc3 *dwc,
 	dev_vdbg(dwc->dev, "%s link %d\n", __func__, dwc->link_state);
 }
 
+#if 0
 static void dwc3_dump_reg_info(struct dwc3 *dwc)
 {
 	dbg_event(0xFF, "REGDUMP", 0);
@@ -2947,6 +2960,7 @@ static void dwc3_dump_reg_info(struct dwc3 *dwc)
 	dbg_print_reg("OEVT", dwc3_readl(dwc->regs, DWC3_OEVT));
 	dbg_print_reg("OSTS", dwc3_readl(dwc->regs, DWC3_OSTS));
 }
+#endif
 
 static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		const struct dwc3_event_devt *event)
@@ -2991,7 +3005,6 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		if (!dwc->err_evt_seen) {
 			dbg_event(0xFF, "ERROR", 0);
 			dev_vdbg(dwc->dev, "Erratic Error\n");
-			dwc3_dump_reg_info(dwc);
 		}
 		dwc->dbg_gadget_events.erratic_error++;
 		break;
@@ -3034,7 +3047,7 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		dwc->dbg_gadget_events.vendor_dev_test_lmp++;
 		break;
 	default:
-		dev_dbg(dwc->dev, "UNKNOWN IRQ %d\n", event->type);
+		pr_info("usb:: [%s] UNKNOWN IRQ %d\n", __func__, event->type);
 		dwc->dbg_gadget_events.unknown_event++;
 	}
 
@@ -3122,7 +3135,13 @@ static irqreturn_t dwc3_thread_interrupt(int irq, void *_dwc)
 
 			dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(i), 4);
 		}
-
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+		/* Schedule the reconnect work event */
+		if (dwc->reconnect) {
+			dwc->reconnect = false;
+			WORK_SCHEDULE(dwc);
+		}
+#endif
 		evt->count = 0;
 		evt->flags &= ~DWC3_EVENT_PENDING;
 		ret = IRQ_HANDLED;
@@ -3211,7 +3230,9 @@ static irqreturn_t dwc3_interrupt(int irq, void *_dwc)
  */
 int dwc3_gadget_init(struct dwc3 *dwc)
 {
+#ifndef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 	u32					reg;
+#endif
 	int					ret;
 
 	dwc->ctrl_req = dma_alloc_coherent(dwc->dev, sizeof(*dwc->ctrl_req),
@@ -3268,19 +3289,11 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 	if (ret)
 		goto err4;
 
+#ifndef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 	reg = dwc3_readl(dwc->regs, DWC3_DCFG);
 	reg |= DWC3_DCFG_LPM_CAP;
 	dwc3_writel(dwc->regs, DWC3_DCFG, reg);
-
-	/* Enable USB2 LPM and automatic phy suspend only on recent versions */
-	if (dwc->revision >= DWC3_REVISION_194A) {
-		/*
-		 * Clear autosuspend bit in dwc3 register for USB2. It will be
-		 * enabled before setting run/stop bit.
-		 */
-		dwc3_gadget_usb2_phy_suspend(dwc, false);
-		dwc3_gadget_usb3_phy_suspend(dwc, true);
-	}
+#endif
 
 	ret = usb_add_gadget_udc(dwc->dev, &dwc->gadget);
 	if (ret) {
@@ -3409,3 +3422,44 @@ err1:
 err0:
 	return ret;
 }
+
+#ifdef CONFIG_USB_ANDROID_SAMSUNG_USB30_MENU
+int sec_set_speedlimit(struct usb_gadget *gadget,
+			enum usb_device_speed speed)
+{
+	struct dwc3 *dwc;
+	unsigned long flags;
+
+	if (!gadget)
+		return -1;
+
+	if (speed > gadget->max_speed || speed < USB_SPEED_FULL)
+		return -1;
+
+	dwc = container_of(gadget, struct dwc3, gadget);
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	dwc->speed_limit = speed;
+	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sec_set_speedlimit);
+
+int sec_get_ss_host_available(struct usb_gadget *gadget)
+{
+	struct dwc3 *dwc;
+	int      ss_host_avail;
+	unsigned long flags;
+
+	if (!gadget)
+		return -1;
+	dwc = container_of(gadget, struct dwc3, gadget);
+	spin_lock_irqsave(&dwc->lock, flags);
+	ss_host_avail = dwc->ss_host_avail;
+	spin_unlock_irqrestore(&dwc->lock, flags);
+	dev_dbg(dwc->dev,"Superspeed Host avail(%d) \n",ss_host_avail);
+	return ss_host_avail;
+}
+EXPORT_SYMBOL_GPL(sec_get_ss_host_available);
+#endif

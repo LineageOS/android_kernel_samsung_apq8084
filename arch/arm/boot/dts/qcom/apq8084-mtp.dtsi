@@ -11,7 +11,6 @@
  */
 
 #include "external-mdm9x25.dtsi"
-#include "apq8084-camera-sensor-mtp.dtsi"
 
 / {
 	aliases {
@@ -142,10 +141,7 @@
 	};
 };
 
-&mdss_hdmi_tx {
-	qcom,conditional-power-on;
-};
-
+/* SS : remove qcom specific node
 #include "apq8084-mdss-panels.dtsi"
 &dsi_jdi_1080_vid {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_pwm";
@@ -170,6 +166,7 @@
 	qcom,platform-enable-gpio = <&msmgpio 137 0>;
 	qcom,platform-bklight-en-gpio = <&msmgpio 86 0>;
 };
+*/
 
 &blsp2_uart1 {
 	status = "ok";
@@ -238,6 +235,12 @@
 	qcom,setb-gpios-dir =  <2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2>;
 };
 
+&uart6 {
+	qcom,inject-rx-on-wakeup;
+	qcom,rx-char-to-inject = <0xfd>;
+	status = "ok";
+};
+
 &ufsphy1 {
 	status = "ok";
 };
@@ -248,6 +251,8 @@
 
 &sdhc_1 {
 	vdd-supply = <&pma8084_l20>;
+	qcom,vdd-always-on;
+	qcom,vdd-lpm-sup;
 	qcom,vdd-voltage-level = <2950000 2950000>;
 	qcom,vdd-current-level = <200 500000>;
 

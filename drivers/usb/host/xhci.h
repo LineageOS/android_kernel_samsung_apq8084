@@ -27,6 +27,7 @@
 #include <linux/timer.h>
 #include <linux/kernel.h>
 #include <linux/usb/hcd.h>
+#include <linux/netdevice.h>
 
 /* Code sharing between pci-quirks and xhci hcd */
 #include	"xhci-ext-caps.h"
@@ -1673,10 +1674,10 @@ static inline int xhci_link_trb_quirk(struct xhci_hcd *xhci)
 /* xHCI debugging */
 
 /* Maximum debug message length */
-#define DBG_MSG_LEN   64UL
+#define DBG_MSG_LEN   128UL
 
 /* Maximum number of messages */
-#define DBG_MAX_MSG   1024UL
+#define DBG_MAX_MSG   2048UL
 #define TIME_BUF_LEN  20
 #define HEX_DUMP_LEN  72
 struct dbg_data {
@@ -1691,6 +1692,11 @@ struct dbg_data {
 	unsigned int inep_log_mask;
 	unsigned int outep_log_mask;
 };
+
+void xhci_dbg_urb_event(char *func, unsigned delta, unsigned cdelta, unsigned latency);
+
+void xhci_dbg_irq_event(struct dbg_data *d, unsigned int min_t, unsigned int max_t,
+		unsigned cnt, unsigned irq_delta, unsigned ep_map);
 
 void __maybe_unused
 xhci_dbg_log_event(struct dbg_data *d, struct urb *urb, char *event,

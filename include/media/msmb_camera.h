@@ -6,21 +6,22 @@
 #include <linux/ioctl.h>
 
 #define MSM_CAM_V4L2_IOCTL_NOTIFY \
-	_IOW('V', BASE_VIDIOC_PRIVATE + 30, struct msm_v4l2_event_data)
-
-#define MSM_CAM_V4L2_IOCTL_NOTIFY_META \
-	_IOW('V', BASE_VIDIOC_PRIVATE + 31, struct msm_v4l2_event_data)
-
-#define MSM_CAM_V4L2_IOCTL_CMD_ACK \
-	_IOW('V', BASE_VIDIOC_PRIVATE + 32, struct msm_v4l2_event_data)
+	_IOW('V', BASE_VIDIOC_PRIVATE + 30, struct v4l2_event)
 
 #define MSM_CAM_V4L2_IOCTL_NOTIFY_ERROR \
-	_IOW('V', BASE_VIDIOC_PRIVATE + 33, struct msm_v4l2_event_data)
+	_IOW('V', BASE_VIDIOC_PRIVATE + 31, struct v4l2_event)
+
+#define MSM_CAM_V4L2_IOCTL_CMD_ACK \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 32, struct v4l2_event)
+
+#define MSM_CAM_V4L2_IOCTL_NOTIFY_MODULE_STATUS \
+	_IOW('V', BASE_VIDIOC_PRIVATE + 33, struct v4l2_event)
 
 #define QCAMERA_DEVICE_GROUP_ID	1
 #define QCAMERA_VNODE_GROUP_ID	2
 #define MSM_CAMERA_NAME					"msm_camera"
 #define MSM_CONFIGURATION_NAME	"msm_config"
+#define MSM_CAMERA_DUMMY_NAME   "msm_cam_dummy"
 
 #define MSM_CAMERA_SUBDEV_CSIPHY       0
 #define MSM_CAMERA_SUBDEV_CSID         1
@@ -37,6 +38,8 @@
 #define MSM_CAMERA_SUBDEV_STROBE_FLASH 12
 #define MSM_CAMERA_SUBDEV_BUF_MNGR     13
 #define MSM_CAMERA_SUBDEV_SENSOR_INIT  14
+#define MSM_CAMERA_SUBDEV_COMPANION    15
+#define MSM_CAMERA_SUBDEV_OIS	16
 
 #define MSM_MAX_CAMERA_SENSORS  5
 
@@ -117,9 +120,9 @@ struct msm_v4l2_event_data {
 	/*word 8*/
 	unsigned int ret_value;
 	/*word 9*/
-	unsigned int v4l2_event_type;
+	unsigned int nop3;
 	/*word 10*/
-	unsigned int v4l2_event_id;
+	unsigned int nop4;
 	/*word 11*/
 	unsigned int nop5;
 	/*word 12*/
@@ -167,15 +170,5 @@ struct msm_v4l2_format_data {
 #define MSM_V4L2_PIX_FMT_STATS_BF   v4l2_fourcc('S', 'T', 'B', 'F')
 /* Bayer hist stats */
 #define MSM_V4L2_PIX_FMT_STATS_BHST v4l2_fourcc('B', 'H', 'S', 'T')
-
-enum smmu_attach_mode {
-	NON_SECURE_MODE,
-	SECURE_MODE,
-	MAX_PROTECTION_MODE,
-};
-
-struct msm_camera_smmu_attach_type {
-	enum smmu_attach_mode attach;
-};
 
 #endif /* __LINUX_MSMB_CAMERA_H */

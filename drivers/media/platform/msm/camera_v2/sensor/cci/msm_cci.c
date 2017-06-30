@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -35,10 +35,10 @@
 #define MSM_CCI_DRV_NAME "msm_cci"
 
 #undef CDBG
-#ifdef CONFIG_MSMB_CAMERA_DEBUG
-#define CDBG(fmt, args...) pr_debug(fmt, ##args)
+#ifdef CONFIG_CCI_DEBUG
+#define CDBG(fmt, args...) pr_err(fmt, ##args)
 #else
-#define CDBG(fmt, args...) do {} while (0)
+#define CDBG(fmt, args...) do { } while (0)
 #endif
 
 /* Max bytes that can be read per CCI read transaction */
@@ -46,6 +46,7 @@
 #define CCI_I2C_READ_MAX_RETRIES 3
 #define CCI_I2C_MAX_READ 8192
 #define CCI_I2C_MAX_WRITE 8192
+#define CCI_NUM_CLK_MAX		16
 
 static struct v4l2_subdev *g_cci_subdev;
 
@@ -57,6 +58,11 @@ static void msm_cci_set_clk_param(struct cci_device *cci_dev,
 	struct msm_cci_clk_params_t *clk_params = NULL;
 	enum cci_i2c_master_t master = c_ctrl->cci_info->cci_i2c_master;
 	enum i2c_freq_mode_t i2c_freq_mode = c_ctrl->cci_info->i2c_freq_mode;
+
+	if (i2c_freq_mode == I2C_STANDARD_MODE)
+		pr_info("cci%d will run as 100Khz\n", master);
+	else if (i2c_freq_mode == I2C_FAST_MODE)
+		pr_info("cci%d will run as 400Khz\n", master);
 
 	if (cci_dev->master_clk_init[master])
 		return;
@@ -95,6 +101,36 @@ static void msm_cci_set_clk_param(struct cci_device *cci_dev,
 	}
 	cci_dev->master_clk_init[master] = 1;
 	return;
+}
+
+static int32_t msm_cci_i2c_config_sync_timer(struct v4l2_subdev *sd,
+	struct msm_camera_cci_ctrl *c_ctrl)
+{
+	struct cci_device *cci_dev;
+	cci_dev = v4l2_get_subdevdata(sd);
+	msm_camera_io_w(c_ctrl->cci_info->cid, cci_dev->base +
+		CCI_SET_CID_SYNC_TIMER_0_ADDR + (c_ctrl->cci_info->cid * 0x4));
+	return 0;
+}
+
+static int32_t msm_cci_i2c_set_freq(struct v4l2_subdev *sd,
+	struct msm_camera_cci_ctrl *c_ctrl)
+{
+	struct cci_device *cci_dev;
+	uint32_t val;
+	cci_dev = v4l2_get_subdevdata(sd);
+	val = c_ctrl->cci_info->freq;
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SCL_CTL_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_0_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_1_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_SDA_CTL_2_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	msm_camera_io_w(val, cci_dev->base + CCI_I2C_M0_MISC_CTL_ADDR +
+		c_ctrl->cci_info->cci_i2c_master*0x100);
+	return 0;
 }
 
 static void msm_cci_flush_queue(struct cci_device *cci_dev,
@@ -181,7 +217,8 @@ static int32_t msm_cci_validate_queue(struct cci_device *cci_dev,
 }
 
 static int32_t msm_cci_data_queue(struct cci_device *cci_dev,
-	struct msm_camera_cci_ctrl *c_ctrl, enum cci_i2c_queue_t queue)
+	struct msm_camera_cci_ctrl *c_ctrl, enum cci_i2c_queue_t queue,
+	uint8_t is_burst)
 {
 	uint16_t i = 0, j = 0, k = 0, h = 0, len = 0;
 	int32_t rc = 0;
@@ -233,16 +270,19 @@ static int32_t msm_cci_data_queue(struct cci_device *cci_dev,
 		}
 		/* max of 10 data bytes */
 		do {
-			if (i2c_msg->data_type == MSM_CAMERA_I2C_BYTE_DATA) {
+			if ((i2c_msg->data_type == MSM_CAMERA_I2C_BYTE_DATA) ||
+				(i2c_msg->data_type == MSM_CAMERA_I2C_BURST_DATA)) {
 				data[i++] = i2c_cmd->reg_data;
-				reg_addr++;
+				if (!is_burst)
+					reg_addr++;
 			} else {
 				if ((i + 1) <= 10) {
 					data[i++] = (i2c_cmd->reg_data &
 						0xFF00) >> 8; /* MSB */
 					data[i++] = i2c_cmd->reg_data &
 						0x00FF; /* LSB */
-					reg_addr += 2;
+					if (!is_burst)
+						reg_addr += 2;
 				} else
 					break;
 			}
@@ -261,9 +301,13 @@ static int32_t msm_cci_data_queue(struct cci_device *cci_dev,
 				cmd |= (data[k++] << (j * 8));
 			CDBG("%s CCI_I2C_M0_Q0_LOAD_DATA_ADDR 0x%x\n",
 				__func__, cmd);
+
 			msm_camera_io_w(cmd, cci_dev->base +
 				CCI_I2C_M0_Q0_LOAD_DATA_ADDR +
 				master * 0x200 + queue * 0x100);
+		}
+		if (delay > CCI_MAX_DELAY) {
+			pr_err("%s:%d invalid delay %d\n", __func__, __LINE__, delay);
 		}
 		if ((delay > 0) && (delay < CCI_MAX_DELAY)) {
 			cmd = (uint32_t)((delay * CYCLES_PER_MICRO_SEC) /
@@ -406,7 +450,7 @@ static int32_t msm_cci_i2c_read(struct v4l2_subdev *sd,
 
 	val = 1 << ((master * 2) + queue);
 	msm_camera_io_w(val, cci_dev->base + CCI_QUEUE_START_ADDR);
-	CDBG("%s:%d E wait_for_completion_interruptible_timeout\n", __func__,
+	CDBG("[%s:%d] E : wait_for_completion_interruptible_timeout\n", __func__,
 		__LINE__);
 	rc = wait_for_completion_interruptible_timeout(&cci_dev->
 		cci_master_info[master].reset_complete, CCI_TIMEOUT);
@@ -420,7 +464,7 @@ static int32_t msm_cci_i2c_read(struct v4l2_subdev *sd,
 	} else {
 		rc = 0;
 	}
-	CDBG("%s:%d E wait_for_completion_interruptible_timeout\n", __func__,
+	CDBG("[%s:%d] X : wait_for_completion_interruptible_timeout\n", __func__,
 		__LINE__);
 
 	read_words = msm_camera_io_r(cci_dev->base +
@@ -506,7 +550,7 @@ static int32_t msm_cci_i2c_read_bytes(struct v4l2_subdev *sd,
 			read_cfg->num_byte = read_bytes;
 		rc = msm_cci_i2c_read(sd, c_ctrl);
 		if (rc < 0) {
-			pr_err("%s:%d failed rc %d\n", __func__, __LINE__, rc);
+			pr_err("%s:%d failed[Slave Addr::%x] rc %d\n", __func__, __LINE__, c_ctrl->cci_info->sid, rc);
 			goto ERROR;
 		}
 		if (read_bytes > CCI_READ_MAX) {
@@ -522,7 +566,7 @@ ERROR:
 }
 
 static int32_t msm_cci_i2c_write(struct v4l2_subdev *sd,
-	struct msm_camera_cci_ctrl *c_ctrl)
+	struct msm_camera_cci_ctrl *c_ctrl, uint8_t is_burst)
 {
 	int32_t rc = 0;
 	struct cci_device *cci_dev;
@@ -579,7 +623,7 @@ static int32_t msm_cci_i2c_write(struct v4l2_subdev *sd,
 		goto ERROR;
 	}
 
-	rc = msm_cci_data_queue(cci_dev, c_ctrl, queue);
+	rc = msm_cci_data_queue(cci_dev, c_ctrl, queue, is_burst);
 	if (rc < 0) {
 		CDBG("%s failed line %d\n", __func__, __LINE__);
 		goto ERROR;
@@ -646,6 +690,12 @@ static int msm_cci_subdev_g_chip_ident(struct v4l2_subdev *sd,
 	return 0;
 }
 
+static struct msm_cam_clk_info cci_clk_info[] = {
+	{"camss_top_ahb_clk", -1},
+	{"cci_src_clk", 19200000},
+	{"cci_ahb_clk", -1},
+	{"cci_clk", -1},
+};
 
 static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	struct msm_camera_cci_ctrl *c_ctrl)
@@ -655,6 +705,7 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	struct cci_device *cci_dev;
 	enum cci_i2c_master_t master;
 	cci_dev = v4l2_get_subdevdata(sd);
+	CDBG("%s line %d\n", __func__, __LINE__);
 
 	if (!cci_dev || !c_ctrl) {
 		pr_err("%s:%d failed: invalid params %p %p\n", __func__,
@@ -667,12 +718,12 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		CDBG("%s ref_count %d\n", __func__, cci_dev->ref_count);
 		master = c_ctrl->cci_info->cci_i2c_master;
 		CDBG("%s:%d master %d\n", __func__, __LINE__, master);
-		msm_cci_set_clk_param(cci_dev, c_ctrl);
 		if (master < MASTER_MAX && master >= 0) {
 			mutex_lock(&cci_dev->cci_master_info[master].mutex);
 			/* Set reset pending flag to TRUE */
 			cci_dev->cci_master_info[master].reset_pending = TRUE;
 			/* Set proper mask to RESET CMD address */
+			msm_cci_set_clk_param(cci_dev, c_ctrl);
 			if (master == MASTER_0)
 				msm_camera_io_w(CCI_M0_RESET_RMSK,
 					cci_dev->base + CCI_RESET_CMD_ADDR);
@@ -694,6 +745,7 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	rc = msm_camera_request_gpio_table(cci_dev->cci_gpio_tbl,
 		cci_dev->cci_gpio_tbl_size, 1);
 	if (rc < 0) {
+		cci_dev->ref_count--;
 		CDBG("%s: request gpio failed\n", __func__);
 		goto request_gpio_failed;
 	}
@@ -701,6 +753,7 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	rc = msm_cam_clk_enable(&cci_dev->pdev->dev, cci_clk_info,
 		cci_dev->cci_clk, cci_dev->num_clk, 1);
 	if (rc < 0) {
+		cci_dev->ref_count--;
 		CDBG("%s: clk enable failed\n", __func__);
 		goto clk_enable_failed;
 	}
@@ -708,7 +761,7 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	enable_irq(cci_dev->irq->start);
 	cci_dev->hw_version = msm_camera_io_r(cci_dev->base +
 		CCI_HW_VERSION_ADDR);
-	pr_info("%s:%d: hw_version = 0x%x\n", __func__, __LINE__,
+	CDBG("%s:%d: hw_version = 0x%x\n", __func__, __LINE__,
 		cci_dev->hw_version);
 	cci_dev->cci_master_info[MASTER_0].reset_pending = TRUE;
 	msm_camera_io_w(CCI_RESET_CMD_RMSK, cci_dev->base + CCI_RESET_CMD_ADDR);
@@ -776,7 +829,7 @@ static int32_t msm_cci_release(struct v4l2_subdev *sd)
 	for (i = 0; i < MASTER_MAX; i++)
 		cci_dev->master_clk_init[i] = 0;
 	cci_dev->cci_state = CCI_STATE_DISABLED;
-
+	CDBG("%s:%d Exit\n", __func__, __LINE__);
 	return 0;
 }
 
@@ -793,11 +846,22 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 	case MSM_CCI_RELEASE:
 		rc = msm_cci_release(sd);
 		break;
+	case MSM_CCI_SET_SID:
+		break;
+	case MSM_CCI_SET_FREQ:
+		rc = msm_cci_i2c_set_freq(sd, cci_ctrl);
+		break;
+	case MSM_CCI_SET_SYNC_CID:
+		rc = msm_cci_i2c_config_sync_timer(sd, cci_ctrl);
+		break;
 	case MSM_CCI_I2C_READ:
 		rc = msm_cci_i2c_read_bytes(sd, cci_ctrl);
 		break;
 	case MSM_CCI_I2C_WRITE:
-		rc = msm_cci_i2c_write(sd, cci_ctrl);
+		rc = msm_cci_i2c_write(sd, cci_ctrl, 0);
+        break;
+	case MSM_CCI_I2C_WRITE_BURST:
+		rc = msm_cci_i2c_write(sd, cci_ctrl, 1);
 		break;
 	case MSM_CCI_GPIO_WRITE:
 		break;
@@ -891,7 +955,7 @@ static long msm_cci_subdev_ioctl(struct v4l2_subdev *sd,
 		rc = msm_cci_config(sd, arg);
 		break;
 	case MSM_SD_SHUTDOWN: {
-		return rc;
+		break;
 	}
 	default:
 		rc = -ENOIOCTLCMD;
@@ -1189,7 +1253,8 @@ static int msm_cci_probe(struct platform_device *pdev)
 	rc = msm_cci_get_clk_info(new_cci_dev, pdev);
 	if (rc < 0) {
 		pr_err("%s: msm_cci_get_clk_info() failed", __func__);
-		return -EFAULT;
+		rc = -EFAULT;
+		goto cci_no_resource;
 	}
 
 	new_cci_dev->ref_count = 0;
@@ -1222,18 +1287,19 @@ static int msm_cci_probe(struct platform_device *pdev)
 	new_cci_dev->base = ioremap(new_cci_dev->mem->start,
 		resource_size(new_cci_dev->mem));
 	if (!new_cci_dev->base) {
+    	pr_err("%s : cci_dev base is NULL", __func__);
 		rc = -ENOMEM;
 		goto cci_release_mem;
 	}
 	rc = request_irq(new_cci_dev->irq->start, msm_cci_irq,
 		IRQF_TRIGGER_RISING, "cci", new_cci_dev);
 	if (rc < 0) {
-		CDBG("%s: irq request fail\n", __func__);
+		pr_err("%s: irq request fail\n", __func__);
 		rc = -EBUSY;
 		goto cci_release_mem;
 	}
 	disable_irq(new_cci_dev->irq->start);
-	new_cci_dev->msm_sd.close_seq = MSM_SD_CLOSE_2ND_CATEGORY | 0x6;
+	new_cci_dev->msm_sd.close_seq = MSM_SD_CLOSE_2ND_CATEGORY | 0x8;
 	msm_sd_register(&new_cci_dev->msm_sd);
 	new_cci_dev->pdev = pdev;
 	msm_cci_init_cci_params(new_cci_dev);
@@ -1246,6 +1312,7 @@ static int msm_cci_probe(struct platform_device *pdev)
 	g_cci_subdev = &new_cci_dev->msm_sd.sd;
 	CDBG("%s cci subdev %p\n", __func__, &new_cci_dev->msm_sd.sd);
 	CDBG("%s line %d\n", __func__, __LINE__);
+    pr_warn("%s : Succeed!", __func__);
 	return 0;
 
 cci_release_mem:
@@ -1253,7 +1320,7 @@ cci_release_mem:
 		resource_size(new_cci_dev->mem));
 cci_no_resource:
 	kfree(new_cci_dev);
-	return 0;
+	return rc;
 }
 
 static int __exit msm_cci_exit(struct platform_device *pdev)

@@ -38,6 +38,10 @@ obj-$(CONFIG_MSM_NOPM) += no-pm.o
 
 obj-$(CONFIG_MSM_PCIE) += pcie.o pcie_irq.o pcie_phy.o
 
+ifdef CONFIG_BCM4358
+obj-$(CONFIG_ARCH_APQ8084) += board-8084-wifi.o
+endif
+
 obj-$(CONFIG_MSM_SPM_V2) += spm-v2.o spm_devices.o
 
 obj-$(CONFIG_MSM_DMA_TEST) += dma_test.o
@@ -133,3 +137,16 @@ obj-$(CONFIG_MSM_DEVFREQ_CPUBW) += devfreq_cpubw.o
 
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 obj-$(CONFIG_PERFMAP) += perfmap.o
+obj-$(CONFIG_EXTCON) += board-extcon-connector.o
+obj-$(CONFIG_REGULATOR_MAX77803) += sec-regulator-max77803.o
+obj-$(CONFIG_REGULATOR_MAX77828) += sec-regulator-max77828.o
+
+
+obj-$(CONFIG_SEC_DEBUG) += sec_debug.o sec_gaf.o sec_getlog.o
+obj-$(CONFIG_SEC_DEBUG_DOUBLE_FREE) += sec_debug-dfd.o
+
+obj-$(CONFIG_SEC_BSP) += sec_bsp.o
+
+obj-$(CONFIG_SEC_THERMISTOR) += sec_thermistor.o apq8084-thermistor.o
+obj-$(CONFIG_BT_BCM4358) += board-bluetooth-bcm4358.o
+obj-$(CONFIG_GSM_MODEM_SPRD6500) += board-sprd6500-spi.o board-sprd6500-modems.o

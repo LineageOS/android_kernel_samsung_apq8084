@@ -23,6 +23,21 @@
 #include <mach/msm_bus.h>
 #include <mach/msm_bus_board.h>
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+struct mdp_csc_cfg mdp_csc_convert_wideband = {
+	0,
+	{
+		0x0200, 0x0000, 0x02CD,
+		0x0200, 0xFF4F, 0xFE91,
+		0x0200, 0x038B, 0x0000,
+	},
+	{ 0x0, 0xFF80, 0xFF80,},
+	{ 0x0, 0x0, 0x0,},
+	{ 0x0, 0xFF, 0x0, 0xFF, 0x0, 0xFF,},
+	{ 0x0, 0xFF, 0x0, 0xFF, 0x0, 0xFF,},
+};
+#endif
+
 struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2RGB] = {
 		0,
@@ -550,7 +565,19 @@ int mdss_mdp_csc_setup(u32 block, u32 blk_idx, u32 tbl_idx, u32 csc_type)
 	pr_debug("csc type=%d blk=%d idx=%d tbl=%d\n", csc_type,
 		 block, blk_idx, tbl_idx);
 
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+	if (csc_type == MDSS_MDP_CSC_YUV2RGB && !csc_update) {
+		data = &mdp_csc_convert_wideband;
+		if(csc_change)
+			pr_info("will do mdp_csc_convert (wide band)\n");
+	} else {
 	data = &mdp_csc_convert[csc_type];
+		if(csc_change)
+			pr_info("will do mdp_csc_convert (narrow band)\n");
+	}
+#else
+	data = &mdp_csc_convert[csc_type];
+#endif
 	return mdss_mdp_csc_setup_data(block, blk_idx, tbl_idx, data);
 }
 
@@ -868,13 +895,19 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 			opmode |= (0 << 19) |	/* DST_DATA=RGB */
 				  (1 << 18) |	/* SRC_DATA=YCBCR */
 				  (1 << 17);	/* CSC_1_EN */
-			/*
-			 * TODO: Needs to be part of dirty bit logic: if there
-			 * is a previously configured pipe need to re-configure
-			 * CSC matrix
-			 */
+		/*
+		 * TODO: Needs to be part of dirty bit logic: if there is a
+		 * previously configured pipe need to re-configure CSC matrix
+		 */
+		/*#ifdef CONFIG_FB_MSM_CAMERA_CSC Rollback to QCT orginal code */
+#if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
+		if(csc_change == 0)
 			mdss_mdp_csc_setup(MDSS_MDP_BLOCK_SSPP, pipe->num, 1,
 					   MDSS_MDP_CSC_YUV2RGB);
+#else
+			mdss_mdp_csc_setup(MDSS_MDP_BLOCK_SSPP, pipe->num, 1,
+						   MDSS_MDP_CSC_YUV2RGB);
+#endif
 		}
 	}
 
@@ -1019,6 +1052,12 @@ static int mdss_mdp_hscl_setup(struct mdss_mdp_pipe *pipe)
 	return 0;
 }
 
+#if defined(CONFIG_MDP_UPSCALE_TUNNING)
+int sharpness = SHARP_STRENGTH_DEFAULT;
+int edge_thr = SHARP_EDGE_THR_DEFAULT;
+int smooth_thr = SHARP_SMOOTH_THR_DEFAULT;
+int noise_thr = SHARP_NOISE_THR_DEFAULT;
+#endif
 static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 {
 	u32 scale_config = 0;
@@ -1074,6 +1113,17 @@ static int mdss_mdp_scale_setup(struct mdss_mdp_pipe *pipe)
 		pipe->pp_cfg.sharp_cfg.smooth_thr = SHARP_SMOOTH_THR_DEFAULT;
 		pipe->pp_cfg.sharp_cfg.noise_thr = SHARP_NOISE_THR_DEFAULT;
 	}
+
+#if defined(CONFIG_MDP_UPSCALE_TUNNING)
+	{
+		pr_debug("*** %s++ : sharpStr=%d\n", __func__, sharpness);
+		pipe->pp_cfg.sharp_cfg.strength = sharpness;
+		pipe->pp_cfg.sharp_cfg.edge_thr = edge_thr;
+		pipe->pp_cfg.sharp_cfg.smooth_thr = smooth_thr;
+		pipe->pp_cfg.sharp_cfg.noise_thr = noise_thr;
+		pipe->pp_cfg.sharp_cfg.flags = MDP_PP_OPS_ENABLE | MDP_PP_OPS_WRITE;
+	}
+#endif
 
 	if (dcm_state != DTM_ENTER &&
 		((pipe->src_fmt->is_yuv) &&

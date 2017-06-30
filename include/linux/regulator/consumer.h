@@ -201,6 +201,8 @@ int regulator_unregister_notifier(struct regulator *regulator,
 void *regulator_get_drvdata(struct regulator *regulator);
 void regulator_set_drvdata(struct regulator *regulator, void *data);
 
+void regulator_showall_enabled(void);
+
 #else
 
 /*

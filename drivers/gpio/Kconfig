@@ -225,6 +225,12 @@ config GPIO_TS5500
 	  blocks of the TS-5500: DIO1, DIO2 and the LCD port, and the TS-5600
 	  LCD port.
 
+config GPIO_PCAL6416A
+	bool "PCAL6416A GPIO expander"
+	depends on I2C
+	help
+	  GPIO driver for PCAL6416A I2C-based GPIO expander.
+
 config GPIO_XILINX
 	bool "Xilinx GPIO support"
 	depends on PPC_OF || MICROBLAZE
@@ -729,5 +735,8 @@ config GPIO_VIPERBOARD
           See viperboard API specification and Nano
           River Tech's viperboard.h for detailed meaning
           of the module parameters.
+
+config SEC_GPIO_DVS
+	tristate "setting Samsung GPIO debugging and verification system"
 
 endif

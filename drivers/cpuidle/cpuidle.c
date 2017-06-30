@@ -166,7 +166,6 @@ int cpuidle_idle_call(void)
 	if (drv->states[next_state].flags & CPUIDLE_FLAG_TIMER_STOP)
 		clockevents_notify(CLOCK_EVT_NOTIFY_BROADCAST_EXIT,
 				   &dev->cpu);
-
 exit:
 	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, dev->cpu);
 

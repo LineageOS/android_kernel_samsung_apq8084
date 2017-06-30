@@ -618,8 +618,7 @@ __nfqnl_enqueue_packet_gso(struct net *net, struct nfqnl_instance *queue,
 	return ret;
 }
 
-static int
-nfqnl_enqueue_packet(struct nf_queue_entry *entry, unsigned int queuenum)
+static int nfqnl_enqueue_packet(struct nf_queue_entry *entry, unsigned int queuenum)
 {
 	unsigned int queued;
 	struct nfqnl_instance *queue;
@@ -629,7 +628,7 @@ nfqnl_enqueue_packet(struct nf_queue_entry *entry, unsigned int queuenum)
 				  entry->indev : entry->outdev);
 	struct nfnl_queue_net *q = nfnl_queue_pernet(net);
 
-	/* rcu_read_lock()ed by nf_hook_slow() */
+ 	/* rcu_read_lock()ed by nf_hook_slow() */
 	queue = instance_lookup(q, queuenum);
 	if (!queue)
 		return -ESRCH;

@@ -131,4 +131,8 @@ int msm_pcie_shadow_control(struct pci_dev *dev, bool enable);
  * Return: 0 on success, negative value on error
  */
 int msm_pcie_access_control(struct pci_dev *dev, bool enable);
+#if defined(CONFIG_BCM4354) || defined(CONFIG_BCM4354_MODULE) || \
+	defined(CONFIG_BCM4358) || defined(CONFIG_BCM4358_MODULE)
+int msm_pcie_status_notify(int val);
+#endif
 #endif

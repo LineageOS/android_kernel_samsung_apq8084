@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -48,6 +48,11 @@ struct msm_camera_i2c_fn_t {
 	int32_t (*i2c_poll)(struct msm_camera_i2c_client *client,
 		uint32_t addr, uint16_t data,
 		enum msm_camera_i2c_data_type data_type);
+	int32_t (*i2c_read_multi)(struct msm_camera_i2c_client *client,
+		uint32_t read_byte, uint8_t *buffer);
+	int32_t (*i2c_write_burst)(struct msm_camera_i2c_client *client,
+		struct msm_camera_i2c_reg_array *reg_setting, uint32_t reg_size, 
+		uint32_t buf_len);
 };
 
 int32_t msm_camera_cci_i2c_read(struct msm_camera_i2c_client *client,

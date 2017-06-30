@@ -87,6 +87,7 @@ struct hdmi_tx_ctrl {
 	bool hpd_disabled;
 	bool ds_registered;
 	bool polarity_reset;
+	bool mhl_connect_status;
 	u32 present_hdcp;
 
 	u8 spd_vendor_name[9];
@@ -102,8 +103,16 @@ struct hdmi_tx_ctrl {
 	void *codec_data;
 	u32 (*play_short_silent_audio) (void *codec_data);
 	bool power_enabled[HDMI_TX_MAX_PM];
+#if defined(CONFIG_SEC_MHL_SUPPORT)
+        int is_power_enabled[HDMI_TX_MAX_PM];
+#endif
+
 };
 
 #define IS_CEC_WAKEUP_EN(ctrl) \
 	is_hdmi_cec_wakeup_en((ctrl)->feature_data[HDMI_TX_FEAT_CEC])
+#if defined(CONFIG_SEC_MHL_SUPPORT)
+int hdmi_hpd_status(void);
+#endif
+
 #endif /* __MDSS_HDMI_TX_H__ */

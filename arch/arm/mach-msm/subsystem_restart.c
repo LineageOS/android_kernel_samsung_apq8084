@@ -38,7 +38,9 @@
 #include <soc/qcom/subsystem_notif.h>
 #include <soc/qcom/socinfo.h>
 #include <soc/qcom/sysmon.h>
-
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#endif
 #include <asm/current.h>
 
 static int enable_debug;
@@ -744,6 +746,11 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	track->p_state = SUBSYS_NORMAL;
 	wake_unlock(&dev->wake_lock);
 	spin_unlock_irqrestore(&track->s_lock, flags);
+
+
+	/* Workaround for ssr exception when ap was during sleep.
+	Hold wake lock for 15 sec to prevent ap sleep. */
+	wake_lock_timeout(&dev->wake_lock, 15*HZ);
 }
 
 static void __subsystem_restart_dev(struct subsys_device *dev)
@@ -788,7 +795,27 @@ int subsystem_restart_dev(struct subsys_device *dev)
 	}
 
 	name = dev->desc->name;
-
+#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_SSR_DEBUG_LEVEL_CHK
+	if (!sec_debug_is_enabled_for_ssr())
+#else
+	if (!sec_debug_is_enabled())
+#endif
+	{
+		pr_info("[%s]: SSR start. crash:[%s]\n",__func__,name);
+		/* ADSP cannot work properly after ADSP SSR. So restart SOC. */
+		if (!strcmp("adsp", name))
+#ifdef CONFIG_SEC_LENTIS_PROJECT
+			dev->restart_level = RESET_SUBSYS_COUPLED;
+#else
+			dev->restart_level = RESET_SOC;
+#endif
+		else
+			dev->restart_level = RESET_SUBSYS_COUPLED; //Why is it delete the RESET_SUBSYS_INDEPENDENT on MSM8974 ?
+	}
+	else
+		dev->restart_level = RESET_SOC;
+#endif
 	/*
 	 * If a system reboot/shutdown is underway, ignore subsystem errors.
 	 * However, print a message so that we know that a subsystem behaved
@@ -987,6 +1014,8 @@ static int subsys_device_open(struct inode *inode, struct file *file)
 	struct subsys_device *device, *subsys_dev = 0;
 	void *retval;
 
+	pr_info("%s\n",__func__);
+
 	mutex_lock(&subsys_list_lock);
 	list_for_each_entry(device, &subsys_list, list)
 		if (MINOR(device->dev_no) == iminor(inode))
@@ -1006,6 +1035,8 @@ static int subsys_device_open(struct inode *inode, struct file *file)
 static int subsys_device_close(struct inode *inode, struct file *file)
 {
 	struct subsys_device *device, *subsys_dev = 0;
+
+	pr_info("%s\n",__func__);
 
 	mutex_lock(&subsys_list_lock);
 	list_for_each_entry(device, &subsys_list, list)

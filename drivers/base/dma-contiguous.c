@@ -302,7 +302,7 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 			 (unsigned long)sel_size / SZ_1M);
 
 		if (dma_contiguous_reserve_area(sel_size, &base, limit, NULL,
-		    CMA_RESERVE_AREA, false) == 0)
+		    CMA_RESERVE_AREA ? 0 : 1, false) == 0)
 			dma_contiguous_def_base = base;
 	}
 #ifdef CONFIG_OF
@@ -571,8 +571,8 @@ unsigned long dma_alloc_from_contiguous(struct device *dev, int count,
 		if (ret == 0) {
 			break;
 		} else if (ret != -EBUSY) {
-			pfn = 0;
 			clear_cma_bitmap(cma, pfn, count);
+			pfn = 0;
 			break;
 		}
 		clear_cma_bitmap(cma, pfn, count);

@@ -976,8 +976,12 @@ void dbg_print_reg(const char *name, int reg)
 
 	write_unlock_irqrestore(&dbg_dwc3_data.lck, flags);
 
+#if 0
 	if (dbg_dwc3_data.tty != 0)
 		pr_notice("%s = 0x%08x\n", name, reg);
+#else
+	pr_err("%s = 0x%08x\n", name, reg);
+#endif
 }
 
 /**

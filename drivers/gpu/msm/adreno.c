@@ -23,6 +23,8 @@
 #include <linux/msm-bus-board.h>
 #include <linux/msm-bus.h>
 
+#include <linux/pm_runtime.h>
+
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
 #include "kgsl_cffdump.h"
@@ -176,11 +178,11 @@ static void adreno_input_event(struct input_handle *handle, unsigned int type,
 	 * already in slumber schedule the wake.
 	 */
 
-	if (device->state == KGSL_STATE_NAP) {
-		/*
-		 * Set the wake on touch bit to keep from coming back here and
-		 * keeping the device in nap without rendering
-		 */
+	 if (device->state == KGSL_STATE_NAP) {
+	 	/*
+	 	 * Set the wake on touch bit to keep from coming back here and
+	 	 * keeping the device in nap without rendering
+	 	 */
 
 		device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
@@ -1329,6 +1331,8 @@ adreno_identify_gpu(struct adreno_device *adreno_dev)
 						ADRENO_REG_UNUSED;
 		}
 	}
+	if (adreno_dev->gpudev->gpudev_init)
+		adreno_dev->gpudev->gpudev_init(adreno_dev);
 }
 
 static struct platform_device_id adreno_id_table[] = {
@@ -1958,15 +1962,45 @@ static int adreno_start(struct kgsl_device *device, int priority)
 	int nice = task_nice(current);
 	int ret;
 
+	/* default 501 will allow PC to happen, set it to 490 to prevent PC happening during adreno_start; */
+	pm_qos_update_request(&device->pwrctrl.pm_qos_req_dma, 490);
+
 	if (priority && (_wake_nice < nice))
 		set_user_nice(current, _wake_nice);
 
 	ret = _adreno_start(adreno_dev);
-
 	if (priority)
 		set_user_nice(current, nice);
 
 	return ret;
+}
+
+/**
+ * adreno_vbif_clear_pending_transactions() - Clear transactions in VBIF pipe
+ * @device: Pointer to the device whose VBIF pipe is to be cleared
+ */
+static void adreno_vbif_clear_pending_transactions(struct kgsl_device *device)
+{
+	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
+	unsigned int mask = adreno_dev->gpudev->vbif_xin_halt_ctrl0_mask;
+	unsigned int val;
+	unsigned long wait_for_vbif;
+
+	adreno_writereg(adreno_dev, ADRENO_REG_VBIF_XIN_HALT_CTRL0, mask);
+	/* wait for the transactions to clear */
+	wait_for_vbif = jiffies + msecs_to_jiffies(100);
+	while (1) {
+		adreno_readreg(adreno_dev,
+			ADRENO_REG_VBIF_XIN_HALT_CTRL1, &val);
+		if ((val & mask) == mask)
+			break;
+		if (time_after(jiffies, wait_for_vbif)) {
+			KGSL_DRV_ERR(device,
+				"Wait limit reached for VBIF XIN Halt\n");
+			break;
+		}
+	}
+	adreno_writereg(adreno_dev, ADRENO_REG_VBIF_XIN_HALT_CTRL0, 0);
 }
 
 static int adreno_stop(struct kgsl_device *device)
@@ -2018,6 +2052,9 @@ int adreno_reset(struct kgsl_device *device)
 	int ret = -EINVAL;
 	struct kgsl_mmu *mmu = &device->mmu;
 	int i = 0;
+
+	/* clear pending vbif transactions before reset */
+	adreno_vbif_clear_pending_transactions(device);
 
 	/* Try soft reset first, for non mmu fault case only */
 	if (!atomic_read(&mmu->fault)) {
@@ -3227,6 +3264,7 @@ static const struct kgsl_functable adreno_functable = {
 	.drawctxt_create = adreno_drawctxt_create,
 	.drawctxt_detach = adreno_drawctxt_detach,
 	.drawctxt_destroy = adreno_drawctxt_destroy,
+	.drawctxt_dump = adreno_drawctxt_dump,
 	.setproperty = adreno_setproperty,
 	.drawctxt_sched = adreno_drawctxt_sched,
 	.resume = adreno_dispatcher_start,

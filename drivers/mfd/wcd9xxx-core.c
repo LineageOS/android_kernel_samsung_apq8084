@@ -31,7 +31,7 @@
 #include <sound/soc.h>
 
 #define WCD9XXX_REGISTER_START_OFFSET 0x800
-#define WCD9XXX_SLIM_RW_MAX_TRIES 3
+#define WCD9XXX_SLIM_RW_MAX_TRIES 10
 #define SLIMBUS_PRESENT_TIMEOUT 100
 
 #define MAX_WCD9XXX_DEVICE	4
@@ -258,7 +258,7 @@ static int wcd9xxx_slim_read_device(struct wcd9xxx *wcd9xxx, unsigned short reg,
 		mutex_unlock(&wcd9xxx->xfer_lock);
 		if (likely(ret == 0) || (--slim_read_tries == 0))
 			break;
-		usleep_range(5000, 5100);
+		usleep_range(10000, 10100);
 	}
 
 	if (ret)
@@ -360,7 +360,7 @@ static int wcd9xxx_slim_write_device(struct wcd9xxx *wcd9xxx,
 		mutex_unlock(&wcd9xxx->xfer_lock);
 		if (likely(ret == 0) || (--slim_write_tries == 0))
 			break;
-		usleep_range(5000, 5100);
+		usleep_range(10000, 10100);
 	}
 
 	if (ret)
@@ -1232,13 +1232,13 @@ static int wcd9xxx_i2c_probe(struct i2c_client *client,
 		if (!pdata) {
 			dev_dbg(&client->dev, "no platform data?\n");
 			ret = -EINVAL;
-			goto fail;
+			goto err_codec;
 		}
 		if (i2c_check_functionality(client->adapter,
 					    I2C_FUNC_I2C) == 0) {
 			dev_dbg(&client->dev, "can't talk I2C?\n");
 			ret = -EIO;
-			goto fail;
+			goto err_codec;
 		}
 		dev_set_drvdata(&client->dev, wcd9xxx);
 		wcd9xxx->dev = &client->dev;
@@ -1860,7 +1860,6 @@ static int wcd9xxx_device_up(struct wcd9xxx *wcd9xxx)
 		wcd9xxx->slim_device_bootup = false;
 		return 0;
 	}
-
 	dev_info(wcd9xxx->dev, "%s: codec bring up\n", __func__);
 	wcd9xxx_bring_up(wcd9xxx);
 	ret = wcd9xxx_irq_init(wcd9xxx_res);

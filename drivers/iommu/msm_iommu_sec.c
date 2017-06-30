@@ -498,7 +498,6 @@ static int msm_iommu_sec_ptbl_map_range(struct msm_iommu_drvdata *iommu_drvdata,
 				return -EINVAL;
 			cnt += sgiter->length / SZ_1M;
 		}
-
 		pa_list = kmalloc(cnt * sizeof(*pa_list), GFP_KERNEL);
 		if (!pa_list)
 			return -ENOMEM;

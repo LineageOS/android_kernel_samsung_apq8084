@@ -21,10 +21,12 @@ struct kgsl_sync_timeline {
 	unsigned int last_timestamp;
 	struct kgsl_device *device;
 	u32 context_id;
+	spinlock_t lock;
 };
 
 struct kgsl_sync_pt {
 	struct sync_pt pt;
+	struct kgsl_context *context;
 	unsigned int timestamp;
 };
 
