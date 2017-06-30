@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -20434,6 +20434,10 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
                 }
 
         countOffset = ( (0 != pIe->arraybound) * ( *(tANI_U16* )(pFrm + pIe->countOffset)));
+        if (0 != pIe->arraybound && countOffset >= pIe->arraybound) {
+            status |= DOT11F_DUPLICATE_IE;
+            goto skip_dup_ie;
+        }
                 switch (pIe->sig)
                 {
                 case SigIeAPName:
@@ -20680,11 +20684,7 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
                         status |= dot11fUnpackIeMobilityDomain(pCtx, pBufRemaining, len, ( tDot11fIEMobilityDomain* )(pFrm + pIe->offset + sizeof(tDot11fIEMobilityDomain)*countOffset) );
                             break;
                 case SigIeNeighborReport:
-                        if (countOffset < MAX_SUPPORTED_NEIGHBOR_RPT) {
-                            status |= dot11fUnpackIeNeighborReport(pCtx, pBufRemaining, len, ( tDot11fIENeighborReport* )(pFrm + pIe->offset + sizeof(tDot11fIENeighborReport)*countOffset) );
-                        } else {
-                            status |= DOT11F_BUFFER_OVERFLOW;
-                        }
+                        status |= dot11fUnpackIeNeighborReport(pCtx, pBufRemaining, len, ( tDot11fIENeighborReport* )(pFrm + pIe->offset + sizeof(tDot11fIENeighborReport)*countOffset) );
                             break;
                 case SigIeOBSSScanParameters:
                         status |= dot11fUnpackIeOBSSScanParameters(pCtx, pBufRemaining, len, ( tDot11fIEOBSSScanParameters* )(pFrm + pIe->offset + sizeof(tDot11fIEOBSSScanParameters)*countOffset) );
@@ -20924,6 +20924,7 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
             status |= DOT11F_UNKNOWN_IES;
         }
 
+skip_dup_ie:
         pBufRemaining += len;
 
          if (len > nBufRemaining)

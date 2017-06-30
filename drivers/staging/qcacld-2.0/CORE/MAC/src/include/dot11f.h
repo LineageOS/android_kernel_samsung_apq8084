@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015, 2017 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -91,8 +91,8 @@ typedef tANI_U32 tDOT11F_U64[2];
 #define DOT11F_BUFFER_OVERFLOW       ( 0x10000005 )
 #define DOT11F_MANDATORY_TLV_MISSING ( 0x00001000 )
 #define DOT11F_FAILED(code)          ( (code) & 0x10000000 )
-#define DOT11F_WARNED(code)          ( ( ( 0 == (code) ) & 0x10000000 ) && code)
 #define DOT11F_SUCCEEDED(code)       ( (code) == 0 )
+#define DOT11F_WARNED(code)          (!DOT11F_SUCCEEDED(code) && !DOT11F_FAILED(code))
 
 /*********************************************************************
  * Fixed Fields                                                      *
