@@ -173,7 +173,7 @@ static int sk_diag_fill(struct sock *sk, struct sk_buff *skb,
 
 	if ((req->pdiag_show & PACKET_SHOW_FILTER) &&
 	    sock_diag_put_filterinfo(may_report_filterinfo, sk, skb,
-	    			     PACKET_DIAG_FILTER))
+				     PACKET_DIAG_FILTER))
 		goto out_nlmsg_trim;
 
 	return nlmsg_end(skb, nlh);
