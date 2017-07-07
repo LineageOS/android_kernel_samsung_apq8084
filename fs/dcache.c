@@ -211,6 +211,49 @@ static inline int dentry_cmp(const struct dentry *dentry, const unsigned char *c
 	return dentry_string_cmp(cs, ct, tcount);
 }
 
+void take_dentry_name_snapshot(struct name_snapshot *name, struct dentry *dentry)
+{
+	/*
+	 * We don't have struct external_name as in the upstream patch,
+	 * so we allocate space for a name with max length, if required.
+	 * We do this under lock and only leave the lock to call kzalloc
+	 * if the name was external.  At successful return from kzalloc,
+	 * we have two cases:  Either the name is still external, or a
+	 * rename during kzalloc shortened the name so it's inlined now.
+	 * If so, fall through and don't forget to kfree the allocated
+	 * name->name.
+	 */
+	name->name = NULL;
+	spin_lock(&dentry->d_lock);
+	if (unlikely(dname_external(dentry))) {
+		spin_unlock(&dentry->d_lock);
+		name->name = (const char *) kzalloc(NAME_MAX + 1, GFP_KERNEL);
+		if (!name->name)
+			return;
+		spin_lock(&dentry->d_lock);
+		if (dname_external(dentry)) {
+			strncat((char *) name->name, dentry->d_name.name,
+				NAME_MAX);
+			spin_unlock(&dentry->d_lock);
+			return;
+		}
+	}
+	memcpy(name->inline_name, dentry->d_iname, DNAME_INLINE_LEN);
+	spin_unlock(&dentry->d_lock);
+	if (name->name)
+		kfree(name->name);
+	name->name = name->inline_name;
+}
+EXPORT_SYMBOL(take_dentry_name_snapshot);
+
+void release_dentry_name_snapshot(struct name_snapshot *name)
+{
+	if (unlikely(name->name != name->inline_name)) {
+		kfree(name->name);
+	}
+}
+EXPORT_SYMBOL(release_dentry_name_snapshot);
+
 static void __d_free(struct rcu_head *head)
 {
 	struct dentry *dentry = container_of(head, struct dentry, d_u.d_rcu);
