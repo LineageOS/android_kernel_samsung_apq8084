@@ -26,6 +26,24 @@
 		sdhc2 = &sdhc_2; /* SDC2 SD card slot */
 		spi0 = &spi_0;
 	};
+	
+	firmware: firmware {
+		android {
+			compatible = "android,firmware";
+			fstab {
+				compatible = "android,fstab";
+				system {
+					compatible = "android,system";
+					dev = "/dev/block/platform/msm_sdcc.1/by-name/system";
+					type = "ext4";
+					mnt_flags = "ro,barrier=1,discard";
+					fsmgr_flags = "wait";
+					status = "ok";
+				};
+
+			};
+		};
+    };
 
 	soc: soc { };
 
