@@ -548,6 +548,7 @@ int32_t msm_camera_cci_i2c_poll(struct msm_camera_i2c_client *client,
 {
 	int32_t rc;
 	int i;
+
 	S_I2C_DBG("%s: addr: 0x%x data: 0x%x dt: %d\n",
 		__func__, addr, data, data_type);
 

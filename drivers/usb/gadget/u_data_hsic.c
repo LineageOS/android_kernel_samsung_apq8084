@@ -155,7 +155,7 @@ static int ghsic_data_alloc_requests(struct usb_ep *ep, struct list_head *head,
 	struct usb_request	*req;
 	unsigned long		flags;
 
-	pr_debug("%s: ep:%s head:%pK num:%d cb:%p", __func__,
+	pr_debug("%s: ep:%s head:%pK num:%d cb:%pK", __func__,
 			ep->name, head, num, cb);
 
 	for (i = 0; i < num; i++) {

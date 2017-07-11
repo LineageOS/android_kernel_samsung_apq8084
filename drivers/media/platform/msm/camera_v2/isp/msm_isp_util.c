@@ -442,10 +442,10 @@ long msm_isp_ioctl(struct v4l2_subdev *sd,
 
 	if (!vfe_dev || !vfe_dev->vfe_vbif_base ||
 		!vfe_dev->vfe_base) {
-		pr_err("%s:%d failed: invalid params %p\n",
+		pr_err("%s:%d failed: invalid params %pK\n",
 			__func__, __LINE__, vfe_dev);
 		if (vfe_dev)
-			pr_err("%s:%d failed %p %p\n", __func__,
+			pr_err("%s:%d failed %pK %pK\n", __func__,
 				__LINE__, vfe_dev->vfe_base,
 				vfe_dev->vfe_vbif_base);
 		return -EINVAL;
