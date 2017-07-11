@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -671,7 +671,7 @@ static int venus_hfi_read_register(struct venus_hfi_device *device, u32 reg)
 	}
 	rc = readl_relaxed((u32)base_addr + reg);
 	rmb();
-	dprintk(VIDC_DBG, "Base addr: 0x%p, read from: 0x%x, value: 0x%x...\n",
+	dprintk(VIDC_DBG, "Base addr: 0x%pK, read from: 0x%x, value: 0x%x...\n",
 		base_addr, reg, rc);
 
 	return rc;
@@ -1142,14 +1142,14 @@ static int __set_ocmem(struct venus_hfi_device *device, bool locked)
 	struct on_chip_mem *ocmem;
 
 	if (!device) {
-		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%p\n",
+		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%pK\n",
 				__func__, device);
 		return -EINVAL;
 	}
 
 	ocmem = &device->resources.ocmem;
 	if (!ocmem->buf) {
-		dprintk(VIDC_ERR, "Invalid params, ocmem_buffer: 0x%p\n",
+		dprintk(VIDC_ERR, "Invalid params, ocmem_buffer: 0x%pK\n",
 			ocmem->buf);
 		return -EINVAL;
 	}
@@ -1178,7 +1178,7 @@ static int __unset_ocmem(struct venus_hfi_device *device)
 	int rc = 0;
 
 	if (!device) {
-		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%p\n",
+		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%pK\n",
 				__func__, device);
 		rc = -EINVAL;
 		goto ocmem_unset_failed;
@@ -1209,7 +1209,7 @@ static int __alloc_set_ocmem(struct venus_hfi_device *device, bool locked)
 	int rc = 0;
 
 	if (!device || !device->res) {
-		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%p\n",
+		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%pK\n",
 				__func__, device);
 		return -EINVAL;
 	}
@@ -1249,7 +1249,7 @@ static int __unset_free_ocmem(struct venus_hfi_device *device)
 	int rc = 0;
 
 	if (!device || !device->res) {
-		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%p\n",
+		dprintk(VIDC_ERR, "%s Invalid param, device: 0x%pK\n",
 				__func__, device);
 		return -EINVAL;
 	}
@@ -1373,7 +1373,7 @@ static int venus_hfi_halt_axi(struct venus_hfi_device *device)
 	u32 reg;
 	int rc = 0;
 	if (!device) {
-		dprintk(VIDC_ERR, "Invalid input: %p\n", device);
+		dprintk(VIDC_ERR, "Invalid input: %pK\n", device);
 		return -EINVAL;
 	}
 	if (venus_hfi_power_enable(device)) {
@@ -1403,7 +1403,7 @@ static inline int venus_hfi_power_off(struct venus_hfi_device *device)
 	int rc = 0;
 
 	if (!device) {
-		dprintk(VIDC_ERR, "Invalid params: %p\n", device);
+		dprintk(VIDC_ERR, "Invalid params: %pK\n", device);
 		return -EINVAL;
 	}
 	if (!device->power_enabled) {
