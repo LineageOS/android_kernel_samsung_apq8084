@@ -149,7 +149,7 @@ static ssize_t store_boot_stat(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(boot_stat, 0664, NULL, store_boot_stat);
+static DEVICE_ATTR(boot_stat, S_IWUSR | S_IWGRP, NULL, store_boot_stat);
 
 static int __init sec_bsp_init(void)
 {

@@ -1406,7 +1406,7 @@ static ssize_t  sysfs_powerkey_onoff_show(struct device *dev,
 		return snprintf(buf, 5, "%d\n", pon->powerkey_state);
 	}
 }
-static DEVICE_ATTR(sec_powerkey_pressed, 0664 , sysfs_powerkey_onoff_show, NULL);
+static DEVICE_ATTR(sec_powerkey_pressed, 0444 , sysfs_powerkey_onoff_show, NULL);
 
 
 #ifdef CONFIG_SEC_PM_DEBUG
