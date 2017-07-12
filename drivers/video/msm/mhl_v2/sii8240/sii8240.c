@@ -5241,7 +5241,7 @@ static ssize_t sii8240_rda_mhl_version(struct device *dev,
 	return ret;
 
 }
-static DEVICE_ATTR(mhl_version, 0644, sii8240_rda_mhl_version, NULL);
+static DEVICE_ATTR(mhl_version, S_IRUGO, sii8240_rda_mhl_version, NULL);
 
 
 #if CONFIG_MHL_SWING_LEVEL

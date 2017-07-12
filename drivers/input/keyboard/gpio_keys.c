@@ -861,7 +861,7 @@ static ssize_t  sysfs_key_onoff_show(struct device *dev,
 	pr_info("key state:%d\n",  state);
 	return snprintf(buf, 5, "%d\n", state);
 }
-static DEVICE_ATTR(sec_key_pressed, 0664 , sysfs_key_onoff_show, NULL);
+static DEVICE_ATTR(sec_key_pressed, S_IRUGO , sysfs_key_onoff_show, NULL);
 
 extern int get_pkey_press(void);
 #ifdef CONFIG_SEC_PM
@@ -891,7 +891,7 @@ static ssize_t sysfs_key_code_show(struct device *dev,
 
 	return strlen(buf);
 }
-static DEVICE_ATTR(sec_key_pressed_code, 0664 , sysfs_key_code_show, NULL);
+static DEVICE_ATTR(sec_key_pressed_code, S_IRUGO , sysfs_key_code_show, NULL);
 
 
 /* the volume keys can be the wakeup keys in special case */
@@ -929,7 +929,7 @@ out:
 	kfree(bits);
 	return count;
 }
-static DEVICE_ATTR(wakeup_keys, 0664, NULL, wakeup_enable);
+static DEVICE_ATTR(wakeup_keys, S_IWUSR | S_IWGRP, NULL, wakeup_enable);
 
 static int gpio_keys_probe(struct platform_device *pdev)
 {
