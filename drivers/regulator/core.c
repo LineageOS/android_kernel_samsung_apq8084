@@ -1614,6 +1614,13 @@ static int regulator_ena_gpio_ctrl(struct regulator_dev *rdev, bool enable)
 	return 0;
 }
 
+#if defined(CONFIG_MOTOR_DRV_MAX77828) || defined(CONFIG_MOTOR_DRV_MAX77804K) || defined(CONFIG_MOTOR_DRV_MAX77843)
+void regulator_prime_enabled(struct regulator *regulator)
+{
+	regulator->rdev->use_count = 1;
+}
+#endif
+
 static int _regulator_do_enable(struct regulator_dev *rdev)
 {
 	int ret, delay;

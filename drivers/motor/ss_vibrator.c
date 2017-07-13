@@ -420,6 +420,8 @@ static DEVICE_ATTR(pwm_value, 0644, intensity_show, intensity_store);
 
 
 #if defined(CONFIG_MOTOR_DRV_MAX77828) || defined(CONFIG_MOTOR_DRV_MAX77804K) || defined(CONFIG_MOTOR_DRV_MAX77843)
+extern void regulator_prime_enabled(struct regulator *regulator);
+
 static void regulator_power_onoff(int onoff)
 {
 	int ret;
@@ -433,6 +435,8 @@ static void regulator_power_onoff(int onoff)
 				PTR_ERR(reg_ldo));
 			return;
 		}
+		/* Avoid kernel stackdump "unbalanced disables" */
+		regulator_prime_enabled(reg_ldo);
 	}
 
 	if (onoff) {
