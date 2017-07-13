@@ -325,7 +325,7 @@
 			regulator-max-microvolt = <3600000>;
 			qcom,init-voltage = <3000000>;
 			qcom,init-current = <460>;
-			regulator-boot-on;
+			//regulator-boot-on;
 			status = "okay";
 		};
 	};
