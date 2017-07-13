@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "57ae372a_60790239",
+        "filename": "drivers/platform/msm/qpnp-power-on.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 1409,
+      "author": {
+        "id": 11801
+      },
+      "writtenOn": "2017-07-13T10:33:26Z",
+      "side": 0,
+      "message": "Maybe convert this to that as well? (S_IRUSR | S_IRGRP | S_IROTH)?",
+      "revId": "f1f997bb2aa14231c38c2cd423ac6da380356b03",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
