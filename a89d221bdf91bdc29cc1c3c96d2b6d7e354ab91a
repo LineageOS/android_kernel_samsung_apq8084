@@ -16,6 +16,24 @@
       "revId": "a89d221bdf91bdc29cc1c3c96d2b6d7e354ab91a",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5b908cdc_556f6f1b",
+        "filename": "arch/arm/kernel/perf_event.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2017-07-14T14:32:20Z",
+      "side": 1,
+      "message": "These spaces are in the upstream patch I took from caf :(",
+      "parentUuid": "62d598cc_ed1267e5",
+      "revId": "a89d221bdf91bdc29cc1c3c96d2b6d7e354ab91a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
