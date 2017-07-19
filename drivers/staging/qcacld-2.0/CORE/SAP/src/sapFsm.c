@@ -3278,6 +3278,7 @@ sapFsm
                     cbMode = sme_GetCBPhyStateFromCBIniValue(
                                 sme_GetChannelBondingMode5G(hHal));
 
+                 cbMode = sme_GetCBPhyStateFromCBIniValue(cbMode);
 #ifdef WLAN_ENABLE_CHNL_MATRIX_RESTRICTION
                  temp_chan = sapContext->channel;
                  pNol = pMac->sap.SapDfsInfo.sapDfsChannelNolList;
