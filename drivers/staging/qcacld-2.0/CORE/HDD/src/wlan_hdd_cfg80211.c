@@ -841,6 +841,9 @@ wlan_hdd_pno_config_policy[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1] = {
 	[QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT] = {
 		.type = NLA_U8
 	},
+	[QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID] = {
+		.type = NLA_U32
+	},
 };
 
 static const struct nla_policy
@@ -4353,12 +4356,12 @@ static int wlan_hdd_cfg80211_set_epno_list(struct wiphy *wiphy,
 	req_msg->num_networks = num_networks;
 
 	/* Parse and fetch request Id */
-	if (!tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]) {
+	if (!tb[QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID]) {
 		hddLog(LOGE, FL("attr request id failed"));
 		goto fail;
 	}
 	req_msg->request_id = nla_get_u32(
-	    tb[QCA_WLAN_VENDOR_ATTR_EXTSCAN_SUBCMD_CONFIG_PARAM_REQUEST_ID]);
+	    tb[QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID]);
 
 	req_msg->session_id = adapter->sessionId;
 	hddLog(LOG1, FL("Req Id %u Session Id %d"),

@@ -1189,6 +1189,9 @@ enum qca_wlan_vendor_attr_pno_config_params {
 	/* Unsigned 8-bit value; auth bit field for matching WPA IE */
 	QCA_WLAN_VENDOR_ATTR_PNO_SET_LIST_PARAM_EPNO_NETWORK_AUTH_BIT = 12,
 
+	/* Unsigned 32-bit value, representing the PNO Request ID */
+	QCA_WLAN_VENDOR_ATTR_PNO_CONFIG_REQUEST_ID = 13,
+
 	/* keep last */
 	QCA_WLAN_VENDOR_ATTR_PNO_AFTER_LAST,
 	QCA_WLAN_VENDOR_ATTR_PNO_MAX =
