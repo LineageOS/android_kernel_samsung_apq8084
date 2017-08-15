@@ -3651,11 +3651,6 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		goto exit;
 	}
 
-	if (!capable(CAP_NET_ADMIN)) {
-		ret = -EPERM;
-		goto exit;
-	}
-
 	if (!ifr->ifr_data) {
 		ret = -EINVAL;
 		goto exit;
