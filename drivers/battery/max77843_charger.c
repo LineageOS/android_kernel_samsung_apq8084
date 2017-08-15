@@ -1187,6 +1187,9 @@ static int max77843_chg_set_property(struct power_supply *psy,
 		max77843_set_input_current(charger,
 			val->intval);
 		break;
+	case POWER_SUPPLY_PROP_ENERGY_FULL:
+		max77843_set_topoff_current(charger, val->intval, (70 * 60));
+		break;
 #if defined(CONFIG_BATTERY_SWELLING)
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		pr_info("%s: float voltage(%d)\n", __func__, val->intval);
