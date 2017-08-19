@@ -553,7 +553,7 @@ int wacom_i2c_flash(struct wacom_i2c *wac_i2c)
 	unsigned long max_address = 0;
 	unsigned long start_address;
 	int i, ret = 0;
-	int eraseBlock[200], eraseBlockNum;
+	int eraseBlock[BLOCK_NUM_W9012], eraseBlockNum;
 
 	if (wac_i2c->ic_mpu_ver != MPU_W9007 && wac_i2c->ic_mpu_ver != MPU_W9010 && wac_i2c->ic_mpu_ver != MPU_W9012)
 		return -EXIT_FAIL_GET_MPU_TYPE;
