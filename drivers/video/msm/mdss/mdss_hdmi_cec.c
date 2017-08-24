@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2014, 2017 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -24,7 +24,9 @@
 
 /* Reference: HDMI 1.4a Specification section 7.1 */
 #define RETRANSMIT_MAX_NUM	5
-#define MAX_OPERAND_SIZE	15
+#define MAX_OPERAND_SIZE	14
+/* total size:  HEADER block (1) + opcode block (1) + operands (14) */
+#define MAX_CEC_FRAME_SIZE      (MAX_OPERAND_SIZE + 2)
 
 #define CEC_OP_SET_STREAM_PATH  0x86
 #define CEC_OP_KEY_PRESS        0x44
@@ -462,7 +464,8 @@ static void hdmi_cec_msg_recv(struct work_struct *work)
 		msg_node->msg.sender_id, msg_node->msg.recvr_id,
 		msg_node->msg.frame_size);
 
-	if (msg_node->msg.frame_size < 1) {
+	if (msg_node->msg.frame_size < 1
+	    || msg_node->msg.frame_size > MAX_CEC_FRAME_SIZE) {
 		DEV_ERR("%s: invalid message (frame length = %d)",
 			__func__, msg_node->msg.frame_size);
 		kfree(msg_node);
@@ -484,7 +487,7 @@ static void hdmi_cec_msg_recv(struct work_struct *work)
 		msg_node->msg.operand[i] = data & 0xFF;
 	}
 
-	for (; i < 14; i++)
+	for (; i < MAX_OPERAND_SIZE; i++)
 		msg_node->msg.operand[i] = 0;
 
 	DEV_DBG("%s: CEC read frame done\n", __func__);
