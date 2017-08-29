@@ -636,20 +636,28 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
-#ifdef CONFIG_SEC_LENTIS_PROJECT
-#define BOARD_REV	"androidboot.revision"
-#else
-#define BOARD_REV	"board_rev"
-#endif
-
-static int __init msm_hw_rev_setup(char *p)
+/* We need two different HW revision setup functions.  Some devices like
+ * kccat6 and trltexx use "board_rev" on the commandline, other devices
+ * like lentislte and trltetmo use "androidboot.revision" instead.  What
+ * a mess.
+ */
+static int __init msm_hw_rev_setup_board_rev(char *p)
 {
 	system_rev = memparse(p, NULL);
 
-	printk(BOARD_REV " %x\n", system_rev);
+	printk("board_rev %x\n", system_rev);
 	return 0;
 }
-early_param(BOARD_REV, msm_hw_rev_setup);
+early_param("board_rev", msm_hw_rev_setup_board_rev);
+
+static int __init msm_hw_rev_setup_aboot_rev(char *p)
+{
+	system_rev = memparse(p, NULL);
+
+	printk("androidboot.revision" " %x\n", system_rev);
+	return 0;
+}
+early_param("androidboot.revision", msm_hw_rev_setup_aboot_rev);
 
 static void __init request_standard_resources(struct machine_desc *mdesc)
 {
