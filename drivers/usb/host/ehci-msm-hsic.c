@@ -2269,7 +2269,6 @@ static int ehci_hsic_msm_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int msm_hsic_pm_suspend(struct device *dev)
 {
-	int ret;
 	struct usb_hcd *hcd = dev_get_drvdata(dev);
 	struct msm_hsic_hcd *mehci = hcd_to_hsic(hcd);
 
@@ -2286,12 +2285,7 @@ static int msm_hsic_pm_suspend(struct device *dev)
 	if (device_may_wakeup(dev) && !mehci->async_irq)
 		enable_irq_wake(hcd->irq);
 
-	ret = msm_hsic_suspend(mehci);
-
-	if (ret && device_may_wakeup(dev) && !mehci->async_irq)
-		disable_irq_wake(hcd->irq);
-
-	return ret;
+	return 0;
 }
 
 static int msm_hsic_pm_suspend_noirq(struct device *dev)
