@@ -2047,10 +2047,10 @@ static int w1_ds28e15_add_slave(struct w1_slave *sl)
 
 	if(!verification)
 	{
-		w1_ds28e15_update_slave_info(sl);
 		pr_info("%s:uevent send 1\n", __func__);
 		input_report_switch(sl->master->bus_master->input, SW_W1, 1);
 		input_sync(sl->master->bus_master->input);
+		w1_ds28e15_update_slave_info(sl);
 	}
 
 	printk(KERN_ERR "w1_ds28e15_add_slave end, skip_setup=%d, err=%d\n", skip_setup, err);
