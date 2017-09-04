@@ -220,7 +220,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
         goto free;
     }
 
-    challengeTextArray = vos_mem_malloc(SIR_MAC_AUTH_CHALLENGE_LENGTH);
+    challengeTextArray = vos_mem_malloc(SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH);
     if(!challengeTextArray) {
         limLog(pMac, LOGE, FL("failed to allocate memory"));
         goto free;
@@ -229,7 +229,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     vos_mem_set(rxAuthFrame, sizeof(tSirMacAuthFrameBody), 0);
     vos_mem_set(authFrame, sizeof(tSirMacAuthFrameBody), 0);
     vos_mem_set(plainBody, LIM_ENCR_AUTH_BODY_LEN, 0);
-    vos_mem_set(challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH, 0);
+    vos_mem_set(challengeTextArray, SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH, 0);
 
     /// Determine if WEP bit is set in the FC or received MAC header
     if (pHdr->fc.wep)
@@ -282,7 +282,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
             goto free;
         }
 
-        if (frameLen < LIM_ENCR_AUTH_BODY_LEN)
+        if (frameLen < LIM_ENCR_AUTH_BODY_LEN_SAP)
         {
             // Log error
             limLog(pMac, LOGE,
@@ -948,7 +948,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             /*
                              * get random bytes and use as challenge text
                              */
-                            if( !VOS_IS_STATUS_SUCCESS( vos_rand_get_bytes( 0, (tANI_U8 *)challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH ) ) )
+                            if( !VOS_IS_STATUS_SUCCESS( vos_rand_get_bytes( 0, (tANI_U8 *)challengeTextArray, SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH ) ) )
                             {
                                limLog(pMac, LOGE,FL("Challenge text preparation failed in limProcessAuthFrame"));
                                goto free;
@@ -971,10 +971,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
                             authFrame->authStatusCode =
                             eSIR_MAC_SUCCESS_STATUS;
                             authFrame->type   = SIR_MAC_CHALLENGE_TEXT_EID;
-                            authFrame->length = SIR_MAC_AUTH_CHALLENGE_LENGTH;
+                            authFrame->length = SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH;
                             vos_mem_copy(authFrame->challengeText,
                                          pAuthNode->challengeText,
-                                         SIR_MAC_AUTH_CHALLENGE_LENGTH);
+                                         SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH);
 
                             limSendAuthMgmtFrame(
                                                 pMac, authFrame,
@@ -1582,7 +1582,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                 if (vos_mem_compare(pRxAuthFrameBody->challengeText,
                                     pAuthNode->challengeText,
-                                    SIR_MAC_AUTH_CHALLENGE_LENGTH))
+                                    SIR_MAC_SAP_AUTH_CHALLENGE_LENGTH))
                 {
                     /// Challenge match. STA is autheticated !
 
