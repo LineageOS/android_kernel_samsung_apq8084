@@ -871,7 +871,6 @@ tSirRetStatus peOpen(tpAniSirGlobal pMac, tMacOpenParameters *pMacOpenParam)
         status = eSIR_FAILURE;
         goto pe_open_lock_fail;
     }
-    pMac->lim.deauthMsgCnt = 0;
 
     /*
      * peOpen is successful by now, so it is right time to initialize
