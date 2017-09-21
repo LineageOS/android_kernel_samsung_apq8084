@@ -1072,6 +1072,9 @@ static void WLANQCMBR_McProcessMsg(v_VOID_t *message)
     u_int32_t data_len;
 
     data_len = *((u_int32_t *)message) + sizeof(u_int32_t);
+    if (data_len > MAX_UTF_LENGTH + 4)
+        return;
+
     qcmbr_buf = kzalloc(sizeof(qcmbr_queue_t), GFP_KERNEL);
     if (qcmbr_buf != NULL) {
         memcpy(qcmbr_buf->utf_buf, message, data_len);
