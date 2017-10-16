@@ -25822,6 +25822,11 @@ static int wma_roam_event_callback(WMA_HANDLE handle, u_int8_t *event_buf,
 	WMA_LOGD("%s: Reason %x for vdevid %x, rssi %d",
 		__func__, wmi_event->reason, wmi_event->vdev_id, wmi_event->rssi);
 
+	if (wmi_event->vdev_id >= wma_handle->max_bssid) {
+		WMA_LOGE("Invalid vdev id from firmware");
+		return -EINVAL;
+	}
+
 	switch(wmi_event->reason) {
 	case WMI_ROAM_REASON_BMISS:
 		WMA_LOGD("Beacon Miss for vdevid %x",
