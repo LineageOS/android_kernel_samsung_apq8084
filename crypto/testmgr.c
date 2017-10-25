@@ -551,6 +551,10 @@ static int __test_aead(struct crypto_aead *tfm, int enc,
 					INIT_COMPLETION(result.completion);
 					break;
 				}
+			case -EINVAL:
+				pr_info("alg: aead%s: Test %d invalid on %s for %s\n",
+				       d, j, e, algo);
+				continue;
 			case -EBADMSG:
 				if (template[i].novrfy)
 					/* verification failure was expected */
