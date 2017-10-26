@@ -45,10 +45,6 @@ config QCOM_LTE_COEX
 	bool "Enable QCOM LTE Coex feature"
 	default n
 
-config WLAN_FEATURE_MEMDUMP
-	bool "Enable MEMDUMP feature"
-	default n
-
 config WLAN_OFFLOAD_PACKETS
 	bool "Enable offload packets feature"
 	default n

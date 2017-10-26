@@ -206,8 +206,9 @@ enum qca_nl80211_vendor_subcmds {
     QCA_NL80211_VENDOR_SUBCMD_GET_WIFI_INFO = 61,
     /* Start Wifi Logger */
     QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_START = 62,
-    /* Start Wifi Memory Dump */
-    QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP = 63,
+
+    /* FW Memory Dump feature is deprecated */
+
     QCA_NL80211_VENDOR_SUBCMD_ROAM = 64,
 
     /*
@@ -292,9 +293,6 @@ enum qca_nl80211_vendor_subcmds_index {
     QCA_NL80211_VENDOR_SUBCMD_EXTSCAN_PNO_PASSPOINT_NETWORK_FOUND_INDEX,
 #endif /* FEATURE_WLAN_EXTSCAN */
 
-#ifdef WLAN_FEATURE_MEMDUMP
-    QCA_NL80211_VENDOR_SUBCMD_WIFI_LOGGER_MEMORY_DUMP_INDEX,
-#endif /* WLAN_FEATURE_MEMDUMP */
     QCA_NL80211_VENDOR_SUBCMD_MONITOR_RSSI_INDEX,
 };
 
@@ -1338,7 +1336,6 @@ enum qca_wlan_vendor_features {
 
 /**
  * enum wifi_logger_supported_features - values for supported logger features
- * @WIFI_LOGGER_MEMORY_DUMP_SUPPORTED - Memory dump of FW
  * @WIFI_LOGGER_PER_PACKET_TX_RX_STATUS_SUPPORTED - Per packet statistics
  * @WIFI_LOGGER_CONNECT_EVENT_SUPPORTED - Logging of Connectivity events
  * @WIFI_LOGGER_POWER_EVENT_SUPPORTED - Power of driver
@@ -1346,7 +1343,6 @@ enum qca_wlan_vendor_features {
  * @WIFI_LOGGER_WATCHDOG_TIMER_SUPPORTED - monitor FW health
  */
 enum wifi_logger_supported_features {
-	WIFI_LOGGER_MEMORY_DUMP_SUPPORTED = (1 << (0)),
 	WIFI_LOGGER_PER_PACKET_TX_RX_STATUS_SUPPORTED = (1 << (1)),
 	WIFI_LOGGER_CONNECT_EVENT_SUPPORTED = (1 << (2)),
 	WIFI_LOGGER_POWER_EVENT_SUPPORTED = (1 << (3)),

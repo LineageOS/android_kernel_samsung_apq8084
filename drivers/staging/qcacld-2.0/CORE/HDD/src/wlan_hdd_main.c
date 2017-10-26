@@ -12142,7 +12142,6 @@ static int hdd_driver_init( void)
        break;
    } else {
        pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
-       memdump_init();
        return 0;
    }
 
@@ -12163,7 +12162,6 @@ static int hdd_driver_init( void)
 #ifdef WLAN_LOGGING_SOCK_SVC_ENABLE
       wlan_logging_sock_deinit_svc();
 #endif
-      memdump_deinit();
       pr_err("%s: driver load failure\n", WLAN_MODULE_NAME);
    }
    else
@@ -12267,7 +12265,6 @@ static void hdd_driver_exit(void)
    }
 
    vos_wait_for_work_thread_completion(__func__);
-   memdump_deinit();
 
    hif_unregister_driver();
 
@@ -13719,21 +13716,6 @@ void hdd_get_fw_version(hdd_context_t *hdd_ctx,
 	*crmid = hdd_ctx->target_fw_version & 0x7fff;
 }
 
-/**
- * hdd_is_memdump_supported() - to check if memdump feature support
- *
- * This function is used to check if memdump feature is supported in
- * the host driver
- *
- * Return: true if supported and false otherwise
- */
-bool hdd_is_memdump_supported(void)
-{
-#ifdef WLAN_FEATURE_MEMDUMP
-	return true;
-#endif
-	return false;
-}
 
 /**
  * hdd_get_fwpath() - get framework path
