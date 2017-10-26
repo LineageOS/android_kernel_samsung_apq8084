@@ -681,7 +681,7 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_RESET_PASSPOINT_LIST_REQ   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 317)
 /* 318 unused */
 
-#define SIR_HAL_FW_MEM_DUMP_REQ            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 327)
+/* FW Memory Dump feature is deprecated */
 #define SIR_HAL_START_STOP_LOGGING          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 328)
 #define SIR_HAL_EXTSCAN_STATUS_IND          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 329)
 
