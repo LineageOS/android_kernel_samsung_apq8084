@@ -12821,7 +12821,11 @@ static struct cipher_testvec cast6_xts_dec_tv_template[] = {
 #define AES_DEC_TEST_VECTORS 4
 #define AES_CBC_ENC_TEST_VECTORS 5
 #define AES_CBC_DEC_TEST_VECTORS 5
+#ifdef CONFIG_CRYPTO_DEV_QCRYPTO
+#define HMAC_SHA1_AES_CBC_ENC_TEST_VECTORS 6
+#else
 #define HMAC_SHA1_AES_CBC_ENC_TEST_VECTORS 7
+#endif
 #define HMAC_SHA256_AES_CBC_ENC_TEST_VECTORS 7
 #define HMAC_SHA512_AES_CBC_ENC_TEST_VECTORS 7
 #define AES_LRW_ENC_TEST_VECTORS 8
@@ -13798,7 +13802,9 @@ static struct aead_testvec hmac_sha1_aes_cbc_enc_tv_template[] = {
 			  "\xe1\xc5\x0b\x73\x4d\x82\x55\xa8"
 			  "\x85\xe1\x59\xf7",
 		.rlen   = 80 + 20,
-       }, { /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
+	},
+#ifndef CONFIG_CRYPTO_DEV_QCRYPTO
+	{ /* NIST SP800-38A F.2.3 CBC-AES192.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"            /* rta length */
 			  "\x01\x00"		/* rta type */
@@ -13837,7 +13843,9 @@ static struct aead_testvec hmac_sha1_aes_cbc_enc_tv_template[] = {
 			  "\x5a\xf1\x5b\xa8\x98\x07\xc5\x36"
 			  "\x47\x4c\xfc\x36",
 		.rlen   = 64 + 20,
-	}, { /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
+	},
+#endif /* CONFIG_CRYPTO_DEV_QCRYPTO */
+	{ /* NIST SP800-38A F.2.5 CBC-AES256.Encrypt */
 #ifdef __LITTLE_ENDIAN
 		.key    = "\x08\x00"		/* rta length */
 			  "\x01\x00"		/* rta type */
