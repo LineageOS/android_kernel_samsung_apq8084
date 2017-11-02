@@ -1516,6 +1516,7 @@ reschedule:
 				msecs_to_jiffies(msm_thermal_info.poll_ms));
 }
 
+#ifdef CONFIG_MSM_THERMAL_DEBUG
 static void __ref msm_therm_temp_log(struct work_struct *work)
 {
 	struct tsens_device tsens_dev;
@@ -1539,6 +1540,7 @@ static void __ref msm_therm_temp_log(struct work_struct *work)
 	/* For every 5s log the temperature values of all the msm tsens */
 	schedule_delayed_work(&temp_log_work, HZ * 5);
 }
+#endif /* CONFIG_MSM_THERMAL_DEBUG */
 
 static int __ref msm_thermal_cpu_callback(struct notifier_block *nfb,
 		unsigned long action, void *hcpu)
@@ -3456,8 +3458,10 @@ static struct platform_driver msm_thermal_device_driver = {
 
 int __init msm_thermal_device_init(void)
 {
+#ifdef CONFIG_MSM_THERMAL_DEBUG
 	INIT_DELAYED_WORK(&temp_log_work, msm_therm_temp_log);
 	schedule_delayed_work(&temp_log_work, HZ*2);
+#endif /* CONFIG_MSM_THERMAL_DEBUG */
 
 	return platform_driver_register(&msm_thermal_device_driver);
 }
