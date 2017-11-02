@@ -75,18 +75,18 @@ int mhi_resume(struct pci_dev *pcie_dev)
 			msecs_to_jiffies(MHI_MAX_SUSPEND_TIMEOUT));
 	switch(r) {
 	case 0:
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Timeout: No M0 event after %d ms\n",
 			MHI_MAX_SUSPEND_TIMEOUT);
 		mhi_dev_ctxt->counters.m0_event_timeouts++;
 		r = -ETIME;
 		break;
 	case -ERESTARTSYS:
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Going Down...\n");
 		break;
 	default:
-		mhi_log(MHI_MSG_INFO | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_INFO,
 			"Wait complete state: %d\n", mhi_dev_ctxt->mhi_state);
 		r = 0;
 	}
@@ -117,7 +117,7 @@ enum hrtimer_restart mhi_initiate_M1(struct hrtimer *timer)
 		ret_val = mhi_deassert_device_wake(mhi_dev_ctxt);
 		mhi_dev_ctxt->counters.m0_m1++;
 		if (ret_val)
-			mhi_log(MHI_MSG_ERROR | MHI_DBG_POWER,
+			mhi_log(MHI_MSG_ERROR,
 				"Could not set DEVICE WAKE GPIO LOW\n");
 	}
 	write_unlock_irqrestore(&mhi_dev_ctxt->xfer_lock, flags);
@@ -144,12 +144,12 @@ ssize_t sysfs_init_M3(struct device *dev, struct device_attribute *attr,
 	mhi_device_ctxt *mhi_dev_ctxt = mhi_devices.device_list[0].mhi_ctxt;
 	r = mhi_initiate_m3(mhi_dev_ctxt);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to suspend %d\n", r);
 		return r;
 	}
 	if (MHI_STATUS_SUCCESS != mhi_turn_off_pcie_link(mhi_dev_ctxt))
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to turn off link\n");
 
 	return count;
@@ -166,12 +166,12 @@ ssize_t sysfs_init_M0(struct device *dev, struct device_attribute *attr,
 {
 	mhi_device_ctxt *mhi_dev_ctxt = mhi_devices.device_list[0].mhi_ctxt;
 	if (MHI_STATUS_SUCCESS != mhi_turn_on_pcie_link(mhi_dev_ctxt)) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to resume link\n");
 		return count;
 	}
 	mhi_initiate_m0(mhi_dev_ctxt);
-	mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+	mhi_log(MHI_MSG_CRITICAL,
 			"Current mhi_state = 0x%x\n",
 			mhi_dev_ctxt->mhi_state);
 
@@ -191,20 +191,20 @@ MHI_STATUS mhi_turn_off_pcie_link(mhi_device_ctxt *mhi_dev_ctxt)
 	pcie_dev = mhi_dev_ctxt->dev_info->pcie_device;
 	mutex_lock(&mhi_dev_ctxt->mhi_link_state);
 	if (0 == mhi_dev_ctxt->flags.link_up) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Link already marked as down, nothing to do\n");
 		goto exit;
 	}
 	r = pci_save_state(mhi_dev_ctxt->dev_info->pcie_device);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to save pci device state ret %d\n", r);
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
 	}
 	mhi_dev_ctxt->dev_props->pcie_state = pci_store_saved_state(pcie_dev);
 	if (NULL == mhi_dev_ctxt->dev_props->pcie_state) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Failed to backup configuration space\n");
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
@@ -212,12 +212,12 @@ MHI_STATUS mhi_turn_off_pcie_link(mhi_device_ctxt *mhi_dev_ctxt)
 	/* Disable shadow to avoid restoring D3 hot device */
 	r = msm_pcie_shadow_control(mhi_dev_ctxt->dev_info->pcie_device, 0);
 	if (r)
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Failed to stop shadow config space: %d\n", r);
 
 	r = pci_set_power_state(mhi_dev_ctxt->dev_info->pcie_device, PCI_D3hot);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Failed to set pcie power state to D3 hotret: %x\n", r);
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
@@ -228,7 +228,7 @@ MHI_STATUS mhi_turn_off_pcie_link(mhi_device_ctxt *mhi_dev_ctxt)
 			NULL,
 			0);
 	if (r)
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to suspend pcie bus ret 0x%x\n", r);
 	mhi_dev_ctxt->flags.link_up = 0;
 exit:
@@ -252,7 +252,7 @@ MHI_STATUS mhi_turn_on_pcie_link(mhi_device_ctxt *mhi_dev_ctxt)
 			mhi_dev_ctxt->dev_info->pcie_device,
 			NULL, 0);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to resume pcie bus ret %d\n", r);
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
@@ -263,14 +263,14 @@ MHI_STATUS mhi_turn_on_pcie_link(mhi_device_ctxt *mhi_dev_ctxt)
 	r = pci_set_power_state(mhi_dev_ctxt->dev_info->pcie_device,
 				PCI_D0);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to load stored state ret %d\n", r);
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
 	}
 	r = msm_pcie_recover_config(mhi_dev_ctxt->dev_info->pcie_device);
 	if (r) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 				"Failed to Recover config space ret: %d\n", r);
 		ret_val = MHI_STATUS_ERROR;
 		goto exit;
