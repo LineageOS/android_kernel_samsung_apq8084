@@ -44,9 +44,9 @@ static ssize_t power_supply_show_property(struct device *dev,
 					  struct device_attribute *attr,
 					  char *buf) {
 	static char *type_text[] = {
-		"Unknown", "Battery", "UPS", "Mains", "USB",
+		"USB", "Battery", "UPS", "Mains", "USB",
 		"USB_DCP", "USB_CDP", "USB_ACA",
-		"BMS", "MISC", "Wireless", "CARDOCK", "UARTOFF", "OTG",
+		"BMS", "MISC", "Wireless", "CARDOCK", "UARTOFF", "USB",
 		"LAN_HUB", "MHL_500", "MHL_900", "MHL_1500", "MHL_2000",
 		"MHL_USB", "MHL_USB_100", "SMART_OTG", "SMART_NOTG", "POWER_SHARING",
 		"HV_Prepare_Mains", "HV_Err", "HV_Unknown", "HV_Mains"
