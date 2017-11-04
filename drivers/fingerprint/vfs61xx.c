@@ -108,6 +108,8 @@ struct vfsspi_devData {
 	bool tz_mode;
 	int sensortype;
 	unsigned int expander_call;
+	bool enable_debug_log;
+	bool debug_log;
 };
 
 struct vfsspi_devData *g_data;
@@ -1473,17 +1475,59 @@ static ssize_t vfsspi_name_show(struct device *dev,
 	return sprintf(buf, "%s\n", CHIP_ID);
 }
 
+static ssize_t vfsspi_debug_log_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct vfsspi_devData *data = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%s\n", data->enable_debug_log ?
+						"enabled" : "disabled");
+}
+
+static void vfsspi_enable_debug_timer(void);
+static void vfsspi_disable_debug_timer(void);
+
+static ssize_t vfsspi_debug_log_store(struct device *dev,
+	struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	struct vfsspi_devData *data = dev_get_drvdata(dev);
+	bool val;
+
+	if (!data)
+		return -EINVAL;
+
+	if (!strnicmp(buf, "enable", 6))
+		val = true;
+	else if (!strnicmp(buf, "disable", 7))
+		val = false;
+	else
+		return -EINVAL;
+
+	data->enable_debug_log = val;
+
+	if (data->enable_debug_log)
+		vfsspi_enable_debug_timer();
+	else
+		vfsspi_disable_debug_timer();
+
+	return count;
+}
+
 static DEVICE_ATTR(type_check, S_IRUGO,
 	vfsspi_type_check_show, NULL);
 static DEVICE_ATTR(vendor, S_IRUGO,
 	vfsspi_vendor_show, NULL);
 static DEVICE_ATTR(name, S_IRUGO,
 	vfsspi_name_show, NULL);
+static DEVICE_ATTR(enable_debug_log, S_IWUSR | S_IRUGO,
+	vfsspi_debug_log_show, vfsspi_debug_log_store);
 
 static struct device_attribute *fp_attrs[] = {
 	&dev_attr_type_check,
 	&dev_attr_vendor,
 	&dev_attr_name,
+	&dev_attr_enable_debug_log,
 	NULL,
 };
 #endif
@@ -1516,14 +1560,24 @@ static void vfsspi_work_func_debug(struct work_struct *work)
 
 static void vfsspi_enable_debug_timer(void)
 {
-	mod_timer(&g_data->dbg_timer,
-		round_jiffies_up(jiffies + FPSENSOR_DEBUG_TIMER_SEC));
+	spin_lock_irq(&g_data->vfsSpiLock);
+	if (!g_data->debug_log) {
+		g_data->debug_log = true;
+		mod_timer(&g_data->dbg_timer,
+			round_jiffies_up(jiffies + FPSENSOR_DEBUG_TIMER_SEC));
+	}
+	spin_unlock_irq(&g_data->vfsSpiLock);
 }
 
 static void vfsspi_disable_debug_timer(void)
 {
-	del_timer_sync(&g_data->dbg_timer);
-	cancel_work_sync(&g_data->work_debug);
+	spin_lock_irq(&g_data->vfsSpiLock);
+	if (g_data->debug_log) {
+		g_data->debug_log = false;
+		del_timer_sync(&g_data->dbg_timer);
+		cancel_work_sync(&g_data->work_debug);
+	}
+	spin_unlock_irq(&g_data->vfsSpiLock);
 }
 
 static void vfsspi_timer_func(unsigned long ptr)
@@ -1743,8 +1797,6 @@ spi_setup:
 	}
 	INIT_WORK(&vfsSpiDev->work_debug, vfsspi_work_func_debug);
 
-	vfsspi_enable_debug_timer();
-
 	pr_info("%s success...\n", __func__);
 	return 0;
 
@@ -1815,7 +1867,7 @@ static int vfsspi_pm_suspend(struct device *dev)
 
 static int vfsspi_pm_resume(struct device *dev)
 {
-	if (g_data != NULL)
+	if (g_data != NULL && g_data->enable_debug_log)
 		vfsspi_enable_debug_timer();
 
 	pr_info("%s\n", __func__);
