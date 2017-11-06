@@ -808,15 +808,12 @@ static int sec_chg_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = POWER_SUPPLY_TYPE_BATTERY;
+		val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
 		if (max77804k_read_reg(charger->max77804k->i2c,
 			MAX77804K_CHG_REG_CHG_INT_OK, &reg_data) == 0) {
 			pr_debug("%s: reg_data(%d)\n", __func__, reg_data);
 			if (reg_data & MAX77804K_WCIN_OK) {
-				val->intval = POWER_SUPPLY_TYPE_WIRELESS;
 				charger->wc_w_state = 1;
-			} else if (reg_data & MAX77804K_CHGIN_OK) {
-				val->intval = POWER_SUPPLY_TYPE_MAINS;
 			}
 		}
 		break;
@@ -1120,6 +1117,7 @@ static int max77804k_otg_get_property(struct power_supply *psy,
 				enum power_supply_property psp,
 				union power_supply_propval *val)
 {
+	val->intval = 0;
 	return 0;
 }
 
