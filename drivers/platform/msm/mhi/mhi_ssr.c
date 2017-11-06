@@ -125,7 +125,7 @@ void mhi_link_state_cb(struct msm_pcie_notify *notify)
 		mhi_pcie_dev->link_up_cntr++;
 		break;
 	case MSM_PCIE_EVENT_WAKEUP:
-		mhi_log(MHI_MSG_CRITICAL,
+		mhi_log(MHI_MSG_INFO,
 			"Received MSM_PCIE_EVENT_WAKE\n");
 		mhi_wake(mhi_dev_ctxt);
 		mhi_wake_relax(mhi_dev_ctxt);
