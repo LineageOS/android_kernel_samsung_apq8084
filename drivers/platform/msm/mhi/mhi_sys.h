@@ -63,7 +63,6 @@
 
 extern MHI_DEBUG_LEVEL mhi_msg_lvl;
 extern MHI_DEBUG_LEVEL mhi_ipc_log_lvl;
-extern MHI_DEBUG_CLASS mhi_msg_class;
 
 extern void *mhi_ipc_log;
 #define MHI_ASSERT(_x, _msg) if (!(_x)) {\

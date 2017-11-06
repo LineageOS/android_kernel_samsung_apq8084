@@ -695,7 +695,7 @@ MHI_STATUS mhi_init_timers(mhi_device_ctxt *mhi_dev_ctxt)
 	mhi_dev_ctxt->m1_timeout =
 			ktime_set(0, MHI_M1_ENTRY_DELAY_MS * 1E6L);
 	mhi_dev_ctxt->m1_timer.function = mhi_initiate_M1;
-	mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+	mhi_log(MHI_MSG_CRITICAL,
 		"Starting M1 timer\n");
 	return MHI_STATUS_SUCCESS;
 }
@@ -703,7 +703,7 @@ MHI_STATUS mhi_init_work_queues(mhi_device_ctxt *mhi_dev_ctxt)
 {
 	mhi_dev_ctxt->work_queue = create_singlethread_workqueue("mhi");
 	if (NULL == mhi_dev_ctxt->work_queue) {
-		mhi_log(MHI_MSG_CRITICAL | MHI_DBG_POWER,
+		mhi_log(MHI_MSG_CRITICAL,
 			"Failed to create MHI work queue.\n");
 		return MHI_STATUS_ERROR;
 	}
