@@ -219,8 +219,6 @@
 
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
-#define MAX_PROBE_REQ_OUIS 16
-
 /*
  * Generic asynchronous request/response support
  *
@@ -1480,9 +1478,6 @@ struct hdd_context_s
 #endif
     /* IPv4 notifier callback for handling ARP offload on change in IP */
     struct notifier_block ipv4_notifier;
-
-    uint32_t no_of_probe_req_ouis;
-    struct vendor_oui *probe_req_voui;
 };
 
 /*---------------------------------------------------------------------------
