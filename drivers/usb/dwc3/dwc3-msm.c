@@ -1559,11 +1559,7 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc)
 	if (mdwc->hs_phy_irq) {
 		enable_irq(mdwc->hs_phy_irq);
 		/* with DCP we dont require wakeup using HS_PHY_IRQ */
-#ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
-		if (dcp || !mdwc->vbus_active) // add SAMSUNG
-#else
 		if (dcp)
-#endif
 			disable_irq_wake(mdwc->hs_phy_irq);
 	}
 
@@ -1678,11 +1674,7 @@ static int dwc3_msm_resume(struct dwc3_msm *mdwc)
 		mdwc->lpm_irq_seen = false;
 	}
 	/* it must DCP disconnect, re-enable HS_PHY wakeup IRQ */
-#ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
-	if ((mdwc->hs_phy_irq && dcp) || !mdwc->vbus_active) // add SAMSUNG
-#else
 	if (mdwc->hs_phy_irq && dcp)
-#endif
 		enable_irq_wake(mdwc->hs_phy_irq);
 
 	dev_info(mdwc->dev, "DWC3 exited from low power mode\n");
