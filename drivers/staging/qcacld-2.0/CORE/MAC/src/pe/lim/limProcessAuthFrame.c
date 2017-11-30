@@ -153,7 +153,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tANI_U8                 decryptResult;
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
-    tANI_U8                 *challengeTextArray;
+    tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
     tpDphHashNode           pStaDs = NULL;
     tANI_U16                assocId = 0;
 
@@ -918,16 +918,6 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             // get random bytes and use as
                             // challenge text. If it fails we already have random stack bytes.
-                            challengeTextArray = (tANI_U8 *) kmalloc(SIR_MAC_AUTH_CHALLENGE_LENGTH, GFP_KERNEL);
-                            if (challengeTextArray == NULL)
-                            {
-                                // Log error
-                                limLog(pMac, LOGW,
-                                       FL("Can't allocate space for challenge text."));
-                                limPrintMacAddr(pMac, pHdr->sa, LOGW);
-
-                                return;
-                            }
                             if( !VOS_IS_STATUS_SUCCESS( vos_rand_get_bytes( 0, (tANI_U8 *)challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH ) ) )
                             {
                                limLog(pMac, LOGE,FL("Challenge text preparation failed in limProcessAuthFrame"));
@@ -937,8 +927,7 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             vos_mem_copy(pChallenge,
                                         (tANI_U8 *) challengeTextArray,
-                                         SIR_MAC_AUTH_CHALLENGE_LENGTH);
-                            kfree(challengeTextArray);
+                                         sizeof(challengeTextArray));
 
                             /**
                              * Sending Authenticaton frame with challenge.
