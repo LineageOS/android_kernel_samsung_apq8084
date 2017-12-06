@@ -90,9 +90,6 @@ module_param(itemsize, uint, 0);
 module_param(poolsize, uint, 0);
 module_param(max_clients, uint, 0);
 
-int diag_debug_lvl = DIAG_DEBUG_HIGH;
-void *diag_ipc_log;
-
 /* delayed_rsp_id 0 represents no delay in the response. Any other number
     means that the diag packet has a delayed response. */
 static uint16_t delayed_rsp_id = 1;
@@ -1701,11 +1698,9 @@ drop:
 								sizeof(int));
 			COPY_USER_SPACE_OR_EXIT(buf + ret,
 					entry->client_info.token, sizeof(int));
-			DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] + copying dci data to user\n", __func__);
 			copy_dci_data = 1;
 			exit_stat = diag_copy_dci(buf, count, entry, &ret);
 			driver->data_ready[index] ^= DCI_DATA_TYPE;
-			DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] - copying dci data to user, exit_stat: %d\n", __func__, exit_stat);
 			if (exit_stat == 1)
 				goto exit;
 		}
@@ -1748,7 +1743,6 @@ exit:
 	if (copy_dci_data) {
 		diag_ws_on_copy_complete(DIAG_WS_DCI);
 		flush_workqueue(driver->diag_dci_wq);
-		DIAG_LOG(DIAG_DEBUG_HIGH, "[%s] - finished copying data in this iteration\n", __func__);
 	}
 	return ret;
 }
@@ -2628,9 +2622,6 @@ static int __init diagchar_init(void)
 	init_waitqueue_head(&driver->wait_q);
 	init_waitqueue_head(&driver->smd_wait_q);
 	INIT_WORK(&(driver->diag_drain_work), diag_drain_work_fn);
-	diag_ipc_log = ipc_log_context_create(DIAG_IPC_LOG_PAGES, "diag");
-	if (!diag_ipc_log)
-		pr_err("diag: failed to create IPC logging context\n");
 	diag_ws_init();
 	ret = diag_real_time_info_init();
 	if (ret)
