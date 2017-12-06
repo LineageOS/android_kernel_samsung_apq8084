@@ -650,7 +650,6 @@ static struct dci_pkt_req_entry_t *diag_register_dci_transaction(int uid,
 	entry->uid = uid;
 	entry->tag = driver->dci_tag;
 	list_add_tail(&entry->track, &driver->dci_req_list);
-	driver->num_dci_cmd++;
 	mutex_unlock(&driver->dci_mutex);
 
 	return entry;
@@ -680,7 +679,6 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 
 	/* It is an immediate response, delete it from the table */
 	if (*buf != 0x80) {
-		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -698,7 +696,6 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 	 */
 	delayed_rsp_id = *(uint16_t *)(buf + 8);
 	if (delayed_rsp_id == 0) {
-		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -712,7 +709,6 @@ static int diag_dci_remove_req_entry(unsigned char *buf, int len,
 	 */
 	rsp_count = *(uint16_t *)(buf + 10);
 	if (rsp_count > 0 && rsp_count < 0x1000) {
-		driver->num_dci_cmd--;
 		list_del(&entry->track);
 		kfree(entry);
 		return 1;
@@ -2449,7 +2445,6 @@ int diag_dci_init(void)
 	driver->dci_tag = 0;
 	driver->dci_client_id = 0;
 	driver->num_dci_client = 0;
-	driver->num_dci_cmd = 0;
 	mutex_init(&driver->dci_mutex);
 	mutex_init(&dci_log_mask_mutex);
 	mutex_init(&dci_event_mask_mutex);
@@ -2831,7 +2826,6 @@ int diag_dci_deinit_client(struct diag_dci_client_tbl *entry)
 		req_entry = list_entry(start, struct dci_pkt_req_entry_t,
 				       track);
 		if (req_entry->client_id == entry->client_info.client_id) {
-			driver->num_dci_cmd--;
 			list_del(&req_entry->track);
 			kfree(req_entry);
 		}
