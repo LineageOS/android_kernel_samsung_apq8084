@@ -114,6 +114,7 @@ static bool get_dload_mode(void)
 	return dload_mode_enabled;
 }
 
+#if 0
 static void enable_emergency_dload_mode(void)
 {
 	if (emergency_dload_mode_addr) {
@@ -132,6 +133,7 @@ static void enable_emergency_dload_mode(void)
 		mb();
 	}
 }
+#endif
 
 static int dload_set(const char *val, struct kernel_param *kp)
 {
@@ -156,10 +158,12 @@ static int dload_set(const char *val, struct kernel_param *kp)
 #else
 #define set_dload_mode(x) do {} while (0)
 
+#if 0
 static void enable_emergency_dload_mode(void)
 {
 	printk(KERN_ERR "dload mode is not enabled on target\n");
 }
+#endif
 
 static bool get_dload_mode(void)
 {
@@ -309,8 +313,10 @@ static void msm_restart_prepare(const char *cmd)
 		} else if (!strncmp(cmd, "sud", 3)) {
 			__raw_writel(0xabcf0000 | (cmd[3] - '0'),
 					restart_reason);
+#if 0
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
+#endif
 		} else if (!strncmp(cmd, "debug", 5)
 				&& !kstrtoul(cmd + 5, 0, &value)) {
 			__raw_writel(0xabcd0000 | value, restart_reason);
