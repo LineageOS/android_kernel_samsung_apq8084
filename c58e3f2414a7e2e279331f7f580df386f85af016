@@ -22,6 +22,30 @@
       "revId": "c58e3f2414a7e2e279331f7f580df386f85af016",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "17ba5c10_63cdb099",
+        "filename": "drivers/media/v4l2-core/v4l2-compat-ioctl32.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2017-12-09T10:19:13Z",
+      "side": 1,
+      "message": "No, the expression  is correct.\n\nThe source pointer is of type struct v4l2_standard.\nThe id member is of type v4l2_std_id AKA __u64.\n\nThe destination pointer is of type struct v4l2_standard32.\nThe id member is of type _u32[2] for alignement reasons.\n\nTherefore\n\n  copy_in_user(up-\u003eid, \u0026kp-\u003eid, sizeof(__u64))\n\nis the right thing to do.",
+      "parentUuid": "b91063cf_4f937379",
+      "range": {
+        "startLine": 355,
+        "startChar": 2,
+        "endLine": 355,
+        "endChar": 14
+      },
+      "revId": "c58e3f2414a7e2e279331f7f580df386f85af016",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
