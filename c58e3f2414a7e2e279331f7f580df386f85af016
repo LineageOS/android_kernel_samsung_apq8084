@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b91063cf_4f937379",
+        "filename": "drivers/media/v4l2-core/v4l2-compat-ioctl32.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 12604
+      },
+      "writtenOn": "2017-12-09T01:20:59Z",
+      "side": 1,
+      "message": "I think this line should be\n\nconvert_in_user(\u0026kp-\u003eid, \u0026up-\u003eid) ||\n\nThe current solution is not taking into account that additional change from another additional commit.",
+      "range": {
+        "startLine": 355,
+        "startChar": 2,
+        "endLine": 355,
+        "endChar": 14
+      },
+      "revId": "c58e3f2414a7e2e279331f7f580df386f85af016",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
