@@ -46,6 +46,30 @@
       "revId": "c58e3f2414a7e2e279331f7f580df386f85af016",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "342c58d1_39ca0e59",
+        "filename": "drivers/media/v4l2-core/v4l2-compat-ioctl32.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2017-12-09T10:30:02Z",
+      "side": 1,
+      "message": "Oh, wait.\n\nid is _u32[2] in bullhead upstream code, but it\u0027s\ncompat_u64 AKA u64 __attribute__((aligned(4)))\nin the apq8084 source, thanks to upstream\npatch 1b97331b42c9 from 3.10.97.\n\nGiven that, yeah, a tweak is required.\n\n\nThanks,\nCorinna",
+      "parentUuid": "17ba5c10_63cdb099",
+      "range": {
+        "startLine": 355,
+        "startChar": 2,
+        "endLine": 355,
+        "endChar": 14
+      },
+      "revId": "c58e3f2414a7e2e279331f7f580df386f85af016",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
