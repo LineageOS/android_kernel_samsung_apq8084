@@ -43,7 +43,6 @@
 #include <linux/delay.h>
 #include <linux/swap.h>
 #include <linux/fs.h>
-#include <linux/zcache.h>
 
 #include <linux/ratelimit.h>
 
@@ -202,7 +201,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	is_active_high = (global_page_state(NR_ACTIVE_FILE) >
 				global_page_state(NR_INACTIVE_FILE)) ? 1 : 0;
 #endif
-	other_file = global_page_state(NR_FILE_PAGES) + zcache_pages();
+	other_file = global_page_state(NR_FILE_PAGES);
 
 #if defined(CONFIG_CMA_PAGE_COUNTING) && defined(CONFIG_EXCLUDE_LRU_LIVING_IN_CMA)
 	if (get_nr_swap_pages() < SSWAP_LMK_THRESHOLD && cma_page_ratio >= CMA_PAGE_RATIO
@@ -436,7 +435,7 @@ static int android_oom_handler(struct notifier_block *nb,
 
 	nr_cma_inactive_file = global_page_state(NR_CMA_INACTIVE_FILE);
 	nr_cma_active_file = global_page_state(NR_CMA_ACTIVE_FILE);
-	other_file = global_page_state(NR_FILE_PAGES) + zcache_pages() -
+	other_file = global_page_state(NR_FILE_PAGES) -
 					global_page_state(NR_SHMEM) -
 					total_swapcache_pages() -
 					nr_cma_inactive_file -
