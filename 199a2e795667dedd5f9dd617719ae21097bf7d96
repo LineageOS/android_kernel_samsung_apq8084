@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "781d7ce2_92b06046",
+        "filename": "fs/dcache.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 12604
+      },
+      "writtenOn": "2017-12-11T22:09:31Z",
+      "side": 1,
+      "message": "On the final loop of this for statement, it seems like p is still not freed after it is set.",
+      "range": {
+        "startLine": 248,
+        "startChar": 2,
+        "endLine": 248,
+        "endChar": 12
+      },
+      "revId": "199a2e795667dedd5f9dd617719ae21097bf7d96",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
