@@ -22,6 +22,30 @@
       "revId": "25aa8759f6fad17757ad676901eae759810aad88",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1453f052_34a1023d",
+        "filename": "fs/dcache.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 257,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2017-12-12T07:58:24Z",
+      "side": 0,
+      "message": "Sure, but this is ugly.",
+      "parentUuid": "44303a5c_1240e5d7",
+      "range": {
+        "startLine": 257,
+        "startChar": 3,
+        "endLine": 257,
+        "endChar": 12
+      },
+      "revId": "25aa8759f6fad17757ad676901eae759810aad88",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
     }
   ]
 }
