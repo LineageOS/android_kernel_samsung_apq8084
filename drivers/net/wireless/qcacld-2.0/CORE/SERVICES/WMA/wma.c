@@ -18718,7 +18718,15 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	}
 
 	vos_event_set(&wma->wma_resume_event);
-
+	if (param_buf->wow_packet_buffer) {
+		wow_buf_pkt_len = *(uint32_t *)param_buf->wow_packet_buffer;
+		if (wow_buf_pkt_len > (param_buf->num_wow_packet_buffer - 4)) {
+			WMA_LOGE("Invalid wow buf pkt len from firmware, wow_buf_pkt_len: %u, num_wow_packet_buffer: %u",
+					wow_buf_pkt_len,
+					param_buf->num_wow_packet_buffer);
+			return -EINVAL;
+		}
+	}
 	switch (wake_info->wake_reason) {
 	case WOW_REASON_AUTH_REQ_RECV:
 		wake_lock_duration = WMA_AUTH_REQ_RECV_WAKE_LOCK_TIMEOUT;
@@ -18817,9 +18825,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 	case WOW_REASON_PATTERN_MATCH_FOUND:
 		WMA_LOGD("Wake up for Rx packet, dump starting from ethernet hdr");
 		if (param_buf->wow_packet_buffer) {
-		    /* First 4-bytes of wow_packet_buffer is the length */
-		    vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
-			param_buf->wow_packet_buffer, 4);
 		    wma_wow_wake_up_stats(wma,
 			param_buf->wow_packet_buffer + 4, wow_buf_pkt_len,
 			WOW_REASON_PATTERN_MATCH_FOUND);
@@ -18843,8 +18848,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		if (param_buf->wow_packet_buffer) {
 		    /* Roam event is embedded in wow_packet_buffer */
 		    WMA_LOGD("Host woken up because of roam event");
-		    vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
-				param_buf->wow_packet_buffer, 4);
 		    WMA_LOGD("wow_packet_buffer dump");
 				vos_trace_hex_dump(VOS_MODULE_ID_WDA,
 				VOS_TRACE_LEVEL_DEBUG,
@@ -18871,8 +18874,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 		WMA_LOGD("Host woken up because of extscan reason");
 		wma_wow_wake_up_stats(wma, NULL, 0, WOW_REASON_EXTSCAN);
 		if (param_buf->wow_packet_buffer) {
-			wow_buf_pkt_len =
-				*(uint32_t *)param_buf->wow_packet_buffer;
 			WMA_LOGD("wow_packet_buffer dump");
 			vos_trace_hex_dump(VOS_MODULE_ID_WDA,
 				VOS_TRACE_LEVEL_DEBUG,
@@ -18894,8 +18895,6 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 			WMA_LOGD("Host woken up because of rssi breach reason");
 			/* rssi breach event is embedded in wow_packet_buffer */
 			if (param_buf->wow_packet_buffer) {
-				vos_mem_copy((u_int8_t *) &wow_buf_pkt_len,
-					param_buf->wow_packet_buffer, 4);
 				if (wow_buf_pkt_len >= sizeof(param)) {
 					param.fixed_param =
 					(wmi_rssi_breach_event_fixed_param *)
