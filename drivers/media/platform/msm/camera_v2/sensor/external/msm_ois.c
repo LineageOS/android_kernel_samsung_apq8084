@@ -175,7 +175,7 @@ static int32_t msm_ois_read_phone_ver(struct msm_ois_ctrl_t *a_ctrl)
     struct file *filp = NULL;
     mm_segment_t old_fs;
     char    char_ois_ver[OIS_FW_VER_SIZE] = "";
-    char    ois_path[256] = "/system/cameradata";
+    char    ois_path[256] = "/vendor/cameradata";
     char    ois_bin_full_path[256] = "";
     char    ois_hwinfo[OIS_HW_VER_SIZE+1] = "";
     int ret = 0, i;
