@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3ba35d8c_c978dbff",
+        "filename": "arch/arm/boot/dts/qcom/apq8084.dtsi",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-01-10T09:55:28Z",
+      "side": 1,
+      "message": "stray tab",
+      "range": {
+        "startLine": 29,
+        "startChar": 0,
+        "endLine": 29,
+        "endChar": 1
+      },
+      "revId": "bb6a36a0bce544eeacd2ee400c6f17746006eeeb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0e8ce276_0433ed3f",
+        "filename": "arch/arm/boot/dts/qcom/apq8084.dtsi",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 13648
+      },
+      "writtenOn": "2018-01-10T09:55:28Z",
+      "side": 1,
+      "message": "tab, no spaces",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 4
+      },
+      "revId": "bb6a36a0bce544eeacd2ee400c6f17746006eeeb",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
