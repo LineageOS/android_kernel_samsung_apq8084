@@ -395,7 +395,7 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy);
 static s32 wl_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 	bcm_struct_cfgdev *cfgdev, u64 cookie);
 static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
-	struct net_device *ndev, struct station_del_parameters *params);
+	struct net_device *ndev, u8 *mac);
 static s32 wl_cfg80211_change_station(struct wiphy *wiphy,
 	struct net_device *dev, u8 *mac, struct station_parameters *params);
 #endif /* WL_SUPPORT_BACKPORTED_KPATCHES || KERNEL_VER >= KERNEL_VERSION(3, 2, 0)) */
@@ -7571,7 +7571,7 @@ static s32
 wl_cfg80211_del_station(
 	struct wiphy *wiphy,
 	struct net_device *ndev,
-	struct station_del_parameters *params)
+	u8 *mac_addr)
 {
 	struct net_device *dev;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
@@ -7584,7 +7584,7 @@ wl_cfg80211_del_station(
 	int num_associated = 0;
 
 	WL_DBG(("Entry\n"));
-	if (params->mac == NULL) {
+	if (mac_addr == NULL) {
 		WL_DBG(("mac_addr is NULL ignore it\n"));
 		return 0;
 	}
@@ -7609,17 +7609,17 @@ wl_cfg80211_del_station(
 	else
 		num_associated = assoc_maclist->count;
 
-	memcpy(scb_val.ea.octet, params->mac, ETHER_ADDR_LEN);
+	memcpy(scb_val.ea.octet, mac_addr, ETHER_ADDR_LEN);
 	scb_val.val = DOT11_RC_DEAUTH_LEAVING;
 	err = wldev_ioctl(dev, WLC_SCB_DEAUTHENTICATE_FOR_REASON, &scb_val,
 		sizeof(scb_val_t), true);
 	if (err < 0)
 		WL_ERR(("WLC_SCB_DEAUTHENTICATE_FOR_REASON err %d\n", err));
 	WL_ERR(("Disconnect STA : %s scb_val.val %d\n",
-		bcm_ether_ntoa((const struct ether_addr *)params->mac, eabuf),
+		bcm_ether_ntoa((const struct ether_addr *)mac_addr, eabuf),
 		scb_val.val));
 
-	if (num_associated > 0 && ETHER_ISBCAST(params->mac))
+	if (num_associated > 0 && ETHER_ISBCAST(mac_addr))
 		wl_delay(400);
 
 	return 0;
