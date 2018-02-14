@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fb8a67bc_40f276e8",
+        "filename": "drivers/staging/android/lowmemorykiller.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 440,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-02-14T14:56:24Z",
+      "side": 1,
+      "message": "This has no effect since CONFIG_CMA_PAGE_COUNTING is\nnot set for our target.  Shouldn\u0027t this be done in\nlowmem_shrink instead?\n\nFollowup question: Do we really want to keep the overly\ncomplicated Samsung code in lowmemorykiller.c?  Wouldn\u0027t\nit be more helpful to replace this file with the much\nsimpler (and clearer) implementation used for, e.g.,\nbullhead or angler?\n\nCorinna",
+      "revId": "f32aeaab08290b4a10a887ee52e4496a4331de17",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
