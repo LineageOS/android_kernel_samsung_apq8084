@@ -2643,13 +2643,6 @@ static int wma_stats_event_handler(void *handle, u_int8_t *cmd_param_info,
 		} else {
 			buf_len += event->num_peer_stats * sizeof(wmi_peer_stats);
 		}
-		if (event->num_mib_stats > ((WMA_SVC_MSG_MAX_SIZE -
-		    sizeof(*event)) / sizeof(wmi_mib_stats))) {
-			excess_data = true;
-			break;
-		} else {
-			buf_len += event->num_mib_stats * sizeof(wmi_mib_stats);
-		}
 	} while (0);
 
 	if (excess_data ||
@@ -5710,9 +5703,8 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	  return -EINVAL;
 	}
 
-	WMA_LOGD("synch payload: LEN bcn:%d, req:%d, rsp:%d",
+	WMA_LOGD("synch payload: LEN bcn:%d, rsp:%d",
 		 synch_event->bcn_probe_rsp_len,
-		 synch_event->reassoc_req_len,
 		 synch_event->reassoc_rsp_len);
 
 	if (synch_event->bcn_probe_rsp_len > WMA_SVC_MSG_MAX_SIZE)
@@ -5720,14 +5712,9 @@ static int wma_roam_synch_event_handler(void *handle, u_int8_t *event, u_int32_t
 	if (synch_event->reassoc_rsp_len >
 	    (WMA_SVC_MSG_MAX_SIZE - synch_event->bcn_probe_rsp_len))
 		return -EINVAL;
-	if (synch_event->reassoc_req_len >
-	    WMA_SVC_MSG_MAX_SIZE - (synch_event->bcn_probe_rsp_len +
-	    synch_event->reassoc_rsp_len))
-		return -EINVAL;
 
 	roam_synch_data_len = synch_event->bcn_probe_rsp_len +
-				synch_event->reassoc_rsp_len +
-				synch_event->reassoc_req_len;
+				synch_event->reassoc_rsp_len;
 	/*
 	 * Below is the check for the entire size of the message received from'
 	 * the firmware.
