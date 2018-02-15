@@ -95,6 +95,9 @@ HIF_ACCESS_LOG pcie_access_log[PCIE_ACCESS_LOG_NUM];
 static void HIFTargetDumpAccessLog(void);
 #endif
 
+/* Forward references */
+static int hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info);
+
 /*
  * Host software's Copy Engine configuration.
  * This table is derived from the CE_PCI TABLE, above.
@@ -1523,7 +1526,6 @@ hif_post_recv_buffers_for_pipe(struct HIF_CE_pipe_info *pipe_info)
                 ("%s CE_recv_buf_enqueue error [%d] needed %d\n",
                 __func__, pipe_info->pipe_num,
                 atomic_read(&pipe_info->recv_bufs_needed)));
-            adf_nbuf_unmap_single(scn->adf_dev, nbuf, ADF_OS_DMA_FROM_DEVICE);
             atomic_inc(&pipe_info->recv_bufs_needed);
             adf_nbuf_free(nbuf);
             adf_os_spin_lock_bh(&pipe_info->recv_bufs_needed_lock);
