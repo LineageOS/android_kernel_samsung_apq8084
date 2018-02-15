@@ -9009,11 +9009,7 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                  */
                 csrRemoveCmdWithSessionIdFromPendingList(pMac,
                                         pSmeRsp->sessionId,
-                                        &pMac->sme.smeCmdPendingList,
-                                        eSmeCommandWmStatusChange);
-                csrRemoveCmdWithSessionIdFromPendingList(pMac,
-                                        pSmeRsp->sessionId,
-                                        &pMac->roam.roamCmdPendingList,
+                                        &pMac->sme.smeScanCmdPendingList,
                                         eSmeCommandWmStatusChange);
                 csrRoamRoamingStateDeauthRspProcessor( pMac, (tSirSmeDeauthRsp *)pSmeRsp );
             }
