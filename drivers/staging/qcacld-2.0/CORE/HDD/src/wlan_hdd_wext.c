@@ -111,6 +111,8 @@
 #include "wlan_hdd_cfg80211.h"
 #endif
 
+#include "wlan_hdd_request_manager.h"
+
 #ifdef FEATURE_OEM_DATA_SUPPORT
 #define MAX_OEM_DATA_RSP_LEN            2047
 #endif
