@@ -97,6 +97,7 @@ extern int process_wma_set_command(int sessid, int paramid,
 #include "vos_types.h"
 #include "vos_trace.h"
 #include "wlan_hdd_cfg.h"
+#include "wlan_hdd_request_manager.h"
 
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
