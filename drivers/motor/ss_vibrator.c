@@ -359,6 +359,10 @@ static ssize_t store_vib_tuning(struct device *dev,
 
 static DEVICE_ATTR(vib_tuning, 0660, show_vib_tuning, store_vib_tuning);
 
+/* --------------------------------------------------------------------------
+   pwm_xxx nodes as used by CMHW vibrator HAL up to cm-14.1
+   -------------------------------------------------------------------------- */
+
 static ssize_t intensity_store(struct device *dev,
 		struct device_attribute *devattr, const char *buf, size_t count)
 {
@@ -418,6 +422,13 @@ static DEVICE_ATTR(pwm_min, 0444, pwm_min_show, NULL);
 static DEVICE_ATTR(pwm_threshold, 0444, pwm_threshold_show, NULL);
 static DEVICE_ATTR(pwm_value, 0644, intensity_show, intensity_store);
 
+/* --------------------------------------------------------------------------
+   vtg_xxx nodes as used by Lineage vibrator HAL since lineage-15.1
+   -------------------------------------------------------------------------- */
+
+static DEVICE_ATTR(vtg_max, 0444, pwm_max_show, NULL);
+static DEVICE_ATTR(vtg_min, 0444, pwm_min_show, NULL);
+static DEVICE_ATTR(vtg_level, 0644, intensity_show, intensity_store);
 
 #if defined(CONFIG_MOTOR_DRV_MAX77828) || defined(CONFIG_MOTOR_DRV_MAX77804K) || defined(CONFIG_MOTOR_DRV_MAX77843)
 static void regulator_power_onoff(int onoff)
@@ -528,6 +539,10 @@ static int ss_vibrator_probe(struct platform_device *pdev)
 	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_pwm_max.attr);
 	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_pwm_threshold.attr);
 	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_pwm_value.attr);
+
+	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_vtg_min.attr);
+	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_vtg_max.attr);
+	rc = sysfs_create_file(&vib->timed_dev.dev->kobj, &dev_attr_vtg_level.attr);
 	if (rc < 0) {
 		pr_err("[VIB]: Failed to register sysfs intensity: %d\n", rc);
 	}
