@@ -986,7 +986,7 @@ static void ispif_process_irq(struct ispif_device *ispif,
 		ispif->sof_count[vfe_id].sof_cnt[PIX0]++;
 		if ((ispif->sof_count[vfe_id].sof_cnt[PIX0] % 30 == 0) ||
                     (ispif->sof_count[vfe_id].sof_cnt[PIX0] == 1))
-                    pr_err("[frame_dbg] vfe%d frame idx [%d]\n",
+                    pr_debug("[frame_dbg] vfe%d frame idx [%d]\n",
                         vfe_id, ispif->sof_count[vfe_id].sof_cnt[PIX0]);
 	}
 	if (out[vfe_id].ispifIrqStatus0 &
