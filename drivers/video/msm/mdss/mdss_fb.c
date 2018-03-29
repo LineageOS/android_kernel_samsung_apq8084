@@ -1197,7 +1197,7 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 		blank_mode);
 
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
-	pr_err("FB_NUM:%d, MDSS_FB_%s ++ on=%d\n", mfd->panel_info->fb_num,
+	pr_debug("FB_NUM:%d, MDSS_FB_%s ++ on=%d\n", mfd->panel_info->fb_num,
 			blank_mode? "BLANK": "UNBLANK", mdss_fb_is_power_on(mfd));
 
 	mutex_lock(&FB_BLANK_SUB);
@@ -1293,7 +1293,7 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	mutex_unlock(&FB_BLANK_SUB);
 
-	pr_err("FB_NUM:%d, MDSS_FB_%s mfd->panel_power_state = %d -- \n", mfd->panel_info->fb_num,
+	pr_debug("FB_NUM:%d, MDSS_FB_%s mfd->panel_power_state = %d -- \n", mfd->panel_info->fb_num,
 			blank_mode ? "BLANK": "UNBLANK",mfd->panel_power_state);
 #endif
 
