@@ -1045,6 +1045,11 @@ static int wma_vdev_start_resp_handler(void *handle, u_int8_t *cmd_param_info,
 		return -EINVAL;
 	}
 
+	if (resp_event->vdev_id >= wma->max_bssid) {
+		WMA_LOGE("Invalid vdev id received from firmware");
+		return -EINVAL;
+	}
+
 	if (wma_is_vdev_in_ap_mode(wma, resp_event->vdev_id)) {
 		adf_os_spin_lock_bh(&wma->dfs_ic->chan_lock);
 		wma->dfs_ic->disable_phy_err_processing = false;
@@ -2798,6 +2803,13 @@ static int wma_extscan_rsp_handler(tp_wma_handle wma, uint8_t *buf)
 	}
 
 	event = (wmi_extscan_start_stop_event_fixed_param *)buf;
+
+	if (event->vdev_id >= wma->max_bssid) {
+		WMA_LOGE("%s: max vdev id's %d reached",
+			  __func__, event->vdev_id);
+		return -EINVAL;
+	}
+
 	vdev_id = event->vdev_id;
 	extscan_ind = vos_mem_malloc(sizeof(*extscan_ind));
 	if (!extscan_ind) {
@@ -4692,7 +4704,9 @@ static int wma_beacon_swba_handler(void *handle, u_int8_t *event, u_int32_t len)
 		return -EINVAL;
 	}
 
-	for ( ; vdev_map; vdev_id++, vdev_map >>= 1) {
+        WMA_LOGD("vdev_map = %d", vdev_map);
+        for (; vdev_map && vdev_id < wma->max_bssid;
+             vdev_id++, vdev_map >>= 1) {
 		if (!(vdev_map & 0x1))
 			continue;
 		if (!wdi_out_cfg_is_high_latency(pdev->ctrl_pdev))
@@ -16517,6 +16531,16 @@ static int wma_tbttoffset_update_event_handler(void *handle, u_int8_t *event,
 	}
 
 	tbtt_offset_event = param_buf->fixed_param;
+
+	if (param_buf->num_tbttoffset_list >
+			(UINT_MAX - sizeof(u_int32_t) -
+				sizeof(wmi_tbtt_offset_event_fixed_param))/
+			 sizeof(u_int32_t)) {
+		WMA_LOGE("%s: Received offset list  %d greater than maximum limit",
+			 __func__, param_buf->num_tbttoffset_list);
+		return -EINVAL;
+	}
+
 	buf = vos_mem_malloc(sizeof(wmi_tbtt_offset_event_fixed_param) +
 			sizeof (u_int32_t) +
 			(param_buf->num_tbttoffset_list * sizeof (u_int32_t)));
@@ -18645,10 +18669,18 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 
 	wake_info = param_buf->fixed_param;
 
-	WMA_LOGA("WOW wakeup host event received (reason: %s(%d)) for vdev %d",
-		 wma_wow_wake_reason_str(wake_info->wake_reason, wma),
-		 wake_info->wake_reason,
-		 wake_info->vdev_id);
+	if (!wmi_get_runtime_pm_inprogress(wma->wmi_handle)) {
+		if (wake_info->vdev_id >= wma->max_bssid) {
+			WMA_LOGE("%s: received invalid vdev_id %d",
+				__func__, wake_info->vdev_id);
+			return -EINVAL;
+		}
+
+		WMA_LOGA("WOW (%d) %s vdev:%d",
+			wake_info->wake_reason,
+			wma_wow_wake_reason_str(wake_info->wake_reason, wma),
+			wake_info->vdev_id);
+	}
 
 	vos_event_set(&wma->wma_resume_event);
 
@@ -18689,6 +18721,12 @@ static int wma_wow_wakeup_host_event(void *handle, u_int8_t *event,
 #ifdef FEATURE_WLAN_SCAN_PNO
 	case WOW_REASON_NLOD:
 		wma_wow_wake_up_stats(wma, NULL, 0, WOW_REASON_NLOD);
+		if (wake_info->vdev_id >= wma->max_bssid) {
+			WMA_LOGE("%s: received invalid vdev_id %d",
+				__func__, wake_info->vdev_id);
+			return -EINVAL;
+		}
+
 		node = &wma->interfaces[wake_info->vdev_id];
 		if (node) {
 			WMA_LOGD("NLO match happened");
