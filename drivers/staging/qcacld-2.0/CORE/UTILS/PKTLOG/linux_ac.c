@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -73,6 +73,8 @@
 static struct ath_pktlog_info *g_pktlog_info;
 
 static struct proc_dir_entry *g_pktlog_pde;
+
+static DEFINE_MUTEX(proc_mutex);
 
 static int pktlog_attach(struct ol_softc *sc);
 static void pktlog_detach(struct ol_softc *sc);
@@ -222,9 +224,11 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 	ol_ath_generic_softc_handle scn;
 	struct ol_pktlog_dev_t *pl_dev;
 
+	mutex_lock(&proc_mutex);
 	scn = (ol_ath_generic_softc_handle) ctl->extra1;
 
 	if (!scn) {
+		mutex_unlock(&proc_mutex);
 		printk("%s: Invalid scn context\n", __func__);
 		ASSERT(0);
 		return -EINVAL;
@@ -233,6 +237,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 	pl_dev = get_pl_handle((struct ol_softc *)scn);
 
 	if (!pl_dev) {
+		mutex_unlock(&proc_mutex);
 		printk("%s: Invalid pktlog context\n", __func__);
 		ASSERT(0);
 		return -ENODEV;
@@ -262,6 +267,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_enable, ctl, write, filp, buffer, lenp,
 	ctl->data = NULL;
 	ctl->maxlen = 0;
 
+	mutex_unlock(&proc_mutex);
 	return ret;
 }
 
@@ -279,9 +285,11 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 	ol_ath_generic_softc_handle scn;
 	struct ol_pktlog_dev_t *pl_dev;
 
+	mutex_lock(&proc_mutex);
 	scn = (ol_ath_generic_softc_handle) ctl->extra1;
 
 	if (!scn) {
+		mutex_unlock(&proc_mutex);
 		printk("%s: Invalid scn context\n", __func__);
 		ASSERT(0);
 		return -EINVAL;
@@ -290,6 +298,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 	pl_dev = get_pl_handle((struct ol_softc *)scn);
 
 	if (!pl_dev) {
+		mutex_unlock(&proc_mutex);
 		printk("%s: Invalid pktlog handle\n", __func__);
 		ASSERT(0);
 		return -ENODEV;
@@ -314,6 +323,7 @@ ATH_SYSCTL_DECL(ath_sysctl_pktlog_size, ctl, write, filp, buffer, lenp,
 	ctl->data = NULL;
 	ctl->maxlen = 0;
 
+	mutex_unlock(&proc_mutex);
 	return ret;
 }
 
