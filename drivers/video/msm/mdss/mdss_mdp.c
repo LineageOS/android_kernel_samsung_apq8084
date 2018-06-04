@@ -1,7 +1,7 @@
 /*
  * MDSS MDP Interface (used by framebuffer core)
  *
- * Copyright (c) 2007-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2007-2014, 2018, The Linux Foundation. All rights reserved.
  * Copyright (C) 2007 Google Incorporated
  *
  * This software is licensed under the terms of the GNU General Public
@@ -2125,7 +2125,7 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 	if (!mdata->vig_pipes) {
 		pr_err("no mem for vig_pipes: kzalloc fail\n");
 		rc = -ENOMEM;
-		goto vig_alloc_fail;
+		goto parse_fail;
 	}
 
 	mdata->rgb_pipes = devm_kzalloc(&mdata->pdev->dev,
@@ -2133,7 +2133,7 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 	if (!mdata->rgb_pipes) {
 		pr_err("no mem for rgb_pipes: kzalloc fail\n");
 		rc = -ENOMEM;
-		goto rgb_alloc_fail;
+		goto parse_fail;
 	}
 
 	if (mdata->ndma_pipes) {
@@ -2143,7 +2143,7 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 		if (!mdata->dma_pipes) {
 			pr_err("no mem for dma_pipes: kzalloc fail\n");
 			rc = -ENOMEM;
-			goto dma_alloc_fail;
+			goto parse_fail;
 		}
 	}
 
@@ -2290,16 +2290,7 @@ static int mdss_mdp_parse_dt_pipe(struct platform_device *pdev)
 			mdata->ndma_pipes);
 	}
 
-	goto parse_done;
-
 parse_fail:
-	kfree(mdata->dma_pipes);
-dma_alloc_fail:
-	kfree(mdata->rgb_pipes);
-rgb_alloc_fail:
-	kfree(mdata->vig_pipes);
-parse_done:
-vig_alloc_fail:
 	kfree(xin_id);
 xin_alloc_fail:
 	kfree(ftch_id);
