@@ -329,6 +329,17 @@ v_TIME_t vos_timer_get_system_ticks( v_VOID_t );
   ------------------------------------------------------------------------*/
 v_TIME_t vos_timer_get_system_time( v_VOID_t );
 
-
+/**
+ * vos_system_time_after() - Check if a is later than b
+ * @a: Time stamp value a
+ * @b: Time stamp value b
+ *
+ * Return:
+ * true if a is after b else false
+ */
+static inline bool vos_system_time_after(vos_time_t a, vos_time_t b)
+{
+       return (long)(b) - (long)(a) < 0;
+}
 
 #endif // #if !defined __VOSS_TIMER_H
