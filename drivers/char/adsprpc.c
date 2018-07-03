@@ -528,8 +528,7 @@ static int get_page_list(uint32_t kernel, struct smq_invoke_ctx *ctx, int cid)
 	pgstart->size = obuf->size;
 	for (i = 0; i < inbufs + outbufs; ++i) {
 		void *buf;
-		int num;
-		ssize_t len;
+		int len, num;
 
 		list[i].num = 0;
 		list[i].pgidx = 0;
