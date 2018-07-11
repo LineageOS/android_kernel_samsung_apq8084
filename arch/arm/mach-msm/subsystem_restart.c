@@ -1084,8 +1084,6 @@ static int subsys_device_open(struct inode *inode, struct file *file)
 	struct subsys_device *device, *subsys_dev = 0;
 	void *retval;
 
-	pr_info("%s\n",__func__);
-
 	mutex_lock(&subsys_list_lock);
 	list_for_each_entry(device, &subsys_list, list)
 		if (MINOR(device->dev_no) == iminor(inode))
@@ -1105,8 +1103,6 @@ static int subsys_device_open(struct inode *inode, struct file *file)
 static int subsys_device_close(struct inode *inode, struct file *file)
 {
 	struct subsys_device *device, *subsys_dev = 0;
-
-	pr_info("%s\n",__func__);
 
 	mutex_lock(&subsys_list_lock);
 	list_for_each_entry(device, &subsys_list, list)
