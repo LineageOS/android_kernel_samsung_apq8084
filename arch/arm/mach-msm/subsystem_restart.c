@@ -815,11 +815,6 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 	track->p_state = SUBSYS_NORMAL;
 	wake_unlock(&dev->wake_lock);
 	spin_unlock_irqrestore(&track->s_lock, flags);
-
-
-	/* Workaround for ssr exception when ap was during sleep.
-	Hold wake lock for 15 sec to prevent ap sleep. */
-	wake_lock_timeout(&dev->wake_lock, 15*HZ);
 }
 
 static void __subsystem_restart_dev(struct subsys_device *dev)
