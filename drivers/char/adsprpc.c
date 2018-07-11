@@ -1876,6 +1876,18 @@ static int fastrpc_device_open(struct inode *inode, struct file *filp)
 		fdata->tgid = current->tgid;
 		fdata->ssrcount = ssrcount;
 
+		/* cvxda 2018-07-11: Our old adsprpcd never calls
+		 * ioctl(FASTRPC_IOCTL_INIT, FASTRPC_INIT_ATTACH).  It expects
+		 * the action taken here in open instead.
+		 */
+		{
+			struct fastrpc_ioctl_init init;
+			init.flags = FASTRPC_INIT_ATTACH;
+			VERIFY(err, 0 == fastrpc_init_process(fdata, &init));
+			if (err)
+				goto bail;
+		}
+
 		filp->private_data = fdata;
 bail:
 		if (err) {
