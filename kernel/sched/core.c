@@ -92,6 +92,11 @@
 
 #ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
+#else
+static inline void sec_gaf_supply_rqinfo(unsigned short curr_offset,
+					 unsigned short rq_offset)
+{
+}
 #endif
 
 static atomic_t __su_instances;

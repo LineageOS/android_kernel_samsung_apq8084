@@ -26,6 +26,8 @@
 
 #if defined(CONFIG_SEC_DEBUG)
 #include <mach/sec_debug.h>
+#else
+extern struct class *sec_class;
 #endif
 
 
