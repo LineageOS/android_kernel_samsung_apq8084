@@ -819,7 +819,7 @@ static void subsystem_restart_wq_func(struct work_struct *work)
 
 	/* Workaround for ssr exception when ap was during sleep.
 	Hold wake lock for 15 sec to prevent ap sleep. */
-	wake_lock_timeout(&dev->wake_lock, 15*HZ);
+	wake_lock_timeout(&dev->wake_lock, 5*HZ);
 }
 
 static void __subsystem_restart_dev(struct subsys_device *dev)
