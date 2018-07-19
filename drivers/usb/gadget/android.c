@@ -952,8 +952,8 @@ static int rmnet_function_bind_config(struct android_usb_function *f,
 {
 	int i;
 	int err = 0;
-	char *ctrl_name;
-	char *data_name;
+	char *ctrl_name = NULL;
+	char *data_name = NULL;
 	char *tname = NULL;
 	char buf[MAX_XPORT_STR_LEN], *b;
 	char xport_name_buf[MAX_XPORT_STR_LEN], *tb;

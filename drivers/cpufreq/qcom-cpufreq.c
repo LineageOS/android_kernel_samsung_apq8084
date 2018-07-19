@@ -563,7 +563,7 @@ static int cpufreq_parse_dt(struct device *dev)
 	int ret, len, nf, num_cols = 2, i, j;
 	int num_paths = 0, k;
 	u32 *data;
-	u32 *ports;
+	u32 *ports = NULL;
 	struct msm_bus_vectors *v = NULL;
 
 	if (l2_clk)

@@ -55,7 +55,7 @@ MHI_STATUS mhi_init_mmio(mhi_device_ctxt *mhi_dev_ctxt)
 	u64 pcie_dword_val = 0;
 	u32 pcie_word_val = 0;
 	u32 i = 0;
-	MHI_STATUS ret_val;
+	MHI_STATUS ret_val = 0;
 
 	mhi_log(MHI_MSG_INFO, "~~~ Initializing MMIO ~~~\n");
 	pcie_bar0_addr = mhi_dev_ctxt->dev_props->bar0_base;

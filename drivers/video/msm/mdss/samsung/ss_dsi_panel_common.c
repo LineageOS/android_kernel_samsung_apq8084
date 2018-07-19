@@ -3337,7 +3337,7 @@ static ssize_t mdss_samsung_disp_partial_disp_store(struct device *dev,
 static ssize_t mdss_samsung_alpm_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int rc;
+	int rc = 0;
 	struct samsung_display_driver_data *vdd =
 	(struct samsung_display_driver_data *)dev_get_drvdata(dev);
 	struct mdss_dsi_ctrl_pdata *ctrl;

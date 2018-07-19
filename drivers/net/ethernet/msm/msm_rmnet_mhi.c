@@ -337,19 +337,21 @@ void rmnet_mhi_tx_cb(mhi_cb_info *cb_info)
 	unsigned long burst_counter = 0;
 	mhi_result* result;
 
-	if (NULL != cb_info && NULL != cb_info->result) {
-		result = cb_info->result;
-		dev = (struct net_device *)result->user_data;
-		rmnet_mhi_ptr = netdev_priv(dev);
+	if (!cb_info || !cb_info->result) {
+		pr_err("%s: Input parameters NULL, exiting.", __func__);
+		return;
 	}
+	result = cb_info->result;
+	dev = (struct net_device *)result->user_data;
+	rmnet_mhi_ptr = netdev_priv(dev);
 	switch (cb_info->cb_reason) {
 	case MHI_CB_MHI_DISABLED:
-		pr_err("%s: Got SSR notification %d from MHI CORE. Stopping stack.",
+		pr_info("%s: Got SSR notification %d from MHI CORE. Stopping stack.",
 		       __func__, cb_info->cb_reason);
 		netif_stop_queue(dev);
 		break;
 	case MHI_CB_MHI_ENABLED:
-		pr_err("%s: Got SSR notification %d from MHI CORE. Starting stack.",
+		pr_info("%s: Got SSR notification %d from MHI CORE. Starting stack.",
 		       __func__, cb_info->cb_reason);
 		netif_start_queue(dev);
 		break;
@@ -429,10 +431,13 @@ void rmnet_mhi_rx_cb(mhi_cb_info *cb_info)
 {
 	struct net_device *dev;
 	struct rmnet_mhi_private *rmnet_mhi_ptr;
-	if (NULL != cb_info && NULL != cb_info->result) {
-		dev = (struct net_device *)cb_info->result->user_data;
-		rmnet_mhi_ptr = netdev_priv(dev);
+
+	if (!cb_info || !cb_info->result) {
+		pr_err("%s: Input parameters NULL, exiting.", __func__);
+		return;
 	}
+	dev = (struct net_device *)cb_info->result->user_data;
+	rmnet_mhi_ptr = netdev_priv(dev);
 
 	switch(cb_info->cb_reason) {
 		case MHI_CB_XFER_SUCCESS:
@@ -442,8 +447,8 @@ void rmnet_mhi_rx_cb(mhi_cb_info *cb_info)
 			return;
 			break;
 		default:
-			pr_err("%s(): Received bad return code %d from core", __func__,
-					cb_info->cb_reason);
+			pr_err("%s(): Received bad return code %d from core",
+			       __func__, cb_info->cb_reason);
 			break;
 	}
 	rx_interrupts_count[rmnet_mhi_ptr->dev_index]++;

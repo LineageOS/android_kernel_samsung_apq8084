@@ -798,8 +798,8 @@ void uci_xfer_cb(mhi_cb_info *cb_info)
 }
 void process_rs232_state(mhi_result *result)
 {
-	rs232_ctrl_msg *rs232_pkt;
-	uci_client* client;
+	rs232_ctrl_msg *rs232_pkt = NULL;
+	uci_client* client = NULL;
 	u32 msg_id;
 	MHI_STATUS ret_val;
 	u32 chan;
@@ -842,7 +842,8 @@ error_size:
 	dma_map_single(NULL, rs232_pkt,
 			sizeof(rs232_ctrl_msg),
 			DMA_BIDIRECTIONAL);
-	ret_val = mhi_client_recycle_trb(client->inbound_handle);
+	ret_val = client ? mhi_client_recycle_trb(client->inbound_handle)
+			 : MHI_STATUS_ERROR;
 	if (MHI_STATUS_SUCCESS != ret_val){
 		mhi_uci_log(UCI_DBG_ERROR,
 		"Failed to recycle ctrl msg buffer\n");

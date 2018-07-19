@@ -505,7 +505,7 @@ static int w1_gpio_msm_probe(struct platform_device *pdev)
 	struct w1_gpio_msm_platform_data *pdata;
 	struct input_dev *input;
 	int err;
-	int ret, irq;
+	int ret, irq = -1;
 	int temp_irq;
 
 	printk(KERN_ERR "\nw1_gpio_msm_probe start\n");

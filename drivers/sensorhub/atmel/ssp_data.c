@@ -274,6 +274,7 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength) {
 			sensortime.batch_count = sensortime.batch_count_fixed = length;
 			sensortime.batch_mode = length > 1 ? BATCH_MODE_RUN : BATCH_MODE_NONE;
 			sensortime.irq_diff = data->timestamp - data->lastTimestamp[iSensorData];
+			sensortime.time_diff = 0;
 
 			if (sensortime.batch_mode == BATCH_MODE_RUN) {
 				if (data->reportedData[iSensorData] == true) {

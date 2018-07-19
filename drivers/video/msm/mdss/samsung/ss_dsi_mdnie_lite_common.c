@@ -673,7 +673,7 @@ static ssize_t hmt_color_temperature_store(struct device *dev,
 					  const char *buf, size_t size)
 {
 	int value;
-	int backup;
+	int backup = 0;
 	struct mdnie_lite_tun_type *mdnie_tune_state = NULL;
 	struct samsung_display_driver_data *vdd = NULL;
 

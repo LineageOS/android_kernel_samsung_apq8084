@@ -619,7 +619,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	int cur_power_state;
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	struct samsung_display_driver_data *vdd = NULL;
-	u32 reg_backup;
+	u32 reg_backup = 0;
 #endif
 
 	if (pdata == NULL) {
