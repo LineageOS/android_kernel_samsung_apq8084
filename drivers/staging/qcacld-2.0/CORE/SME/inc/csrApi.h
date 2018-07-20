@@ -373,7 +373,7 @@ typedef struct tagCsrEseCckmInfo
 #endif
 
 #if defined(FEATURE_WLAN_ESE) && defined(FEATURE_WLAN_ESE_UPLOAD)
-#define CSR_DOT11F_IE_RSN_MAX_LEN   (114)  /*TODO: duplicate one in dot11f.h */
+#define CSR_DOT11F_IE_RSN_MAX_LEN   (255)  /*TODO: duplicate one in dot11f.h */
 typedef struct tagCsrEseCckmIe
 {
     tANI_U8 cckmIe[CSR_DOT11F_IE_RSN_MAX_LEN];
