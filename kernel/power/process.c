@@ -27,7 +27,7 @@ static int try_to_freeze_tasks(bool user_only)
 {
 	struct task_struct *g, *p;
 #ifdef CONFIG_SEC_PM_DEBUG
-	struct task_struct *q;
+	struct task_struct *q = NULL;
 #endif
 	unsigned long end_time;
 	unsigned int todo;
