@@ -334,46 +334,6 @@ static void __ref intelli_plug_work_fn(struct work_struct *work)
 		msecs_to_jiffies(sampling_time));
 }
 
-#if defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
-static void screen_off_limit(bool on)
-{
-	unsigned int cpu;
-	struct cpufreq_policy *policy;
-	struct ip_cpu_info *l_ip_info;
-
-	/* not active, so exit */
-	if (screen_off_max == UINT_MAX)
-		return;
-
-	for_each_online_cpu(cpu) {
-		l_ip_info = &per_cpu(ip_info, cpu);
-		policy = cpufreq_cpu_get(0);
-
-		if (on) {
-			/* save current instance */
-			l_ip_info->cur_max = policy->max;
-			policy->max = screen_off_max;
-			policy->cpuinfo.max_freq = screen_off_max;
-#ifdef DEBUG_INTELLI_PLUG
-			pr_info("cpuinfo max is (on): %u %u\n",
-				policy->cpuinfo.max_freq, l_ip_info->sys_max);
-#endif
-		} else {
-			/* restore */
-			if (cpu != 0) {
-				l_ip_info = &per_cpu(ip_info, 0);
-			}
-			policy->cpuinfo.max_freq = l_ip_info->sys_max;
-			policy->max = l_ip_info->cur_max;
-#ifdef DEBUG_INTELLI_PLUG
-			pr_info("cpuinfo max is (off): %u %u\n",
-				policy->cpuinfo.max_freq, l_ip_info->sys_max);
-#endif
-		}
-		cpufreq_update_policy(cpu);
-	}
-}
-
 void __ref intelli_plug_perf_boost(bool on)
 {
 	unsigned int cpu;
@@ -431,6 +391,47 @@ static struct attribute_group intelli_plug_perf_boost_attr_group = {
 
 static struct kobject *intelli_plug_perf_boost_kobj;
 /* sysfs interface for performance boost (END) */
+
+
+#if defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
+static void screen_off_limit(bool on)
+{
+	unsigned int cpu;
+	struct cpufreq_policy *policy;
+	struct ip_cpu_info *l_ip_info;
+
+	/* not active, so exit */
+	if (screen_off_max == UINT_MAX)
+		return;
+
+	for_each_online_cpu(cpu) {
+		l_ip_info = &per_cpu(ip_info, cpu);
+		policy = cpufreq_cpu_get(0);
+
+		if (on) {
+			/* save current instance */
+			l_ip_info->cur_max = policy->max;
+			policy->max = screen_off_max;
+			policy->cpuinfo.max_freq = screen_off_max;
+#ifdef DEBUG_INTELLI_PLUG
+			pr_info("cpuinfo max is (on): %u %u\n",
+				policy->cpuinfo.max_freq, l_ip_info->sys_max);
+#endif
+		} else {
+			/* restore */
+			if (cpu != 0) {
+				l_ip_info = &per_cpu(ip_info, 0);
+			}
+			policy->cpuinfo.max_freq = l_ip_info->sys_max;
+			policy->max = l_ip_info->cur_max;
+#ifdef DEBUG_INTELLI_PLUG
+			pr_info("cpuinfo max is (off): %u %u\n",
+				policy->cpuinfo.max_freq, l_ip_info->sys_max);
+#endif
+		}
+		cpufreq_update_policy(cpu);
+	}
+}
 
 #ifdef CONFIG_POWERSUSPEND
 static void intelli_plug_suspend(struct power_suspend *handler)
