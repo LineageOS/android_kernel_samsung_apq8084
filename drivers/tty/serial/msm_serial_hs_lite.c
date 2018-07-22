@@ -89,7 +89,7 @@ struct msm_hsl_port {
 	struct mutex		clk_mutex;
 	enum uart_core_type	uart_type;
 	enum uart_func_mode	func_mode;
-	struct wake_lock	port_open_wake_lock;
+	struct wakeup_source	port_open_ws;
 	int			clk_enable_count;
 	u32			bus_perf_client;
 	/* BLSP UART required BUS Scaling data */
@@ -995,7 +995,7 @@ static int msm_hsl_startup(struct uart_port *port)
 			set_gsbi_uart_func_mode(port);
 
 		if (pdata && pdata->use_pm)
-			wake_lock(&msm_hsl_port->port_open_wake_lock);
+			__pm_stay_awake(&msm_hsl_port->port_open_ws);
 
 		if (pdata && pdata->config_gpio) {
 			ret = msm_hsl_config_uart_gpios(port);
@@ -1039,7 +1039,7 @@ static int msm_hsl_startup(struct uart_port *port)
 
 release_wakelock:
 	if (pdata && pdata->use_pm)
-		wake_unlock(&msm_hsl_port->port_open_wake_lock);
+		__pm_relax(&msm_hsl_port->port_open_ws);
 
 	return ret;
 }
@@ -1064,7 +1064,7 @@ static void msm_hsl_shutdown(struct uart_port *port)
 			msm_hsl_unconfig_uart_gpios(port);
 
 		if (pdata && pdata->use_pm)
-			wake_unlock(&msm_hsl_port->port_open_wake_lock);
+			__pm_stay_awake(&msm_hsl_port->port_open_ws);
 	}
 }
 
@@ -1830,9 +1830,8 @@ static int msm_serial_hsl_probe(struct platform_device *pdev)
 	msm_hsl_debugfs_init(msm_hsl_port, get_line(pdev));
 	mutex_init(&msm_hsl_port->clk_mutex);
 	if (pdata && pdata->use_pm)
-		wake_lock_init(&msm_hsl_port->port_open_wake_lock,
-				WAKE_LOCK_SUSPEND,
-				"msm_serial_hslite_port_open");
+		wakeup_source_init(&msm_hsl_port->port_open_ws,
+				   "msm_serial_hslite_port_open");
 
 	/* Temporarily increase the refcount on the GSBI clock to avoid a race
 	 * condition with the earlyprintk handover mechanism.
@@ -1862,7 +1861,7 @@ static int msm_serial_hsl_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 
 	if (pdata && pdata->use_pm)
-		wake_lock_destroy(&msm_hsl_port->port_open_wake_lock);
+		wakeup_source_trash(&msm_hsl_port->port_open_ws);
 
 	device_set_wakeup_capable(&pdev->dev, 0);
 	platform_set_drvdata(pdev, NULL);
