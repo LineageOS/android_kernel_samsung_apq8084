@@ -640,7 +640,7 @@ static int fts_wait_for_ready(struct fts_ts_info *info)
 {
 	unsigned char regAdd = READ_ONE_EVENT;
 	unsigned char data[FTS_EVENT_SIZE] = {0, };
-	int retry = 0, err_cnt = 0, ret;
+	int retry = 0, err_cnt = 0, ret = 0;
 
 	while (fts_read_reg(info, &regAdd, 1, data, FTS_EVENT_SIZE)) {
 

@@ -168,7 +168,7 @@ extern unsigned int system_rev;
 static int max86900_regulator_onoff(struct max86900_device_data *data, int onoff)
 {
 	int rc = 0;
-	struct regulator *regulator_led_3p3;
+	struct regulator *regulator_led_3p3 = NULL;
 	struct regulator *regulator_vdd_1p8;
 
 	if (data->regulator_is_enable == onoff) {

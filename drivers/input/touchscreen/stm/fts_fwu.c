@@ -441,7 +441,7 @@ int fts_fw_update_on_probe(struct fts_ts_info *info)
 	unsigned char *fw_data = NULL;
 	char fw_path[FTS_MAX_FW_PATH];
 	const struct fts64_header *header;
-	unsigned char SYS_STAT[2];
+	unsigned char SYS_STAT[2] = { '\0', '\0' };
 
 
 #ifdef USE_SEC_STRING_FEATURE

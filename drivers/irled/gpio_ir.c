@@ -539,7 +539,7 @@ static enum hrtimer_restart gpio_ir_timeout_type2(struct hrtimer *timer)
 	bool btimer_run;
 
 #ifdef GPIO_IR_MULTI_TIMER
-	cycles_t start_cycle;
+	cycles_t start_cycle = 0;
 	cycles_t diff_cycle;		// for post correction
 	ktime_t diff_time;		// for post correction
 #ifdef HRTIMER_MULTI_CPU_COLLISION_NO_RELEASE
