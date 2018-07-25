@@ -1046,6 +1046,13 @@ config SERIAL_MSM_HS
 	  Choose M here to compile it as a module. The module will be
 	  called msm_serial_hs.
 
+config SERIAL_MSM_HS_TRLTE
+	tristate "OLD MSM UART High Speed: Serial Driver"
+	depends on ARCH_MSM
+	select SERIAL_CORE
+	help
+	  Trlte needs the old msm_serial_hs driver.
+
 config SERIAL_MSM_RX_WAKEUP
 	bool "Wakeup the msm uart clock on GPIO activity."
 	depends on SERIAL_MSM_CLOCK_CONTROL

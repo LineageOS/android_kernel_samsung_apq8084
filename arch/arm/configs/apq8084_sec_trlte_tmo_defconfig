@@ -138,6 +138,10 @@ CONFIG_SND_SOC_3MIC_SUPPORT=y
 # VEQ
 CONFIG_SND_SOC_VEQ_SUPPORT=y
 
+# Broadcom BT -> Bluesleep -> old age msm_serial_hs.c
+# CONFIG_SERIAL_MSM_HS is not set
+CONFIG_SERIAL_MSM_HS_TRLTE=y
+
 # Broadcomm Wifi
 CONFIG_NL80211_TESTMODE=y
 CONFIG_WEXT_CORE=y
