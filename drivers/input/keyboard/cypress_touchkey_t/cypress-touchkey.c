@@ -145,7 +145,7 @@ static void cypress_touchkey_interrupt_set_dual(struct i2c_client *client)
 			continue;
 		}
 
-		dev_info(&client->dev, "%s: interrupt set: 0x%X\n", __func__, data[1]);
+		dev_dbg(&client->dev, "%s: interrupt set: 0x%X\n", __func__, data[1]);
 		break;
 	}
 
@@ -204,7 +204,7 @@ static int cypress_power_onoff(struct device *dev, bool onoff)
 	struct cypress_touchkey_info *info = dev_get_drvdata(dev);
 	int rc;
 
-	dev_info(&info->client->dev, "%s: power %s\n",
+	dev_dbg(&info->client->dev, "%s: power %s\n",
 			__func__, onoff ? "on" : "off");
 
 	if (!info->touch_3p3) {
@@ -2220,7 +2220,7 @@ static void cypress_input_close(struct input_dev *dev)
 {
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 
-	dev_info(&info->client->dev, "%s\n",__func__);
+	dev_dbg(&info->client->dev, "%s\n",__func__);
 
 #ifdef CHECH_TKEY_IC_STATUS
 	cancel_delayed_work(&info->status_work);
@@ -2254,7 +2254,7 @@ static int cypress_input_open(struct input_dev *dev)
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 	int ret = 0;
 
-	dev_info(&info->client->dev, "%s\n",__func__);
+	dev_dbg(&info->client->dev, "%s\n",__func__);
 	if (wake_lock_active(&info->fw_wakelock)) {
 		dev_err(&info->client->dev, "wackelock active(%s)\n",
 					__func__);
