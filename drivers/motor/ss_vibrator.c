@@ -239,7 +239,7 @@ static int ss_vibrator_suspend(struct device *dev)
 {
 	struct ss_vib *vib = dev_get_drvdata(dev);
 
-	pr_info("[VIB]: %s\n", __func__);
+	pr_debug("[VIB]: %s\n", __func__);
 
 	hrtimer_cancel(&vib->vib_timer);
 	cancel_work_sync(&vib->work);
@@ -255,7 +255,7 @@ static int ss_vibrator_resume(struct device *dev)
 {
 	struct ss_vib *vib = dev_get_drvdata(dev);
 
-	pr_info("[VIB]: %s\n", __func__);
+	pr_debug("[VIB]: %s\n", __func__);
 	max778xx_haptic_en(vib, true);
 
 	return 0;
@@ -462,7 +462,7 @@ static void regulator_power_onoff(int onoff)
 				return;
 			}
 		}
-		printk(KERN_DEBUG"haptic power_off is finished.\n");
+		pr_debug("haptic power_off is finished.\n");
 	}
 }
 #else
