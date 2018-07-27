@@ -1393,14 +1393,14 @@ done:
  */
 int max86900_remove(struct i2c_client *client)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	free_irq(client->irq, NULL);
 	return 0;
 }
 
 static void max86900_shutdown(struct i2c_client *client)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 }
 
 static int max86900_pm_suspend(struct device *dev)
@@ -1410,7 +1410,7 @@ static int max86900_pm_suspend(struct device *dev)
 		max86900_mode_enable(data, HRM_LDO_OFF);
 		atomic_set(&data->is_suspend, 1);
 	}
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
@@ -1421,7 +1421,7 @@ static int max86900_pm_resume(struct device *dev)
 		max86900_mode_enable(data, HRM_LDO_ON);
 		atomic_set(&data->is_suspend, 0);
 	}
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
