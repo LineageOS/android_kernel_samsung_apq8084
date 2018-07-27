@@ -1421,7 +1421,7 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 						"[%d][P] 0x%02x, x = %d, y = %d, wx = %d, wy = %d |[%d]\n",
 						finger, finger_status, x, y, wx, wy, fingers_to_process);
 #else
-				dev_info(&rmi4_data->i2c_client->dev,
+				dev_dbg(&rmi4_data->i2c_client->dev,
 						"[%d][P] 0x%02x\n",
 						finger, finger_status);
 #endif
@@ -1444,7 +1444,7 @@ static int synaptics_rmi4_f12_abs_report(struct synaptics_rmi4_data *rmi4_data,
 					finger, finger_status, rmi4_data->finger[finger].mcount,
 					rmi4_data->ic_revision_of_ic, rmi4_data->fw_version_of_ic, rmi4_data->lcd_id, system_rev);
 #else
-			dev_info(&rmi4_data->i2c_client->dev, "[%d][R] 0x%02x M[%d], Ver[%02X%02X][%X/%d]\n",
+			dev_dbg(&rmi4_data->i2c_client->dev, "[%d][R] 0x%02x M[%d], Ver[%02X%02X][%X/%d]\n",
 					finger, finger_status, rmi4_data->finger[finger].mcount,
 					rmi4_data->ic_revision_of_ic, rmi4_data->fw_version_of_ic, rmi4_data->lcd_id, system_rev);
 #endif
@@ -2271,7 +2271,7 @@ int synaptics_rmi4_f12_set_feature(struct synaptics_rmi4_data *rmi4_data)
 			return retval;
 		}
 
-		dev_info(&rmi4_data->i2c_client->dev, "%s: 0x%x\n",
+		dev_dbg(&rmi4_data->i2c_client->dev, "%s: 0x%x\n",
 				__func__, rmi4_data->feature_enable);
 	}
 
@@ -3923,7 +3923,7 @@ int synaptics_rmi4_free_fingers(struct synaptics_rmi4_data *rmi4_data)
 {
 	unsigned char ii;
 
-	dev_info(&rmi4_data->i2c_client->dev, "%s\n", __func__);
+	dev_dbg(&rmi4_data->i2c_client->dev, "%s\n", __func__);
 
 /* if firmware is broken, occurs null pinter exception : cause is rmi4_data->f51_handle is NULL */
 #ifdef PROXIMITY
@@ -4025,7 +4025,7 @@ static int synaptics_rmi4_reinit_device(struct synaptics_rmi4_data *rmi4_data)
 				&f51_general_control, sizeof(f51_general_control));
 
 		/* Read the Hsync's status */
-		dev_info(&rmi4_data->i2c_client->dev,
+		dev_dbg(&rmi4_data->i2c_client->dev,
 			"%s: Hsync [%s[0x%x]]\n", __func__,
 			(f51_general_control & HSYNC_STATUS) ? "GD" : "NG",
 			f51_general_control);
@@ -4055,7 +4055,7 @@ static int synaptics_rmi4_reinit_device(struct synaptics_rmi4_data *rmi4_data)
 #endif
 	for (ii = 0; ii < rmi4_data->num_of_intr_regs; ii++) {
 		if (rmi4_data->intr_mask[ii] != 0x00) {
-			dev_info(&rmi4_data->i2c_client->dev,
+			dev_dbg(&rmi4_data->i2c_client->dev,
 					"%s: Interrupt enable mask %d = 0x%02x\n",
 					__func__, ii, rmi4_data->intr_mask[ii]);
 			intr_addr = rmi4_data->f01_ctrl_base_addr + 1 + ii;
@@ -4425,7 +4425,7 @@ void synaptics_power_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable)
 
 	if (rmi4_data->dt_data->external_ldo > 0) {
 		retval = gpio_direction_output(rmi4_data->dt_data->external_ldo, enable);
-		dev_info(dev, "%s: sensor_en[3.3V][%d] is %s[%s]\n",
+		dev_dbg(dev, "%s: sensor_en[3.3V][%d] is %s[%s]\n",
 				__func__, rmi4_data->dt_data->external_ldo,
 				enable ? "enabled" : "disabled", (retval < 0) ? "NG" : "OK");
 	}
@@ -4443,7 +4443,7 @@ void synaptics_power_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable)
 						__func__, rmi4_data->supplies[i].supply, retval);
 					goto err;
 				}
-				dev_info(dev, "%s: %s is enabled[OK]\n",
+				dev_dbg(dev, "%s: %s is enabled[OK]\n",
 					__func__, rmi4_data->supplies[i].supply);
 			}
 		}
@@ -4463,7 +4463,7 @@ void synaptics_power_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable)
 						__func__, rmi4_data->supplies[i].supply, retval);
 					goto err;
 				}
-				dev_info(dev, "%s: %s is disabled[OK]\n",
+				dev_dbg(dev, "%s: %s is disabled[OK]\n",
 					__func__, rmi4_data->supplies[i].supply);
 			} else {
 				dev_err(dev, "%s: %s is already disabled\n", __func__,
@@ -4499,9 +4499,10 @@ err:
 		for (i = 0; i < rmi4_data->dt_data->num_of_supply; i++) {
 			if (regulator_is_enabled(rmi4_data->supplies[i].consumer)) {
 				retval = regulator_disable(rmi4_data->supplies[i].consumer);
-				dev_err(dev, "%s: %s is disabled[%s]\n",
-						__func__, rmi4_data->supplies[i].supply,
-						(retval < 0) ? "NG" : "OK");
+				if (retval < 0)
+					dev_err(dev, "%s: %s is disabled[%s]\n",
+							__func__, rmi4_data->supplies[i].supply,
+							"NG");
 			}
 		}
 
@@ -5244,7 +5245,7 @@ static int synaptics_rmi4_input_open(struct input_dev *dev)
 	struct synaptics_rmi4_data *rmi4_data = input_get_drvdata(dev);
 	int retval;
 
-	dev_info(&rmi4_data->i2c_client->dev, "%s %s\n", __func__, rmi4_data->use_deepsleep ? "wakeup" : "");
+	dev_dbg(&rmi4_data->i2c_client->dev, "%s %s\n", __func__, rmi4_data->use_deepsleep ? "wakeup" : "");
 
 	if (rmi4_data->use_deepsleep) {
 
@@ -5263,7 +5264,7 @@ static void synaptics_rmi4_input_close(struct input_dev *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = input_get_drvdata(dev);
 
-	dev_info(&rmi4_data->i2c_client->dev, "%s %s\n", __func__, rmi4_data->use_deepsleep ? "deepsleep" : "");
+	dev_dbg(&rmi4_data->i2c_client->dev, "%s %s\n", __func__, rmi4_data->use_deepsleep ? "deepsleep" : "");
 
 	if (rmi4_data->use_deepsleep)
 		synaptics_rmi4_sensor_sleep(rmi4_data);
