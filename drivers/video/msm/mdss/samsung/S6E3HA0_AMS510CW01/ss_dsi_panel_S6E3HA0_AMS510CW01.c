@@ -53,7 +53,7 @@ static int mdss_panel_on_post(struct mdss_dsi_ctrl_pdata *ctrl)
 		return false;
 	}
 
-	pr_info("%s %d\n", __func__, ctrl->ndx);
+	pr_debug("%s %d\n", __func__, ctrl->ndx);
 
 	mdss_panel_attach_set(ctrl, true);
 	
