@@ -546,7 +546,7 @@ static ssize_t store_an30259a_led_blink(struct device *dev,
 
 	leds_i2c_write_all(data->client);
 
-	printk(KERN_DEBUG "led_blink is called, Color:0x%X Brightness:%i\n",
+	dev_dbg(dev, "led_blink is called, Color:0x%X Brightness:%i\n",
 			led_brightness, LED_DYNAMIC_CURRENT);
 
 	return count;
