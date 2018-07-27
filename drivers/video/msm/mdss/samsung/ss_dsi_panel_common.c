@@ -141,7 +141,7 @@ int mdss_panel_attach_set(struct mdss_dsi_ctrl_pdata *ctrl, int status)
 			vdd->panel_attach_status &= ~(BIT(0) << ctrl->ndx);
 	}
 
-	pr_info("%s panel_attach_status : %d\n", __func__, vdd->panel_attach_status);
+	pr_debug("%s panel_attach_status : %d\n", __func__, vdd->panel_attach_status);
 
 	return vdd->panel_attach_status;
 }
@@ -209,7 +209,7 @@ static void mdss_samsung_event_frame_update(struct mdss_panel_data *pdata, int e
 					} else
 						vdd->hmt_stat.hmt_is_first = 0;
 				}
-				pr_info("DISPLAY_ON\n");
+				pr_debug("DISPLAY_ON\n");
 			}
 		} else
 			vdd->display_ststus_dsi[ctrl->ndx].wait_disp_on = 0;
@@ -244,7 +244,7 @@ static void mdss_samsung_event_frame_update(struct mdss_panel_data *pdata, int e
 				} else
 					vdd->hmt_stat.hmt_is_first = 0;
 			}
-			pr_info("DISPLAY_ON\n");
+			pr_debug("DISPLAY_ON\n");
 		}
 	}
 }
@@ -760,7 +760,7 @@ int mdss_samsung_panel_on_pre(struct mdss_panel_data *pdata)
 		return false;
 	}
 
-	pr_info("%s+: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s+: ndx=%d \n", __func__, ctrl->ndx);
 
 	if (!vdd->manufacture_id_dsi[ctrl->ndx]) {
 		/*
@@ -862,7 +862,7 @@ int mdss_samsung_panel_on_pre(struct mdss_panel_data *pdata)
 	if (!IS_ERR_OR_NULL(vdd->panel_func.samsung_panel_on_pre))
 		vdd->panel_func.samsung_panel_on_pre(ctrl);
 
-	pr_info("%s-: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s-: ndx=%d \n", __func__, ctrl->ndx);
 
 	return true;
 }
@@ -894,7 +894,7 @@ int mdss_samsung_panel_on_post(struct mdss_panel_data *pdata)
 		return false;
 	}
 
-	pr_info("%s+: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s+: ndx=%d \n", __func__, ctrl->ndx);
 
 	if (!IS_ERR_OR_NULL(vdd->panel_func.samsung_panel_on_post))
 		vdd->panel_func.samsung_panel_on_post(ctrl);
@@ -919,7 +919,7 @@ int mdss_samsung_panel_on_post(struct mdss_panel_data *pdata)
 
 	vdd->display_ststus_dsi[ctrl->ndx].wait_disp_on = true;
 
-	pr_info("%s-: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s-: ndx=%d \n", __func__, ctrl->ndx);
 
 	return true;
 }
@@ -1630,7 +1630,7 @@ int mdss_samsung_brightness_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 		if (ret) {
 			mdss_samsung_send_cmd(ctrl, PANEL_BRIGHT_CTRL);
 
-			pr_info("%s DSI%d level : %d  candela : %dCD hbm : %d\n", __func__,
+			pr_debug("%s DSI%d level : %d  candela : %dCD hbm : %d\n", __func__,
 				ctrl->ndx, level, vdd->candela_level,
 				vdd->display_ststus_dsi[ctrl->ndx].hbm_mode);
 		} else
@@ -1747,7 +1747,7 @@ static void mdss_samsung_event_osc_te_fitting(struct mdss_panel_data *pdata, int
 		else
 			break;
 	}
-	pr_debug("%s:--\n", __func__);
+	pr_debug("%s-\n", __func__);
 }
 
 static void samsung_te_check_done_work(struct work_struct *work)
@@ -3025,7 +3025,7 @@ static ssize_t mdss_samsung_disp_acl_store(struct device *dev,
 	else
 		pr_info("%s: Invalid argument!!", __func__);
 
-	pr_info("%s (%d) \n", __func__, acl_set);
+	pr_debug("%s (%d) \n", __func__, acl_set);
 
 	pdata = &vdd->ctrl_dsi[DISPLAY_1]->panel_data;
 	mutex_lock(&vdd->mfd_dsi[DISPLAY_1]->bl_lock);
@@ -3193,7 +3193,7 @@ static ssize_t mdss_samsung_auto_brightness_store(struct device *dev,
 	else
 		pr_info("%s: Invalid argument!!", __func__);
 
-	pr_info("%s (%d) \n", __func__, vdd->auto_brightness);
+	pr_debug("%s (%d) \n", __func__, vdd->auto_brightness);
 
 	if (!alpm_status_func(CHECK_PREVIOUS_STATUS)) {
 		mutex_lock(&vdd->mfd_dsi[DISPLAY_1]->bl_lock);

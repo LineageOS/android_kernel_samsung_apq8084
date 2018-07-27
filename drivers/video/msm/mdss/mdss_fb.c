@@ -2498,7 +2498,7 @@ static int __mdss_fb_perform_commit(struct msm_fb_data_type *mfd)
 			}
 
 			if (fist_commit_flag)
-				pr_info("kickoff done!\n");
+				pr_debug("kickoff done!\n");
 		}
 		else {
 			pr_warn("no kickoff function setup for fb%d, op_enable(%d), power_on(%d)\n",

@@ -685,7 +685,7 @@ static ssize_t hdmi_tx_sysfs_wta_hpd(struct device *dev,
 	ssize_t ret = strnlen(buf, PAGE_SIZE);
 	struct hdmi_tx_ctrl *hdmi_ctrl = NULL;
 
-	DEV_INFO("%s:\n", __func__);
+	DEV_DBG("%s:\n", __func__);
 	hdmi_ctrl = hdmi_tx_get_drvdata_from_sysfs_dev(dev);
 
 	if (!hdmi_ctrl) {
