@@ -27,7 +27,7 @@
 #if defined(CONFIG_SEC_DEBUG)
 #include <mach/sec_debug.h>
 #endif
-
+extern struct class *sec_class;
 
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
