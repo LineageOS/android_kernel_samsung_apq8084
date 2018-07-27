@@ -349,7 +349,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			return rc;
 		}
 #endif
-		pr_info("%s: enable = %d\n", __func__, enable);
+		pr_debug("%s: enable = %d\n", __func__, enable);
 
 		if (!pinfo->cont_splash_enabled) {
 #if !defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
@@ -384,7 +384,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		if (ctrl_pdata->cmd_sync_wait_broadcast && ctrl_pdata->cmd_sync_wait_trigger)
 			return 0; /*off reset :have to controlled on dsi 0 on broadcast*/
 #endif
-		pr_info("%s: enable = %d\n", __func__, enable);
+		pr_debug("%s: enable = %d\n", __func__, enable);
 
 		if (gpio_is_valid(ctrl_pdata->bklt_en_gpio)) {
 			gpio_set_value((ctrl_pdata->bklt_en_gpio), 0);
@@ -742,7 +742,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 #endif
 		pinfo->blank_state = MDSS_PANEL_BLANK_UNBLANK;
 
-	pr_info("%s:-\n", __func__);
+	pr_debug("%s:-\n", __func__);
 	return 0;
 }
 

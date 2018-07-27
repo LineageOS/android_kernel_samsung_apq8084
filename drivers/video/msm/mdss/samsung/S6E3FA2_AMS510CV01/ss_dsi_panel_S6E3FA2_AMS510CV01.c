@@ -207,7 +207,7 @@ static int mdss_panel_on_pre(struct mdss_dsi_ctrl_pdata *ctrl)
 		return false;
 	}
 
-	pr_info("%s %d\n", __func__, ctrl->ndx);
+	pr_debug("%s %d\n", __func__, ctrl->ndx);
 
 	mdss_panel_attach_set(ctrl, true);
 
@@ -223,12 +223,12 @@ static int mdss_panel_on_post(struct mdss_dsi_ctrl_pdata *ctrl)
 		return false;
 	}
 
-	pr_info("%s+: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s+: ndx=%d \n", __func__, ctrl->ndx);
 
 	//if((mdss_panel_id1_get(ctrl) == 0x20) || (mdss_panel_id1_get(ctrl) == 0x40))
 		mdss_samsung_send_cmd(ctrl, PANEL_HSYNC_ON);
 
-	pr_info("%s-: ndx=%d \n", __func__, ctrl->ndx);
+	pr_debug("%s-: ndx=%d \n", __func__, ctrl->ndx);
 
 	return true;
 }

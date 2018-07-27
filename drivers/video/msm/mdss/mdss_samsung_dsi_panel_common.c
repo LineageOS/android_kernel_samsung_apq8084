@@ -4027,7 +4027,7 @@ static int samsung_dsi_panel_event_handler(int event)
 	switch (event) {
 		case MDSS_EVENT_FRAME_UPDATE:
 			if(msd.dstat.wait_disp_on) {
-				pr_info("DISPLAY_ON\n");
+				pr_debug("DISPLAY_ON\n");
 				mipi_samsung_disp_send_cmd(PANEL_DISPLAY_ON, true);
 
 				mipi_samsung_read_nv_mem(msd.pdata, &rddpm_cmds, rddpm_buf);

@@ -121,12 +121,12 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	if (dsi_panel_pm_ctrl && gpio_is_valid(ctrl_pdata->disp_en_gpio)){
 		gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-		pr_info("%s: disp_en_gpio set low	\n", __func__);
+		pr_debug("%s: disp_en_gpio set low	\n", __func__);
 	}
 #else
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio)){
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);/* VDDR :1.5*/
-			pr_info("%s: disp_en_gpio set low	\n", __func__);
+			pr_debug("%s: disp_en_gpio set low	\n", __func__);
 	}
 #endif
 #if defined(CONFIG_SEC_KCCAT6_PROJECT)
@@ -248,12 +248,12 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 
 #if defined(CONFIG_FB_MSM_MDSS_SAMSUNG)
 	if (dsi_panel_pm_ctrl && gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
-		pr_info("%s : Set High LCD Enable disp_en GPIO \n", __func__);
+		pr_debug("%s : Set High LCD Enable disp_en GPIO \n", __func__);
 		gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
 	}
 #else
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio)) {
-		pr_info("%s : Set High LCD Enable disp_en GPIO \n", __func__);
+		pr_debug("%s : Set High LCD Enable disp_en GPIO \n", __func__);
 		gpio_set_value((ctrl_pdata->disp_en_gpio), 1);
 	}
 #endif
@@ -314,7 +314,7 @@ static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 	}
 
 	pinfo = &pdata->panel_info;
-	pr_info("%s: cur_power_state=%d req_power_state=%d\n", __func__,
+	pr_debug("%s: cur_power_state=%d req_power_state=%d\n", __func__,
 		pinfo->panel_power_state, power_state);
 
 	if (pinfo->panel_power_state == power_state) {
@@ -605,7 +605,7 @@ panel_power_ctrl:
 
 	panel_info->dsi_on_status = false;
 end:
-	pr_info("%s-:\n", __func__);
+	pr_debug("%s-:\n", __func__);
 
 	return ret;
 }
@@ -711,7 +711,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	pinfo->dsi_on_status = true;
 
 end:
-	pr_err("%s-:\n", __func__);
+	pr_debug("%s-:\n", __func__);
 	return 0;
 }
 
@@ -742,7 +742,7 @@ static int mdss_dsi_unblank(struct mdss_panel_data *pdata)
 		goto error;
 	}
 
-	pr_info("ctrl_state = (%d)\n",ctrl_pdata->ctrl_state);
+	pr_debug("ctrl_state = (%d)\n",ctrl_pdata->ctrl_state);
 
 	if (!(ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT)) {
 		ret = ctrl_pdata->on(pdata);
@@ -761,7 +761,7 @@ static int mdss_dsi_unblank(struct mdss_panel_data *pdata)
 
 error:
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
-	pr_err("%s-:\n", __func__);
+	pr_debug("%s-:\n", __func__);
 
 	return ret;
 }
@@ -772,7 +772,7 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata, int power_state)
 	struct mipi_panel_info *mipi;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 
-	pr_info("%s+:\n", __func__);
+	pr_debug("%s+:\n", __func__);
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -809,7 +809,7 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata, int power_state)
 		mdss_dsi_set_tear_off(ctrl_pdata);
 #endif
 
-	pr_info("%s : ctrl_state(%d)\n",__func__, ctrl_pdata->ctrl_state);
+	pr_debug("%s : ctrl_state(%d)\n",__func__, ctrl_pdata->ctrl_state);
 
 	if (ctrl_pdata->ctrl_state & CTRL_STATE_PANEL_INIT) {
 		ret = ctrl_pdata->off(pdata);
@@ -822,7 +822,7 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata, int power_state)
 
 error:
 	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
-	pr_info("%s-:End\n", __func__);
+	pr_debug("%s-:End\n", __func__);
 	return ret;
 }
 
@@ -1036,7 +1036,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 	switch (event) {
 	case MDSS_EVENT_UNBLANK:
 //		pr_info("%s : MDSS_EVENT_UNBLANK \n", __func__);
-		pr_info("%s :(%d) MDSS_EVENT_UNBLANK (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->on_cmds.link_state? "HS" : "LP");
+		pr_debug("%s :(%d) MDSS_EVENT_UNBLANK (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->on_cmds.link_state? "HS" : "LP");
 		rc = mdss_dsi_on(pdata);
 		mdss_dsi_op_mode_config(pdata->panel_info.mipi.mode,
 							pdata);
@@ -1045,19 +1045,19 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		break;
 	case MDSS_EVENT_PANEL_ON:
 		//pr_info("%s : MDSS_EVENT_PANEL_ON \n", __func__);
-		pr_info("%s :(%d) MDSS_EVENT_PANEL_ON (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->on_cmds.link_state? "HS" : "LP");
+		pr_debug("%s :(%d) MDSS_EVENT_PANEL_ON (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->on_cmds.link_state? "HS" : "LP");
 		ctrl_pdata->ctrl_state |= CTRL_STATE_MDP_ACTIVE;
 		if (ctrl_pdata->on_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		break;
 	case MDSS_EVENT_BLANK:
-		pr_info("%s :(%d) MDSS_EVENT_BLANK (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->off_cmds.link_state? "HS" : "LP");
+		pr_debug("%s :(%d) MDSS_EVENT_BLANK (%s)\n", __func__, ctrl_pdata->ndx, ctrl_pdata->off_cmds.link_state? "HS" : "LP");
 		power_state = (int) (unsigned long) arg;
 		if (ctrl_pdata->off_cmds.link_state == DSI_HS_MODE)
 			rc = mdss_dsi_blank(pdata, power_state);
 		break;
 	case MDSS_EVENT_PANEL_OFF:
-		pr_info("%s :(%d) MDSS_EVENT_PANEL_OFF (%s) \n", __func__, ctrl_pdata->ndx, ctrl_pdata->off_cmds.link_state? "HS" : "LP");
+		pr_debug("%s :(%d) MDSS_EVENT_PANEL_OFF (%s) \n", __func__, ctrl_pdata->ndx, ctrl_pdata->off_cmds.link_state? "HS" : "LP");
 		power_state = (int) (unsigned long) arg;
 		ctrl_pdata->ctrl_state &= ~CTRL_STATE_MDP_ACTIVE;
 		if (ctrl_pdata->off_cmds.link_state == DSI_LP_MODE)
@@ -1065,7 +1065,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		rc = mdss_dsi_off(pdata, power_state);
 		break;
 	case MDSS_EVENT_FB_REGISTERED:
-		pr_info("%s : MDSS_EVENT_FB_REGISTERED \n", __func__);
+		pr_debug("%s : MDSS_EVENT_FB_REGISTERED \n", __func__);
 		if (ctrl_pdata->registered) {
 			pr_debug("%s:event=%d, calling panel registered callback \n",
 				 __func__, event);
@@ -1073,7 +1073,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		}
 		break;
 	case MDSS_EVENT_CONT_SPLASH_FINISH:
-		pr_info("%s : MDSS_EVENT_CONT_SPLASH_FINISH \n", __func__);
+		pr_debug("%s : MDSS_EVENT_CONT_SPLASH_FINISH \n", __func__);
 		if (ctrl_pdata->off_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_blank(pdata, MDSS_PANEL_POWER_OFF);
 		ctrl_pdata->ctrl_state &= ~CTRL_STATE_MDP_ACTIVE;
@@ -1099,7 +1099,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		}
 		break;
 	case MDSS_EVENT_CONT_SPLASH_BEGIN:
-		pr_info("%s : MDSS_EVENT_CONT_SPLASH_BEGIN \n", __func__);
+		pr_debug("%s : MDSS_EVENT_CONT_SPLASH_BEGIN \n", __func__);
 		if (ctrl_pdata->off_cmds.link_state == DSI_HS_MODE) {
 			/* Panel is Enabled in Bootloader */
 			rc = mdss_dsi_blank(pdata, MDSS_PANEL_POWER_OFF);
@@ -1190,7 +1190,7 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 		return -ENOTSUPP;
 	}
 
-	pr_info("%s ++ \n", __func__);
+	pr_debug("%s ++ \n", __func__);
 
 	pan_cfg = mdss_panel_intf_type(MDSS_PANEL_INTF_HDMI);
 	if (IS_ERR(pan_cfg)) {
@@ -1283,7 +1283,7 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 		goto error_pan_node;
 	}
 
-	pr_info("%s: Dsi Ctrl->%d initialized\n", __func__, index);
+	pr_debug("%s: Dsi Ctrl->%d initialized\n", __func__, index);
 	return 0;
 
 error_pan_node:
@@ -1377,7 +1377,7 @@ int mdss_dsi_retrieve_ctrl_resources(struct platform_device *pdev, int mode,
 		return rc;
 	}
 
-	pr_info("%s: ctrl_base=%pK ctrl_size=%x phy_base=%pK phy_size=%x\n",
+	pr_debug("%s: ctrl_base=%pK ctrl_size=%x phy_base=%pK phy_size=%x\n",
 		__func__, ctrl->ctrl_base, ctrl->reg_size, ctrl->phy_io.base,
 		ctrl->phy_io.len);
 
@@ -1402,7 +1402,7 @@ int dsi_panel_device_register(struct device_node *pan_node,
 	bool dynamic_fps;
 	const char *data;
 
-	pr_info("%s : ++ \n",__func__);
+	pr_debug("%s : ++ \n",__func__);
 
 	mipi  = &(pinfo->mipi);
 
@@ -1605,7 +1605,7 @@ int dsi_panel_device_register(struct device_node *pan_node,
 
 	ctrl_pdata->ctrl_state = CTRL_STATE_UNKNOWN;
 
-	pr_info("%s : pinfo->cont_splash_enabled(%d)\n", __func__, pinfo->cont_splash_enabled);
+	pr_debug("%s : pinfo->cont_splash_enabled(%d)\n", __func__, pinfo->cont_splash_enabled);
 
 	if (pinfo->cont_splash_enabled) {
 		rc = mdss_dsi_panel_power_ctrl(&(ctrl_pdata->panel_data),
