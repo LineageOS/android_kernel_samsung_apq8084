@@ -1061,7 +1061,7 @@ static int qpnp_rtc_auto_pwron_resume(struct device *dev)
 	if (rtc_dd->lpm_mode == 1)
 		queue_delayed_work(sapa_check_workq, &sapa_check_work, (1*HZ));
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
@@ -1076,7 +1076,7 @@ static int qpnp_rtc_auto_pwron_suspend(struct device *dev)
 	if (rtc_dd->lpm_mode == 1)
 		cancel_delayed_work_sync(&sapa_check_work);
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 #endif
@@ -1084,7 +1084,7 @@ static int qpnp_rtc_auto_pwron_suspend(struct device *dev)
 #ifdef CONFIG_SEC_PM
 static int qpnp_rtc_resume(struct device *dev)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	wake_lock_timeout(&resume_wakelock, HZ/10);
 
 #ifdef CONFIG_RTC_AUTO_PWRON_PARAM
@@ -1096,7 +1096,7 @@ static int qpnp_rtc_resume(struct device *dev)
 
 static int qpnp_rtc_suspend(struct device *dev)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 
 #ifdef CONFIG_RTC_AUTO_PWRON_PARAM
 	qpnp_rtc_auto_pwron_suspend(dev);
