@@ -31,7 +31,7 @@ Copyright (C) 2012, Samsung Electronics. All rights reserved.
 */
 #include "ss_dsi_mdnie_lite_common.h"
 
-#define MDNIE_LITE_TUN_DEBUG
+/* #define MDNIE_LITE_TUN_DEBUG */
 
 #ifdef MDNIE_LITE_TUN_DEBUG
 #define DPRINT(x...)	printk(KERN_ERR "[mdnie_lite] " x)
