@@ -544,7 +544,7 @@ void vfsspi_suspend(struct vfsspi_devData *vfsSpiDev)
 		dataToRead = 0;
 		gpio_set_value(vfsSpiDev->sleepPin, 1);
 		spin_unlock(&vfsSpiDev->vfsSpiLock);
-		pr_info("%s\n", __func__);
+		pr_debug("%s\n", __func__);
 	}
 }
 
@@ -1853,7 +1853,7 @@ static void vfsspi_shutdown(struct spi_device *spi)
 	if (g_data != NULL)
 		vfsspi_disable_debug_timer();
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 }
 
 static int vfsspi_pm_suspend(struct device *dev)
@@ -1861,7 +1861,7 @@ static int vfsspi_pm_suspend(struct device *dev)
 	if (g_data != NULL)
 		vfsspi_disable_debug_timer();
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
@@ -1870,7 +1870,7 @@ static int vfsspi_pm_resume(struct device *dev)
 	if (g_data != NULL && g_data->enable_debug_log)
 		vfsspi_enable_debug_timer();
 
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return 0;
 }
 
