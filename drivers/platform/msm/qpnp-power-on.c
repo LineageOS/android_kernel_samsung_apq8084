@@ -506,7 +506,7 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 
 	input_report_key(pon->pon_input, cfg->key_code, key_status);
 	input_sync(pon->pon_input);
-	pr_info("[KEY] code(0x%02X), value(%d)\n", cfg->key_code, key_status);
+	pr_debug("[KEY] code(0x%02X), value(%d)\n", cfg->key_code, key_status);
 
 	if((cfg->key_code == 116) && (pon_rt_sts & pon_rt_bit)){
 		pon->powerkey_state = 1;
