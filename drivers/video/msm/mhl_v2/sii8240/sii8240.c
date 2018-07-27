@@ -4782,7 +4782,7 @@ static int sii8240_mhl_tx_suspend(struct device *dev)
 {
 	struct sii8240_data *sii8240 = dev_get_drvdata(dev);
 	if (sii8240 != NULL) {
-		pr_info("%s()\n", __func__);
+		pr_debug("%s()\n", __func__);
 	/*set config_gpio for mhl*/
 		if (likely(sii8240->pdata->gpio_cfg))
 			sii8240->pdata->gpio_cfg(MHL_SUSPEND_STATE);
@@ -4797,7 +4797,7 @@ static int sii8240_mhl_tx_resume(struct device *dev)
 {
 	struct sii8240_data *sii8240 = dev_get_drvdata(dev);
 	if (sii8240 != NULL) {
-		pr_info("%s()\n", __func__);
+		pr_debug("%s()\n", __func__);
 	/*set config_gpio for mhl*/
 		if (likely(sii8240->pdata->gpio_cfg))
 			sii8240->pdata->gpio_cfg(MHL_RESUME_STATE);
