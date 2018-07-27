@@ -13,9 +13,6 @@
  * GNU General Public License for more details.
  */
 
-#ifndef DEBUG
-#define DEBUG
-#endif
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
