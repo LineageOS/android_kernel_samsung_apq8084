@@ -9,7 +9,7 @@
  *
  */
 
-#define SEC_TOUCHKEY_DEBUG
+/* #define SEC_TOUCHKEY_DEBUG */
 /* #define SEC_TOUCHKEY_VERBOSE_DEBUG */
 
 #include <linux/kernel.h>
@@ -179,7 +179,7 @@ static void cypress_touchkey_interrupt_set_dual(struct i2c_client *client)
 			continue;
 		}
 
-		dev_info(&client->dev, "%s: interrupt set: 0x%X\n", __func__, data[1]);
+		dev_dbg(&client->dev, "%s: interrupt set: 0x%X\n", __func__, data[1]);
 		break;
 	}
 
@@ -222,7 +222,7 @@ void cypress_power_onoff(struct cypress_touchkey_info *info, int onoff)
 {
 	int rc = 0;
 
-	dev_info(&info->client->dev, "%s: power %s\n",
+	dev_dbg(&info->client->dev, "%s: power %s\n",
 			__func__, onoff ? "on" : "off");
 
 	if (!info->vcc_en) {
@@ -1072,7 +1072,7 @@ static ssize_t cypress_touchkey_led_control(struct device *dev,
 	int data, ret, rc;
 	static const int ledCmd[] = {TK_CMD_LED_OFF, TK_CMD_LED_ON};
 
-	dev_info(&info->client->dev, "called %s\n", __func__);
+	dev_dbg(&info->client->dev, "called %s\n", __func__);
 
 	if (wake_lock_active(&info->fw_wakelock)) {
 		dev_err(&info->client->dev, "%s : wackelock active\n",
@@ -2734,7 +2734,7 @@ static int cypress_input_open(struct input_dev *dev)
 {
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 
-	dev_info(&info->client->dev, "%s.\n", __func__);
+	dev_dbg(&info->client->dev, "%s.\n", __func__);
 	cypress_touchkey_resume(&info->client->dev);
 
 	return 0;
@@ -2744,7 +2744,7 @@ static void cypress_input_close(struct input_dev *dev)
 {
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 
-	dev_info(&info->client->dev, "%s.\n", __func__);
+	dev_dbg(&info->client->dev, "%s.\n", __func__);
 	cypress_touchkey_suspend(&info->client->dev);
 }
 #endif
