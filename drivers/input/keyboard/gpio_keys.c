@@ -364,7 +364,7 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 	}
 	key_irq_state = 0;
 	
-	pr_info("[KEY] code(0x%02X), value(%d)\n", button->code, state);
+	pr_debug("[KEY] code(0x%02X), value(%d)\n", button->code, state);
 #ifdef CONFIG_SEC_DEBUG
 	sec_debug_check_crash_key(button->code, state);
 #endif
