@@ -3596,7 +3596,7 @@ eHalStatus PmcOffloadEnableStaModePowerSave(tHalHandle hHal,
          * If it is already set Auto Powersave Timer
          * will take care of enabling Power Save
          */
-        smsLog(pMac, LOGE,
+        smsLog(pMac, LOG2,
                FL("sta mode power save already enabled"));
         return eHAL_STATUS_SUCCESS;
     }
