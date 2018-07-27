@@ -207,10 +207,10 @@ static long esoc_dev_ioctl(struct file *file, unsigned int cmd,
 	case ESOC_WAIT_FOR_REQ:
 		if (esoc_clink->req_eng != &uhandle->eng)
 			return -EACCES;
-		pr_err("esoc REQ enginer waiting on request\n");
+		pr_debug("esoc REQ enginer waiting on request\n");
 		err = wait_event_interruptible(esoc_udev->req_wait,
 					!kfifo_is_empty(&esoc_udev->req_fifo));
-		pr_err("esoc REQ engine released from wait\n");
+		pr_debug("esoc REQ engine released from wait\n");
 		if (!err) {
 			pr_err("esoc REQ engine reading from req fifo\n");
 			err = kfifo_out_spinlocked(&esoc_udev->req_fifo, &req,
