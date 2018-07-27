@@ -227,7 +227,7 @@ int proximity_open_calibration(struct ssp_data *data)
 			data->uProxLoThresh_default + data->uProxCanc;
 	}
 
-	pr_info("[SSP] %s: proximity ps_canc = %d, ps_thresh hi - %d lo - %d\n",
+	pr_debug("[SSP] %s: proximity ps_canc = %d, ps_thresh hi - %d lo - %d\n",
 		__func__, data->uProxCanc, data->uProxHiThresh,
 		data->uProxLoThresh);
 

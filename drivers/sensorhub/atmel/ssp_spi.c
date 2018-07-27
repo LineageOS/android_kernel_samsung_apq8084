@@ -586,7 +586,7 @@ void set_proximity_threshold(struct ssp_data *data,
 		return;
 	}
 
-	pr_info("[SSP]: Proximity Threshold - %u, %u\n", uData1, uData2);
+	pr_debug("[SSP]: Proximity Threshold - %u, %u\n", uData1, uData2);
 }
 
 void set_proximity_barcode_enable(struct ssp_data *data, bool bEnable)
