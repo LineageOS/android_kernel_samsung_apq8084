@@ -295,7 +295,7 @@ void cypress_power_onoff(struct cypress_touchkey_info *info, int onoff)
 {
 	int /*ret = 0, */rc = 0;
 
-	dev_info(&info->client->dev, "%s: power %s\n",
+	dev_dbg(&info->client->dev, "%s: power %s\n",
 			__func__, onoff ? "on" : "off");
 
 	if (!info->vcc_en) {
@@ -2064,7 +2064,7 @@ static int cypress_input_open(struct input_dev *dev)
 {
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 
-	dev_info(&info->client->dev, "%s.\n", __func__);
+	dev_dbg(&info->client->dev, "%s.\n", __func__);
 	cypress_touchkey_resume(&info->client->dev);
 
 	return 0;
@@ -2074,7 +2074,7 @@ static void cypress_input_close(struct input_dev *dev)
 {
 	struct cypress_touchkey_info *info = input_get_drvdata(dev);
 
-	dev_info(&info->client->dev, "%s.\n", __func__);
+	dev_dbg(&info->client->dev, "%s.\n", __func__);
 	cypress_touchkey_suspend(&info->client->dev);
 
 }
