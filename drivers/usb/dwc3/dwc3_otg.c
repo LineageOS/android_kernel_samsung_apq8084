@@ -440,10 +440,10 @@ static void dwc3_ext_event_notify(struct usb_otg *otg,
 				dev_warn(phy->dev, "pm_runtime_get failed!!\n");
 		}
 		if (ext_xceiv->id == DWC3_ID_FLOAT) {
-			dev_info(phy->dev, "XCVR: ID set\n");
+			dev_dbg(phy->dev, "XCVR: ID set\n");
 			set_bit(ID, &dotg->inputs);
 		} else {
-			dev_info(phy->dev, "XCVR: ID clear\n");
+			dev_dbg(phy->dev, "XCVR: ID clear\n");
 			clear_bit(ID, &dotg->inputs);
 		}
 
@@ -894,7 +894,7 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 
 	}
 
-	dev_info(phy->dev, "sm_work: --> %s state\n",
+	dev_dbg(phy->dev, "sm_work: --> %s state\n",
 			usb_otg_state_string(phy->state));
 
 	if (work)
