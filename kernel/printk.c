@@ -49,11 +49,11 @@
 #include <asm/uaccess.h>
 #ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
+#endif
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 #include <linux/io.h>
 #include <linux/proc_fs.h>
 #endif
-
-
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
@@ -229,7 +229,7 @@ static DEFINE_RAW_SPINLOCK(logbuf_lock);
 
 #ifdef CONFIG_PRINTK
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 static void sec_log_add(const struct log *msg);
 #endif
 
@@ -388,7 +388,7 @@ static void log_store(int facility, int level,
 		msg->in_interrupt = in_interrupt()? 1 : 0;
 	}
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 	/* Save the log here,using "msg".*/
 	sec_log_add(msg);
 #endif
@@ -1710,7 +1710,7 @@ asmlinkage int printk_emit(int facility, int level,
 }
 EXPORT_SYMBOL(printk_emit);
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 #define CONFIG_PRINTK_NOCACHE
 /*
  * Example usage: sec_log=256K@0x45000000
@@ -1813,8 +1813,8 @@ static int __init sec_log_save_old(void)
 }
 #endif
 
-	
 #ifdef CONFIG_PRINTK_NOCACHE
+extern void sec_getlog_supply_kloginfo(void *klog_buf);
 static int __init printk_remap_nocache(void)
 {
 	void __iomem *nocache_base = 0;

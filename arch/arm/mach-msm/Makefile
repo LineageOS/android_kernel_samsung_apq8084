@@ -139,7 +139,8 @@ obj-$(CONFIG_REGULATOR_MAX77803) += sec-regulator-max77803.o
 obj-$(CONFIG_REGULATOR_MAX77828) += sec-regulator-max77828.o
 
 
-obj-$(CONFIG_SEC_DEBUG) += sec_debug.o sec_gaf.o sec_getlog.o
+obj-$(CONFIG_SEC_DEBUG) += sec_debug.o sec_gaf.o
+obj-$(CONFIG_SEC_LOG_LAST_KMSG) += sec_getlog.o
 obj-$(CONFIG_SEC_DEBUG_DOUBLE_FREE) += sec_debug-dfd.o
 
 obj-$(CONFIG_SEC_BSP) += sec_bsp.o
