@@ -1337,7 +1337,7 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 
 			value = min(w_length, (u16) sizeof cdev->desc);
 			memcpy(req->buf, &cdev->desc, value);
-			printk(KERN_DEBUG "usb:: GET_DES\n");
+			pr_debug("usb:: GET_DES\n");
 			break;
 		case USB_DT_DEVICE_QUALIFIER:
 			if (!gadget_is_dualspeed(gadget) ||
@@ -1405,7 +1405,7 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		spin_lock(&cdev->lock);
 		value = set_config(cdev, ctrl, w_value);
 		spin_unlock(&cdev->lock);
-		printk(KERN_DEBUG "usb:: SET_CON\n");
+		pr_debug("usb:: SET_CON\n");
 #ifdef CONFIG_USB_ANDROID_SAMSUNG_COMPOSITE
 		/* USB3.0 ch9 set configuration test issue for multi-config */
 		if (value == 0)
@@ -1620,7 +1620,7 @@ void composite_disconnect(struct usb_gadget *gadget)
 	/* REVISIT:  should we have config and device level
 	 * disconnect callbacks?
 	 */
-	printk(KERN_DEBUG "usb:: %s\n", __func__);
+	pr_debug("usb:: %s\n", __func__);
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (cdev->config)
 		reset_config(cdev);
