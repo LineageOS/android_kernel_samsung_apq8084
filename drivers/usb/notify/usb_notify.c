@@ -589,7 +589,7 @@ static void otg_notify_state(unsigned long event, int enable)
 		goto err;
 	}
 
-	pr_info("%s+ event=%s(%lu), enable=%s\n", __func__,
+	pr_debug("%s+ event=%s(%lu), enable=%s\n", __func__,
 		event_string(event), event, enable == 0 ? "off" : "on");
 
 	notify = get_otg_notify();
@@ -829,7 +829,7 @@ err2:
 	update_cable_status(notify, event, virtual, enable, 0);
 
 no_save_event:
-	pr_info("%s- event=%s, cable=%s\n", __func__,
+	pr_debug("%s- event=%s, cable=%s\n", __func__,
 		event_string(event),
 			event_string(u_notify->c_type));
 err:
@@ -845,7 +845,7 @@ static void extra_notify_state(unsigned long event, int enable)
 		goto err;
 	}
 
-	pr_info("%s+ event=%s(%lu), enable=%s\n", __func__,
+	pr_debug("%s+ event=%s(%lu), enable=%s\n", __func__,
 		event_string(event), event, enable == 0 ? "off" : "on");
 
 	notify = get_otg_notify();
@@ -904,7 +904,7 @@ static void extra_notify_state(unsigned long event, int enable)
 		break;
 	}
 err1:
-	pr_info("%s- event=%s(%lu), cable=%s\n", __func__,
+	pr_debug("%s- event=%s(%lu), cable=%s\n", __func__,
 		event_string(event), event,
 		event_string(u_notify->c_type));
 err:
@@ -926,7 +926,7 @@ static int otg_notifier_callback(struct notifier_block *nb,
 {
 	struct otg_state_work *state_work;
 
-	pr_info("%s event=%s(%lu)\n", __func__,
+	pr_debug("%s event=%s(%lu)\n", __func__,
 			event_string(event), event);
 
 	if (!u_notify) {
@@ -1170,7 +1170,7 @@ void send_otg_notify(struct otg_notify *n,
 		return;
 	}
 
-	pr_info("%s event=%s(%lu) enable=%d\n", __func__,
+	pr_debug("%s event=%s(%lu) enable=%d\n", __func__,
 			event_string(event), event, enable);
 
 	type = check_event_type(event);
