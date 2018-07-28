@@ -49,11 +49,11 @@
 #include <asm/uaccess.h>
 #ifdef CONFIG_SEC_DEBUG
 #include <mach/sec_debug.h>
+#endif
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 #include <linux/io.h>
 #include <linux/proc_fs.h>
 #endif
-
-
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
@@ -1710,7 +1710,7 @@ asmlinkage int printk_emit(int facility, int level,
 }
 EXPORT_SYMBOL(printk_emit);
 
-#ifdef CONFIG_SEC_DEBUG
+#ifdef CONFIG_SEC_LOG_LAST_KMSG
 #define CONFIG_PRINTK_NOCACHE
 /*
  * Example usage: sec_log=256K@0x45000000
@@ -1813,8 +1813,8 @@ static int __init sec_log_save_old(void)
 }
 #endif
 
-	
 #ifdef CONFIG_PRINTK_NOCACHE
+extern void sec_getlog_supply_kloginfo(void *klog_buf);
 static int __init printk_remap_nocache(void)
 {
 	void __iomem *nocache_base = 0;
