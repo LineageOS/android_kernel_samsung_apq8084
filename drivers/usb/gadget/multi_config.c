@@ -19,7 +19,6 @@
  */
 
 #include "multi_config.h"
-#define	DEBUG
 
 static int multi; /* current configuration */
 static int is_multi; /* Is multi configuration available ? */
