@@ -518,7 +518,7 @@ static int max77804k_muic_set_adcmode(struct max77804k_muic_info *info,
 	u8 val;
 
 	if (info->adc_mode == value) {
-		pr_info("%s: same value:%02x\n", __func__, value);
+		pr_debug("%s: same value:%02x\n", __func__, value);
 		return 1;
 	}
 	dev_info(info->dev,"value:%02x\n", value);
@@ -827,7 +827,7 @@ static void max77804k_muic_uart_uevent(int state)
 {
 	if (switch_uart3.dev != NULL) {
 		switch_set_state(&switch_uart3, state);
-		dev_info(gInfo->dev, "%s: state:%d\n", __func__, state);
+		dev_dbg(gInfo->dev, "%s: state:%d\n", __func__, state);
 	}
 }
 
@@ -967,7 +967,7 @@ static int max77804k_muic_set_path(struct max77804k_muic_info *info, int path)
 	u8 ctrl2_val, ctrl2_msk;
 	int val;
 
-	dev_info(info->dev, "set path to (%d)\n", path);
+	dev_dbg(info->dev, "set path to (%d)\n", path);
 	
 	if ((info->max77804k->pmic_rev == MAX77804K_REV_PASS1) &&
 			((path == MAX77804K_PATH_USB_CP) || (path == MAX77804K_PATH_UART_CP))) {
@@ -1049,7 +1049,7 @@ static int set_muic_path(struct max77804k_muic_info *info)
 	int path;
 	int ret = 0;
 
-	dev_info(info->dev, "%s: current state=0x%x, path=%s\n",
+	dev_dbg(info->dev, "%s: current state=0x%x, path=%s\n",
 			__func__, state, max77804k_path_name[info->path]);
 
 	if (state & MAX77804K_PATH_FIX_USB_MASK)
@@ -1075,7 +1075,7 @@ static int set_muic_path(struct max77804k_muic_info *info)
 	}
 #endif
 	else {
-		dev_info(info->dev, "%s: don't have to set path\n", __func__);
+		dev_dbg(info->dev, "%s: don't have to set path\n", __func__);
 		return 0;
 	}
 
@@ -1094,7 +1094,7 @@ static int set_muic_path(struct max77804k_muic_info *info)
 		return ret;
 	}
 
-	dev_info(info->dev, "%s: path: %s -> %s\n", __func__,
+	dev_dbg(info->dev, "%s: path: %s -> %s\n", __func__,
 			max77804k_path_name[info->path],
 			max77804k_path_name[path]);
 	info->path = path;
@@ -1114,7 +1114,7 @@ static void _detected(struct max77804k_muic_info *info, u32 new_state)
 	current_state = info->edev->state;
 	changed_state = current_state ^ new_state;
 
-	dev_info(info->dev, "state: cur=0x%x, new=0x%x, changed=0x%x\n",
+	dev_dbg(info->dev, "state: cur=0x%x, new=0x%x, changed=0x%x\n",
 			current_state, new_state, changed_state);
 
 	if((current_state != 0x0) && (new_state == 0x1)) {
@@ -1182,11 +1182,11 @@ static int max77804k_muic_handle_attach(struct max77804k_muic_info *info,
 	vbvolt = status2 & MAX77804K_STATUS2_VBVOLT_MASK;
 	chgdetrun = status2 & MAX77804K_STATUS2_CHGDETRUN_MASK;
 
-	dev_info(info->dev, "st1:0x%x st2:0x%x\n", status1, status2);
-	dev_info(info->dev,
+	dev_dbg(info->dev, "st1:0x%x st2:0x%x\n", status1, status2);
+	dev_dbg(info->dev,
 		"adc:0x%x, adc1k:0x%x, chgtyp:0x%x, vbvolt:%d\n",
 				adc, adc1k, chgtyp, vbvolt);
-	dev_info(info->dev, "chgdetrun:0x%x, prev state:0x%x\n",
+	dev_dbg(info->dev, "chgdetrun:0x%x, prev state:0x%x\n",
 				chgdetrun, pre_state);
 
 	/* Workaround for Factory mode in MUIC PASS2.
@@ -1394,7 +1394,7 @@ static int max77804k_muic_handle_detach(struct max77804k_muic_info *info)
 
 	max77804k_read_reg(info->muic, MAX77804K_MUIC_REG_CTRL2,
 				&ctrl2_val);
-	dev_info(info->dev, "%s: CNTL2(0x%02x)\n", __func__, ctrl2_val);
+	dev_dbg(info->dev, "%s: CNTL2(0x%02x)\n", __func__, ctrl2_val);
 
 	_detected(info, 0);
 
@@ -1410,17 +1410,17 @@ static void max77804k_muic_detect_dev(struct max77804k_muic_info *info, int irq)
 	u8 cntl1_val;
 
 	ret = max77804k_read_reg(client, MAX77804K_MUIC_REG_CTRL1, &cntl1_val);
-	dev_info(info->dev, "func:%s CONTROL1:%x\n", __func__, cntl1_val);
+	dev_dbg(info->dev, "func:%s CONTROL1:%x\n", __func__, cntl1_val);
 
 	ret = max77804k_bulk_read(client, MAX77804K_MUIC_REG_STATUS1, 2, status);
-	dev_info(info->dev, "func:%s irq:%d ret:%d\n", __func__, irq, ret);
+	dev_dbg(info->dev, "func:%s irq:%d ret:%d\n", __func__, irq, ret);
 	if (ret) {
 		dev_err(info->dev, "%s: fail to read muic reg(%d)\n", __func__,
 			ret);
 		return;
 	}
 
-	dev_info(info->dev, "%s: STATUS1:0x%x, 2:0x%x\n", __func__,
+	dev_dbg(info->dev, "%s: STATUS1:0x%x, 2:0x%x\n", __func__,
 		 status[0], status[1]);
 
 	wake_lock_timeout(&info->muic_wake_lock, HZ * 2);
@@ -1432,10 +1432,10 @@ static void max77804k_muic_detect_dev(struct max77804k_muic_info *info, int irq)
 	if ((info->adc == ADC_OPEN) && (info->chgtyp == CHGTYP_NO_VOLTAGE))
 		intr = MAX77804K_INT_DETACH;
 	if (intr == MAX77804K_INT_ATTACH) {
-		dev_info(info->dev, "%s: ATTACHED/CHANGED\n", __func__);
+		dev_dbg(info->dev, "%s: ATTACHED/CHANGED\n", __func__);
 		max77804k_muic_handle_attach(info, status[0], status[1]);
 	} else if (intr == MAX77804K_INT_DETACH) {
-		dev_info(info->dev, "%s: DETACHED\n", __func__);
+		dev_dbg(info->dev, "%s: DETACHED\n", __func__);
 		max77804k_muic_handle_detach(info);
 	} else {
 		pr_info("%s:%s device filtered, nothing affect.\n", DEV_NAME,
@@ -1447,7 +1447,7 @@ static void max77804k_muic_detect_dev(struct max77804k_muic_info *info, int irq)
 static irqreturn_t max77804k_muic_irq(int irq, void *data)
 {
 	struct max77804k_muic_info *info = data;
-	dev_info(info->dev, "%s: irq:%d\n", __func__, irq);
+	dev_dbg(info->dev, "%s: irq:%d\n", __func__, irq);
 
 	mutex_lock(&info->mutex);
 	max77804k_muic_detect_dev(info, irq);
@@ -1472,7 +1472,7 @@ static int max77804k_muic_irq_init(struct max77804k_muic_info *info)
 	int ret, count;
 	u8 val;
 
-	dev_info(info->dev, "func:%s\n", __func__);
+	dev_dbg(info->dev, "func:%s\n", __func__);
 	/* dev_info(info->dev, "%s: system_rev=%x\n", __func__, system_rev); */
 
 	/* INTMASK1  3:ADC1K 2:ADCErr 1:ADCLow 0:ADC */
@@ -1485,7 +1485,7 @@ static int max77804k_muic_irq_init(struct max77804k_muic_info *info)
 	REQUEST_IRQ(info->irq_chgtype, "muic-chgtype");
 	REQUEST_IRQ(info->irq_vbvolt, "muic-vbvolt");
 
-	dev_info(info->dev, "adc:%d chgtype:%d vbvolt:%d",
+	dev_dbg(info->dev, "adc:%d chgtype:%d vbvolt:%d",
 		info->irq_adc, info->irq_chgtype, info->irq_vbvolt);
 
 	for (count = 1; count < 9 ; count ++) {
