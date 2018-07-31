@@ -1298,12 +1298,6 @@ config MSM_DLOAD_MODE
 		make the kernel reboot on a kernel panic - that must be
 		enabled via another mechanism.
 
-config MAINTENANCE_MODE
-	bool "Project using MAINTENANCE_MODE"
-	default n
-	help
-		Project using MAINTENANCE_MODE
-
 config MSM_JTAG
 	bool "Debug and ETM trace support across power collapse"
 	help
