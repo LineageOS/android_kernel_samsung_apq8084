@@ -243,7 +243,7 @@ int extcon_update_state(struct extcon_dev *edev, u32 mask, u32 state)
 	int length;
 	unsigned long flags;
 
-	dev_info(edev->dev, "state: 0x%x, 0x%x, mask: 0x%x\n",
+	dev_dbg(edev->dev, "state: 0x%x, 0x%x, mask: 0x%x\n",
 						edev->state, state, mask);
 	spin_lock_irqsave(&edev->lock, flags);
 
@@ -259,7 +259,7 @@ int extcon_update_state(struct extcon_dev *edev, u32 mask, u32 state)
 		edev->state &= ~mask;
 		edev->state |= state & mask;
 
-		dev_info(edev->dev, "state: 0x%x --> 0x%x\n",
+		dev_dbg(edev->dev, "state: 0x%x --> 0x%x\n",
 					old_state, edev->state);
 		raw_notifier_call_chain(&edev->nh, old_state, edev);
 
@@ -298,7 +298,7 @@ int extcon_update_state(struct extcon_dev *edev, u32 mask, u32 state)
 	} else {
 		/* No changes */
 		spin_unlock_irqrestore(&edev->lock, flags);
-		dev_info(edev->dev, "no changes\n");
+		dev_dbg(edev->dev, "no changes\n");
 	}
 
 	return 0;
@@ -385,7 +385,7 @@ int extcon_set_cable_state_(struct extcon_dev *edev,
 {
 	u32 state;
 
-	dev_info(edev->dev, "index = %d\n", index);
+	dev_dbg(edev->dev, "index = %d\n", index);
 	if (index < 0 || (edev->max_supported && edev->max_supported <= index))
 		return -EINVAL;
 
@@ -406,7 +406,7 @@ EXPORT_SYMBOL_GPL(extcon_set_cable_state_);
 int extcon_set_cable_state(struct extcon_dev *edev,
 			const char *cable_name, bool cable_state)
 {
-	dev_info(edev->dev, "%s: %s is %s\n", __func__,
+	dev_dbg(edev->dev, "%s: %s is %s\n", __func__,
 			cable_name, (cable_state) ? "attached" : "detached");
 	return extcon_set_cable_state_(edev, extcon_find_cable_index
 					(edev, cable_name), cable_state);
@@ -449,7 +449,7 @@ static int _call_per_cable(struct notifier_block *nb, unsigned long val,
 		if (val & (1 << obj->cable_index))
 			cable_state = false;
 
-		dev_info(edev->dev, "%s: %s is %s, calling %pF\n", __func__,
+		dev_dbg(edev->dev, "%s: %s is %s, calling %pF\n", __func__,
 				extcon_cable_name[obj->cable_index],
 				(cable_state) ? "attached" : "detached",
 				obj->user_nb->notifier_call);
