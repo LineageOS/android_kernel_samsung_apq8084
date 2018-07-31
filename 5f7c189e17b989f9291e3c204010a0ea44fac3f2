@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b6f65db_af2e21a5",
+        "filename": "drivers/staging/qcacld-2.0/CORE/SERVICES/WMA/wma.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 8294,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-07-31T22:03:14Z",
+      "side": 1,
+      "message": "There\u0027s an upstream patch cleaning up lots of\nmessages, the ones you touch here included:\n \nhttps://source.codeaurora.org/external/wlan/qcacld-2.0/commit/?id\u003da7b1b70993d097be34fa1915990063cfe22d9535\n\nLet\u0027s backport this one instead.",
+      "range": {
+        "startLine": 8294,
+        "startChar": 1,
+        "endLine": 8294,
+        "endChar": 9
+      },
+      "revId": "5f7c189e17b989f9291e3c204010a0ea44fac3f2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d3bdc19c_6510d6a3",
+        "filename": "drivers/staging/qcacld-2.0/CORE/SME/src/csr/csrApiScan.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 5233,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-07-31T22:03:14Z",
+      "side": 1,
+      "message": "Latest upstream uses LOGW.  There\u0027s an upstream patch\nfor this as well:\n\nhttps://source.codeaurora.org/external/wlan/qcacld-2.0/commit/?id\u003d1791753d29bd2576f4711d490f3b9e96494791fb",
+      "range": {
+        "startLine": 5233,
+        "startChar": 8,
+        "endLine": 5233,
+        "endChar": 14
+      },
+      "revId": "5f7c189e17b989f9291e3c204010a0ea44fac3f2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f460d31f_047f1f08",
+        "filename": "drivers/staging/qcacld-2.0/CORE/SME/src/pmc/pmcApi.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 3599,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-07-31T22:03:14Z",
+      "side": 1,
+      "message": "LOGW in latest upstream.  This is included in\n\nhttps://source.codeaurora.org/external/wlan/qcacld-2.0/commit/?id\u003da7b1b70993d097be34fa1915990063cfe22d9535\n\nas well.",
+      "revId": "5f7c189e17b989f9291e3c204010a0ea44fac3f2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
