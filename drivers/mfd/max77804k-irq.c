@@ -272,7 +272,7 @@ int max77804k_irq_resume(struct max77804k_dev *max77804k)
 	if (max77804k->irq && max77804k->irq_base)
 		ret = max77804k_irq_thread(max77804k->irq_base, max77804k);
 
-	dev_info(max77804k->dev, "%s: irq_resume ret=%d", __func__, ret);
+	dev_dbg(max77804k->dev, "%s: irq_resume ret=%d", __func__, ret);
 
 	return ret >= 0 ? 0 : ret;
 }
