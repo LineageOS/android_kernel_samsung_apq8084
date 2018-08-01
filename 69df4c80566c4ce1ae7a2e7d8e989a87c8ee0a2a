@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3016371c_70729309",
+        "filename": "drivers/input/keyboard/gpio_keys.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 367,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-08-01T08:11:00Z",
+      "side": 1,
+      "message": "let\u0027s keep this pr_info",
+      "range": {
+        "startLine": 367,
+        "startChar": 1,
+        "endLine": 367,
+        "endChar": 9
+      },
+      "revId": "69df4c80566c4ce1ae7a2e7d8e989a87c8ee0a2a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
