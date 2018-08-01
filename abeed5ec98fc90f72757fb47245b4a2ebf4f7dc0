@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bfe8f6f2_1e413c3b",
+        "filename": "drivers/sensorhub/atmel/factory/prox_tmg399x.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-08-01T08:10:30Z",
+      "side": 1,
+      "message": "Let\u0027s keep this pr_info",
+      "range": {
+        "startLine": 230,
+        "startChar": 1,
+        "endLine": 230,
+        "endChar": 9
+      },
+      "revId": "abeed5ec98fc90f72757fb47245b4a2ebf4f7dc0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7f7d9b12_e32e3888",
+        "filename": "drivers/sensorhub/atmel/ssp_sysfs.c",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 15402
+      },
+      "writtenOn": "2018-08-01T08:10:30Z",
+      "side": 1,
+      "message": "let\u0027s keep this pr_info",
+      "range": {
+        "startLine": 81,
+        "startChar": 2,
+        "endLine": 81,
+        "endChar": 10
+      },
+      "revId": "abeed5ec98fc90f72757fb47245b4a2ebf4f7dc0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
