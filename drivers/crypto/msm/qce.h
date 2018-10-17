@@ -149,8 +149,7 @@ struct qce_req {
 	void *areq;
 	enum qce_cipher_alg_enum   alg;	/* cipher algorithms*/
 	enum qce_cipher_dir_enum dir;	/* encryption? decryption? */
-	enum qce_cipher_mode_enum mode;	/* algorithm mode  */
-	enum qce_hash_alg_enum auth_alg;/* authentication algorithm for aead */
+	enum qce_cipher_mode_enum mode;	/* algorithm mode */
 	unsigned char *authkey;		/* authentication key  */
 	unsigned int authklen;		/* authentication key kength */
 	unsigned int authsize;		/* authentication key kength */
