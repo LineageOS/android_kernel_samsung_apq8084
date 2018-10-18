@@ -23,8 +23,8 @@
 static struct max17048_fuelgauge_battery_data_t max17048_battery_data[] = {
 	/* SDI battery data (High voltage 4.35V) */
 	{
-		.RCOMP0 = 0x5D,
-		.RCOMP_charging = 0x5D,
+		.RCOMP0 = 0x56,
+		.RCOMP_charging = 0x56,
 		.temp_cohot = -175,
 		.temp_cocold = -5825,
 		.is_using_model_data = true,
@@ -114,18 +114,5 @@ static sec_bat_adc_table_data_t chg_temp_table[] = {
 #define TEMP_HIGH_RECOVERY_LPM		530
 #define TEMP_LOW_THRESHOLD_LPM		-50
 #define TEMP_LOW_RECOVERY_LPM		0
-
-#if defined(CONFIG_BATTERY_SWELLING)
-#define BATT_SWELLING_HIGH_TEMP_BLOCK			500
-#define BATT_SWELLING_HIGH_TEMP_RECOV			450
-#define BATT_SWELLING_LOW_TEMP_BLOCK			50
-#define BATT_SWELLING_LOW_TEMP_RECOV			100
-#define BATT_SWELLING_HIGH_CHG_CURRENT			0
-#define BATT_SWELLING_LOW_CHG_CURRENT			1400
-#define BATT_SWELLING_TOPOFF_CURRENT			150
-#define BATT_SWELLING_DROP_FLOAT_VOLTAGE		4200
-#define BATT_SWELLING_HIGH_RECHG_VOLTAGE		4150
-#define BATT_SWELLING_LOW_RECHG_VOLTAGE			4050
-#endif
 
 #endif /* __SEC_BATTERY_DATA_H */

@@ -451,12 +451,14 @@ static void max77823_set_charge_current(struct max77823_charger_data *charger,
 {
 	int curr_step = 50;
 	u8 reg_data;
+	union power_supply_propval value;
 
 	max77823_read_reg(charger->i2c,
 			  MAX77823_CHG_CNFG_02, &reg_data);
 	reg_data &= ~MAX77823_CHG_CC;
 
 	if (!fast_charging_current) {
+		/* No charger */
 		max77823_write_reg(charger->i2c,
 				   MAX77823_CHG_CNFG_02, reg_data);
 	} else {
@@ -464,6 +466,11 @@ static void max77823_set_charge_current(struct max77823_charger_data *charger,
 
 		max77823_write_reg(charger->i2c,MAX77823_CHG_CNFG_02, reg_data);
 	}
+
+	value.intval = fast_charging_current;
+	psy_do_property("battery", set,
+			POWER_SUPPLY_PROP_CURRENT_AVG, value);
+
 	pr_info("%s: reg_data(0x%02x), charging current(%d)\n",
 		__func__, reg_data, fast_charging_current);
 
@@ -474,6 +481,7 @@ static void max77823_set_topoff_current(struct max77823_charger_data *charger,
 					int termination_time)
 {
 	u8 reg_data;
+	union power_supply_propval value;
 
 	if (termination_current >= 350)
 		reg_data = 0x07;
@@ -501,6 +509,9 @@ static void max77823_set_topoff_current(struct max77823_charger_data *charger,
 	max77823_write_reg(charger->i2c,
 			   MAX77823_CHG_CNFG_03, reg_data);
 
+	value.intval = termination_current;
+	psy_do_property("battery", set,
+		POWER_SUPPLY_PROP_ENERGY_FULL, value);
 }
 
 static void max77823_set_charger_state(struct max77823_charger_data *charger,
@@ -816,6 +827,9 @@ static int max77823_chg_set_property(struct power_supply *psy,
 			max77823_set_charge_current(charger, current_now);
 
 		}
+		break;
+	case POWER_SUPPLY_PROP_ENERGY_FULL:
+		max77823_set_topoff_current(charger, val->intval, (70 * 60));
 		break;
 	default:
 		return -EINVAL;

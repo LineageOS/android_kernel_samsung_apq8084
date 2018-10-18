@@ -46,6 +46,53 @@ struct sec_battery_extcon_cable{
 
 #define TEMP_HIGHLIMIT_DEFAULT	2000
 
+#define SEC_BAT_CURRENT_EVENT_NONE			0x0000
+#define SEC_BAT_CURRENT_EVENT_AFC			0x0001
+#define SEC_BAT_CURRENT_EVENT_LOW_TEMP_SWELLING		0x0010
+#define SEC_BAT_CURRENT_EVENT_HIGH_TEMP_SWELLING	0x0020
+#define SEC_BAT_CURRENT_EVENT_LOW_TEMP			0x0080
+
+#if defined(CONFIG_BATTERY_SWELLING)
+#if defined(CONFIG_SEC_TRLTE_PROJECT)
+#define BATT_SWELLING_HIGH_TEMP_BLOCK		410
+#define BATT_SWELLING_HIGH_TEMP_RECOV		390
+#define BATT_SWELLING_LOW_TEMP_BLOCK_1ST		150
+#define BATT_SWELLING_LOW_TEMP_RECOV_1ST		200
+#define BATT_SWELLING_LOW_TEMP_BLOCK_2ND	50
+#define BATT_SWELLING_LOW_TEMP_RECOV_2ND		100
+#define BATT_SWELLING_HIGH_CHG_CURRENT			0
+#define BATT_SWELLING_LOW_CHG_CURRENT			1500
+#define BATT_SWELLING_TOPOFF_CURRENT			200
+#define BATT_SWELLING_DROP_FLOAT_VOLTAGE		4150
+#define BATT_SWELLING_HIGH_RECHG_VOLTAGE		4000
+#define BATT_SWELLING_LOW_RECHG_VOLTAGE			4000
+#else
+#define BATT_SWELLING_HIGH_TEMP_BLOCK		500
+#define BATT_SWELLING_HIGH_TEMP_RECOV		450
+#define BATT_SWELLING_LOW_TEMP_BLOCK_1ST		150
+#define BATT_SWELLING_LOW_TEMP_RECOV_1ST		200
+#define BATT_SWELLING_LOW_TEMP_BLOCK_2ND	50
+#define BATT_SWELLING_LOW_TEMP_RECOV_2ND		100
+#define BATT_SWELLING_HIGH_CHG_CURRENT			0
+#if defined(CONFIG_SEC_LENTIS_PROJECT)
+#define BATT_SWELLING_LOW_CHG_CURRENT			1400
+#define BATT_SWELLING_TOPOFF_CURRENT			150
+#else
+#define BATT_SWELLING_LOW_CHG_CURRENT			1500
+#define BATT_SWELLING_TOPOFF_CURRENT			200
+#endif
+#define BATT_SWELLING_DROP_FLOAT_VOLTAGE		4200
+#define BATT_SWELLING_HIGH_RECHG_VOLTAGE		4150
+#define BATT_SWELLING_LOW_RECHG_VOLTAGE			4050
+#endif
+
+enum swelling_mode_state {
+	SWELLING_MODE_NONE = 0,
+	SWELLING_MODE_CHARGING,
+	SWELLING_MODE_FULL,
+};
+#endif
+
 struct adc_sample_info {
 	unsigned int cnt;
 	int total_adc;
@@ -69,6 +116,9 @@ struct sec_battery_info {
 	struct sec_battery_extcon_cable extcon_cable_list[EXTCON_NONE];
 #endif /* CONFIG_EXTCON */
 
+	bool safety_timer_set;
+	bool lcd_status;
+
 	int status;
 	int health;
 	bool present;
@@ -81,9 +131,12 @@ struct sec_battery_info {
 	int current_max;		/* input current limit (mA) */
 	int current_adc;
 
+	unsigned int current_event;
+	unsigned int input_voltage;		/* CHGIN/WCIN input voltage (V) */
 	unsigned int capacity;			/* SOC (%) */
 
 	struct mutex adclock;
+	struct mutex current_eventlock;
 	struct adc_sample_info	adc_sample[ADC_CH_COUNT];
 
 	/* keep awake until monitor is done */
@@ -151,6 +204,8 @@ struct sec_battery_info {
 	/* charging */
 	unsigned int charging_mode;
 	bool is_recharging;
+	int wdt_kick_disable;
+
 	int cable_type;
 	struct wake_lock cable_wake_lock;
 	struct delayed_work cable_work;
@@ -166,6 +221,8 @@ struct sec_battery_info {
 
 	int wire_status;
 
+	int charging_current;
+	int topoff_current;
 	/* wearable charging */
 	int ps_enable;
 	int ps_status;
@@ -184,10 +241,15 @@ struct sec_battery_info {
 	int stability_test;
 	int eng_not_full_status;
 #if defined(CONFIG_BATTERY_SWELLING)
-	bool swelling_mode;
+	unsigned int  swelling_mode;
 	bool charging_block;
 	int swelling_full_check_cnt;
 #endif
+
+	bool stop_timer;
+	unsigned long prev_safety_time;
+	unsigned long expired_time;
+	unsigned long cal_safety_time;
 };
 
 ssize_t sec_bat_show_attrs(struct device *dev,
@@ -289,6 +351,7 @@ enum {
 #endif
 	BATT_STABILITY_TEST,
 	BATT_INBAT_VOLTAGE,
+	BATT_WDT_CONTROL,
 };
 
 #ifdef CONFIG_OF
