@@ -26,7 +26,7 @@
 			fuelgauge,fuel_int = <&msmgpio 84 0x01>;
 
 			fuelgauge,capacity_max = <990>;
-			fuelgauge,capacity_max_margin = <50>;
+			fuelgauge,capacity_max_margin = <100>;
 			fuelgauge,capacity_min = <(-7)>;
 			fuelgauge,capacity_calculation_type = <0x17>;
 			fuelgauge,fuel_alert_soc = <2>;
@@ -81,29 +81,50 @@
 		   SEC_BATTERY_FULL_CONDITION_NOTIMEFULL |
 		   SEC_BATTERY_FULL_CONDITION_VCELL */
 		battery,full_condition_type = <13>;
-		battery,full_condition_soc = <93>;
-		battery,full_condition_vcell = <4300>;
+		battery,full_condition_soc = <90>;
+		battery,full_condition_vcell = <4200>;
 
 		battery,recharge_check_count = <1>;
 		battery,recharge_condition_type = <4>; /* SEC_BATTERY_RECHARGE_CONDITION_VCELL */
 		battery,recharge_condition_soc = <98>;
 		battery,recharge_condition_vcell = <4350>;
 
-		battery,charging_total_time = <21600>;
-		battery,recharging_total_time = <5400>;
-		battery,charging_reset_time = <0>;
+		battery,swelling_high_temp_block = <410>;
+		battery,swelling_high_temp_recov = <390>;
+		battery,swelling_low_temp_2step_mode = <1>;
+		battery,swelling_low_temp_block_1st = <150>;
+		battery,swelling_low_temp_recov_1st = <200>;
+		battery,swelling_low_temp_block_2nd = <50>;
+		battery,swelling_low_temp_recov_2nd = <100>;
+
+		battery,swelling_low_temp_current = <700>;      /* 0.3C */
+		battery,swelling_low_temp_topoff = <150>;       /* 0.05C */
+		battery,swelling_high_temp_current = <1090>;    /* 0.45C */
+		battery,swelling_high_temp_topoff = <150>;      /* 0.05C */
+		battery,swelling_wc_high_temp_current = <700>;  /* 0.3C */
+		battery,swelling_wc_low_temp_current = <700>;   /* 0.3C */
+
+		battery,swelling_drop_float_voltage = <4150>;
+		battery,swelling_high_rechg_voltage = <4000>;
+		battery,swelling_low_rechg_voltage = <4000>;
+
+		battery,chg_float_voltage = <4300>;
+
+		battery,standard_curr = <2000>;
+		battery,expired_time = <12000>;
+		battery,recharging_expired_time = <5400>;
 
 		charger {
 			status = "disable";
 			/* Charger */
 			battery,charger_name = "max77804k-charger";
-			battery,chg_float_voltage = <4400>;
+			battery,chg_float_voltage = <4300>;
 			battery,ovp_uvlo_check_type = <3>; /* SEC_BATTERY_OVP_UVLO_CHGPOLLING */
 
 			battery,input_current_limit = <1800 460 460 1800 460 900 1000 460 460 1000 760 1800 1800 460 1300 300 700 1300 1800 300 80 1800 460 1000 1633>;
-			battery,fast_charging_current = <2100 0 460 2100 460 1200 1000 460 0 1200 900 2100 2100 0 1300 300 700 1300 1800 300 80 2100 0 1000 2800>;
-			battery,full_check_current_1st = <200 0 200 200 200 200 200 200 0 200 200 200 200 0 200 200 200 200 200 200 200 200 0 200 200>;
-			battery,full_check_current_2nd = <125 0 125 125 125 125 125 125 0 125 125 125 125 0 125 125 125 125 125 125 125 125 0 125 125>;
+			battery,fast_charging_current = <2000 0 460 2000 460 1200 1000 460 0 1200 900 2000 2000 0 1300 300 700 1300 1800 300 80 2000 0 1000 2000>;
+			battery,full_check_current_1st = <300 0 300 300 300 300 300 300 0 300 300 300 300 0 300 300 300 300 300 300 300 300 0 300 300>;
+			battery,full_check_current_2nd = <150 0 150 150 150 150 150 150 0 150 150 150 150 0 150 150 150 150 150 150 150 150 0 150 150>;
 		};
 	};
 };
