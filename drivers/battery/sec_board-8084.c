@@ -475,20 +475,7 @@ void board_battery_init(struct platform_device *pdev, struct sec_battery_info *b
 	battery->pdata->temp_high_recovery_lpm = TEMP_HIGH_RECOVERY_LPM;
 	battery->pdata->temp_low_threshold_lpm = TEMP_LOW_THRESHOLD_LPM;
 	battery->pdata->temp_low_recovery_lpm = TEMP_LOW_RECOVERY_LPM;
-#if defined(CONFIG_BATTERY_SWELLING)
-	battery->pdata->swelling_high_temp_block = BATT_SWELLING_HIGH_TEMP_BLOCK;
-	battery->pdata->swelling_high_temp_recov = BATT_SWELLING_HIGH_TEMP_RECOV;
-	battery->pdata->swelling_low_temp_block = BATT_SWELLING_LOW_TEMP_BLOCK;
-	battery->pdata->swelling_low_temp_recov = BATT_SWELLING_LOW_TEMP_RECOV;
-	battery->pdata->swelling_high_chg_current = BATT_SWELLING_HIGH_CHG_CURRENT;
-	battery->pdata->swelling_low_chg_current = BATT_SWELLING_LOW_CHG_CURRENT;
-#ifndef CONFIG_SEC_KCCAT6_PROJECT
-	battery->pdata->swelling_topoff_current = BATT_SWELLING_TOPOFF_CURRENT;
-#endif
-	battery->pdata->swelling_drop_float_voltage = BATT_SWELLING_DROP_FLOAT_VOLTAGE;
-	battery->pdata->swelling_high_rechg_voltage = BATT_SWELLING_HIGH_RECHG_VOLTAGE;
-	battery->pdata->swelling_low_rechg_voltage = BATT_SWELLING_LOW_RECHG_VOLTAGE;
-#endif
+
 	adc_init_type(pdev, battery);
 }
 
