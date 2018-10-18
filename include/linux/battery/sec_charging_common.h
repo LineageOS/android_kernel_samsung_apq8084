@@ -433,19 +433,24 @@ struct sec_battery_platform_data {
 	/* battery swelling */
 	int swelling_high_temp_block;
 	int swelling_high_temp_recov;
-	int swelling_low_temp_block;
-	int swelling_low_temp_recov;
-#ifndef CONFIG_SEC_KCCAT6_PROJECT
-	int swelling_topoff_current;
-#endif
+	int swelling_wc_high_temp_recov;
+	int swelling_low_temp_block_1st;
+	int swelling_low_temp_recov_1st;
+	int swelling_low_temp_block_2nd;
+	int swelling_low_temp_recov_2nd;
+	int swelling_low_temp_2step_mode;
 
-	unsigned int swelling_high_chg_current;
-	unsigned int swelling_low_chg_current;
+	unsigned int swelling_low_temp_current;
+	unsigned int swelling_low_temp_topoff;
+	unsigned int swelling_high_temp_current;
+	unsigned int swelling_high_temp_topoff;
+	unsigned int swelling_wc_high_temp_current;
+	unsigned int swelling_wc_low_temp_current;
 
 	unsigned int swelling_normal_float_voltage;
 	unsigned int swelling_drop_float_voltage;
-	unsigned int swelling_low_rechg_voltage;
 	unsigned int swelling_high_rechg_voltage;
+	unsigned int swelling_low_rechg_voltage;
 #endif
 
 	/* Monitor setting */
@@ -542,6 +547,12 @@ struct sec_battery_platform_data {
 	unsigned long recharging_total_time;
 	/* reset charging for abnormal malfunction (0: not use) */
 	unsigned long charging_reset_time;
+	/* float voltage (mV) */
+	int chg_float_voltage;
+
+	unsigned int expired_time;
+	unsigned int recharging_expired_time;
+	int standard_curr;
 
 	/* ADC setting */
 	unsigned int adc_check_count;
