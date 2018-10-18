@@ -217,6 +217,10 @@ static int max77843_get_charging_health(struct max77843_charger_data *charger)
 	u8 chg_dtls_00, chg_dtls, reg_data;
 	u8 chg_cnfg_00, chg_cnfg_01 ,chg_cnfg_02, chg_cnfg_04, chg_cnfg_09, chg_cnfg_12;
 
+	/* watchdog kick */
+	max77843_update_reg(charger->i2c, MAX77843_CHG_REG_CNFG_06,
+			MAX77843_WDTCLR, CHG_CNFG_06_WDTCLR_MASK);
+
 	max77843_read_reg(charger->i2c,
 			  MAX77843_CHG_REG_DETAILS_01, &reg_data);
 	reg_data = ((reg_data & MAX77843_BAT_DTLS) >> MAX77843_BAT_DTLS_SHIFT);
@@ -332,19 +336,19 @@ static int max77843_get_charging_health(struct max77843_charger_data *charger)
 
 static u8 max77843_get_float_voltage_data(int float_voltage)
 {
-	int voltage = 3650;
-	int i;
+	u8 reg_data = 0x16;
 
-	for (i = 0; voltage <= 4700; i++) {
-		if (float_voltage <= voltage)
-			break;
-		voltage += 25;
+	if (float_voltage >= 4700)
+		reg_data = 0x2B;
+	else if (float_voltage <= 3650)
+		reg_data = 0x00;
+	else {
+		reg_data = (float_voltage - 3650) / 25;
+		if (float_voltage >= 4340)
+			reg_data += 0x01;
 	}
 
-	if (float_voltage <= 4340)
-		return i;
-	else
-		return (i+1);
+	return reg_data;
 }
 
 static int max77843_get_input_current(struct max77843_charger_data *charger)
@@ -698,6 +702,7 @@ static void max77843_set_charge_current(struct max77843_charger_data *charger,
 {
 	int curr_step = 50;
 	u8 reg_data;
+	union power_supply_propval value;
 
 	max77843_read_reg(charger->i2c,
 			  MAX77843_CHG_REG_CNFG_02, &reg_data);
@@ -712,6 +717,10 @@ static void max77843_set_charge_current(struct max77843_charger_data *charger,
 		max77843_write_reg(charger->i2c,MAX77843_CHG_REG_CNFG_02, reg_data);
 	}
 
+	value.intval = fast_charging_current;
+	psy_do_property("battery", set,
+			POWER_SUPPLY_PROP_CURRENT_AVG, value);
+
 	pr_debug("[%s] REG(0x%02x) DATA(0x%02x), CURRENT(%d)\n",
 		__func__, MAX77843_CHG_REG_CNFG_02,
 		reg_data, fast_charging_current);
@@ -723,6 +732,7 @@ static void max77843_set_topoff_current(struct max77843_charger_data *charger,
 {
 	int curr_base, curr_step;
 	u8 reg_data;
+	union power_supply_propval value;
 
 	if (charger->pmic_ver >= 0x2) {
 		curr_base = 125;
@@ -742,6 +752,10 @@ static void max77843_set_topoff_current(struct max77843_charger_data *charger,
 	reg_data = (termination_current - curr_base) / curr_step;
 	max77843_update_reg(charger->i2c, MAX77843_CHG_REG_CNFG_03,
 		reg_data, 0x7);
+
+	value.intval = termination_current;
+	psy_do_property("battery", set,
+			POWER_SUPPLY_PROP_ENERGY_FULL, value);
 
 	pr_debug("%s: reg_data(0x%02x), topoff(%d)\n",
 		__func__, reg_data, termination_current);
@@ -1012,6 +1026,10 @@ static void max77843_charger_initialize(struct max77843_charger_data *charger)
 	max77843_read_reg(charger->i2c, MAX77843_CHG_REG_CNFG_04, &reg_data);
 	pr_debug("%s: battery cv voltage 0x%x\n", __func__, reg_data);
 
+	/* Watchdog Enable */
+	max77843_update_reg(charger->i2c, MAX77843_CHG_REG_CNFG_00,
+				MAX77843_WDTEN, MAX77843_WDTEN);
+
 	max77843_test_read(charger);
 }
 
@@ -1028,14 +1046,24 @@ static void max77843_set_float_voltage(struct max77843_charger_data *charger, in
 	pr_debug("%s: battery cv voltage 0x%x\n", __func__, reg_data);
 }
 
-static u8 max77843_get_float_voltage(struct max77843_charger_data *charger)
+static int max77843_get_float_voltage(struct max77843_charger_data *charger)
 {
 	u8 reg_data = 0;
+	int float_voltage;
 
 	max77843_read_reg(charger->i2c, MAX77843_CHG_REG_CNFG_04, &reg_data);
 	reg_data &= 0x3F;
-	pr_debug("%s: battery cv voltage 0x%x\n", __func__, reg_data);
-	return reg_data;
+
+	if (reg_data == 0x1c) {
+		float_voltage = 4340;
+	} else {
+		if (reg_data > 0x1c)
+			reg_data -= 0x01;
+
+		float_voltage = reg_data * 25 + 3650;
+	}
+	pr_debug("%s: battery cv voltage 0x%x, chg_float_voltage = %dmV \n", __func__, reg_data, float_voltage);
+	return float_voltage;
 }
 
 #endif
@@ -1194,6 +1222,11 @@ static int max77843_chg_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		pr_debug("%s: float voltage(%d)\n", __func__, val->intval);
 		max77843_set_float_voltage(charger, val->intval);
+		break;
+	case  POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		pr_debug("%s: charger enable(%d)\n", __func__, val->intval);
+		max77843_set_charger_state(charger, val->intval);
+		charger->is_charging = val->intval;
 		break;
 #endif
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
@@ -1956,6 +1989,11 @@ static int max77843_charger_probe(struct platform_device *pdev)
 			"%s : Failed to create_attrs\n", __func__);
 		goto err_wc_irq;
 	}
+
+	/* watchdog kick */
+	max77843_update_reg(charger->i2c, MAX77843_CHG_REG_CNFG_06,
+			MAX77843_WDTCLR, CHG_CNFG_06_WDTCLR_MASK);
+
 	pr_info("%s: MAX77843 Charger Driver Loaded\n", __func__);
 
 	return 0;
