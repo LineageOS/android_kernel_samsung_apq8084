@@ -20413,8 +20413,7 @@ static tANI_U32 UnpackCore(tpAniSirGlobal pCtx,
 
         if (pIe)
         {
-            if ((nBufRemaining < pIe->minSize - pIe->noui - 2U) ||
-                (len < pIe->minSize - pIe->noui - 2U))
+            if (nBufRemaining < pIe->minSize - pIe->noui - 2U)
             {
                 FRAMES_LOG3(pCtx, FRLOGW, FRFL("The IE %s must be "
                     "at least %d bytes in size, but there are onl"
