@@ -25,7 +25,7 @@
 			reg = <0x36>;
 			fuelgauge,fuel_int = <&msmgpio 84 0x01>;
 
-			fuelgauge,capacity_max = <990>;
+			fuelgauge,capacity_max = <970>;
 			fuelgauge,capacity_max_margin = <100>;
 			fuelgauge,capacity_min = <(-7)>;
 			fuelgauge,capacity_calculation_type = <0x17>;
@@ -108,7 +108,7 @@
 		battery,swelling_high_rechg_voltage = <4000>;
 		battery,swelling_low_rechg_voltage = <4000>;
 
-		battery,chg_float_voltage = <4300>;
+		battery,chg_float_voltage = <4350>;
 
 		battery,standard_curr = <2000>;
 		battery,expired_time = <12000>;
@@ -118,7 +118,7 @@
 			status = "disable";
 			/* Charger */
 			battery,charger_name = "max77804k-charger";
-			battery,chg_float_voltage = <4300>;
+			battery,chg_float_voltage = <4350>;
 			battery,ovp_uvlo_check_type = <3>; /* SEC_BATTERY_OVP_UVLO_CHGPOLLING */
 
 			battery,input_current_limit = <1800 460 460 1800 460 900 1000 460 460 1000 760 1800 1800 460 1300 300 700 1300 1800 300 80 1800 460 1000 1633>;
