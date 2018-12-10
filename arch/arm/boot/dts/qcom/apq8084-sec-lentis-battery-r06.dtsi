@@ -82,12 +82,12 @@
 		   SEC_BATTERY_FULL_CONDITION_VCELL */
 		battery,full_condition_type = <13>;
 		battery,full_condition_soc = <90>;
-		battery,full_condition_vcell = <4200>;
+		battery,full_condition_vcell = <4250>;
 
 		battery,recharge_check_count = <1>;
 		battery,recharge_condition_type = <4>; /* SEC_BATTERY_RECHARGE_CONDITION_VCELL */
 		battery,recharge_condition_soc = <98>;
-		battery,recharge_condition_vcell = <4350>;
+		battery,recharge_condition_vcell = <4300>;
 
 		battery,swelling_high_temp_block = <410>;
 		battery,swelling_high_temp_recov = <390>;
