@@ -650,13 +650,13 @@ static int max17048_fg_calculate_dynamic_scale(
 
 	fuelgauge->capacity_max =
 		(fuelgauge->capacity_max * 99 / 100);
+#endif
 
 	/* update capacity_old for sec_fg_get_atomic_capacity algorithm */
 	fuelgauge->capacity_old = 100;
 
 	pr_debug("%s: %d is used for capacity_max\n",
 		__func__, fuelgauge->capacity_max);
-#endif
 
 	return fuelgauge->capacity_max;
 }

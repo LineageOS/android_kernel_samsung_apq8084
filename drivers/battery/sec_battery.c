@@ -2185,7 +2185,8 @@ static void sec_bat_get_battery_info(
 #if defined(CONFIG_SEC_APQ8084_PROJECT)
 	/* if the battery status was full, and SOC wasn't 100% yet,
 		then ignore FG SOC, and report (previous SOC +1)% */
-	if (battery->status != POWER_SUPPLY_STATUS_FULL) {
+	if (battery->status != POWER_SUPPLY_STATUS_FULL ||
+	    battery->is_recharging) {
 		battery->capacity = value.intval;
 	} else if ((battery->capacity != 100) &&
 		   ((c_ts.tv_sec - old_ts.tv_sec) >= 30)) {
