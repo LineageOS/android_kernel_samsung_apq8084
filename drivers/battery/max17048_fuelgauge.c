@@ -654,7 +654,7 @@ static int max17048_fg_calculate_dynamic_scale(
 	/* update capacity_old for sec_fg_get_atomic_capacity algorithm */
 	fuelgauge->capacity_old = 100;
 
-	pr_info("%s: %d is used for capacity_max\n",
+	pr_debug("%s: %d is used for capacity_max\n",
 		__func__, fuelgauge->capacity_max);
 #endif
 
