@@ -626,10 +626,10 @@ static int msm_isp_stop_stats_stream(struct vfe_device *vfe_dev,
 		}
 
 		if (vfe_dev->axi_data.src_info[VFE_PIX_0].active) {
-			pr_err("%s: VFE%d SRC active, stop pending\n", __func__, vfe_dev->pdev->id);
+			pr_info("%s: VFE%d SRC active, stop pending\n", __func__, vfe_dev->pdev->id);
 			stream_info->state = STATS_STOP_PENDING;
 		} else {
-			pr_err("%s: VFE%d SRC inactive, stopped\n", __func__,vfe_dev->pdev->id);
+			pr_info("%s: VFE%d SRC inactive, stopped\n", __func__,vfe_dev->pdev->id);
 			stream_info->state = STATS_INACTIVE;
 		}
 		stats_data->num_active_stream--;

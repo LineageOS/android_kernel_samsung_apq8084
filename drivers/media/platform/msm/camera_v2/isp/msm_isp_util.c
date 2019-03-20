@@ -149,11 +149,11 @@ int msm_isp_update_bandwidth(enum msm_isp_hw_client client,
 		&(msm_isp_bus_client_pdata.usecase[
 		  isp_bandwidth_mgr.bus_vector_active_idx]);
 	if (isp_recording_hint == 1) {
-		pr_err("%s: [syscamera] RECORD client %d\n", __func__, client);
+		pr_info("%s: [syscamera] RECORD client %d isp_recording_hint=1\n", __func__, client);
 		path->vectors[0].ab = MSM_ISP_MIN_AB_RECORD;
 		path->vectors[0].ib = MSM_ISP_MIN_IB_RECORD;
 	} else {
-		pr_err("%s: [syscamera] CAMERA client %d\n", __func__, client);
+		pr_info("%s: [syscamera] CAMERA client %d isp_recording_hint=0\n", __func__, client);
 		path->vectors[0].ab = MSM_ISP_MIN_AB;
 		path->vectors[0].ib = MSM_ISP_MIN_IB;
 	}
@@ -457,7 +457,7 @@ long msm_isp_ioctl(struct v4l2_subdev *sd,
 	 * longer time to complete such as start/stop ISP streams
 	 * which blocks until the hardware start/stop streaming
 	 */
-	ISP_DBG("%s cmd: %d\n", __func__, _IOC_TYPE(cmd));
+	pr_debug("%s:%d cmd: 0x%x\n", __func__, __LINE__, cmd);
 	switch (cmd) {
 	case VIDIOC_MSM_VFE_REG_CFG: {
 		mutex_lock(&vfe_dev->realtime_mutex);
@@ -622,10 +622,10 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 				(reg_cfg_cmd->u.dmi_info.hi_tbl_offset -
 				reg_cfg_cmd->u.dmi_info.lo_tbl_offset !=
 				(sizeof(uint32_t)))) {
-				pr_err("%s:%d hi %d lo %d\n",
+				pr_err("%s:%d invalid tbl_offset hi %d lo %d\n",
 					__func__, __LINE__,
 					reg_cfg_cmd->u.dmi_info.hi_tbl_offset,
-					reg_cfg_cmd->u.dmi_info.hi_tbl_offset);
+					reg_cfg_cmd->u.dmi_info.lo_tbl_offset);
 				return -EINVAL;
 			}
 			if (reg_cfg_cmd->u.dmi_info.len <= sizeof(uint32_t)) {
@@ -1468,14 +1468,14 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 
 	mutex_lock(&vfe_dev->realtime_mutex);
 	mutex_lock(&vfe_dev->core_mutex);
-	pr_err("%s:%d Enter vfe %d ref_cnt %d\n", __func__, __LINE__,
+	pr_debug("%s:%d Enter vfe %d ref_cnt %d\n", __func__, __LINE__,
 		vfe_dev->pdev->id, vfe_dev->vfe_open_cnt);
 
 	if (vfe_dev->vfe_open_cnt++ &&
 		vfe_dev->vfe_base && vfe_dev->vfe_vbif_base) {
 		mutex_unlock(&vfe_dev->core_mutex);
 		mutex_unlock(&vfe_dev->realtime_mutex);
-		pr_err("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
+		pr_debug("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
 			vfe_dev->pdev->id, vfe_dev->vfe_open_cnt);
 		return 0;
 	}
@@ -1532,7 +1532,7 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	vfe_dev->p_avtimer_msw = NULL;
 	mutex_unlock(&vfe_dev->core_mutex);
 	mutex_unlock(&vfe_dev->realtime_mutex);
-	pr_err("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
+	pr_debug("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
 		vfe_dev->pdev->id, vfe_dev->vfe_open_cnt);
 	return 0;
 }
@@ -1556,7 +1556,7 @@ int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	ISP_DBG("%s\n", __func__);
 	mutex_lock(&vfe_dev->realtime_mutex);
 	mutex_lock(&vfe_dev->core_mutex);
-	pr_err("%s:%d Enter vfe %d ref_cnt %d\n", __func__, __LINE__,
+	pr_debug("%s:%d Enter vfe %d ref_cnt %d\n", __func__, __LINE__,
 		vfe_dev->pdev->id, vfe_dev->vfe_open_cnt);
 	if (!vfe_dev->vfe_open_cnt) {
 		pr_err("%s: Invalid state open cnt %d\n", __func__,
@@ -1596,7 +1596,7 @@ int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 
 	mutex_unlock(&vfe_dev->core_mutex);
 	mutex_unlock(&vfe_dev->realtime_mutex);
-	pr_err("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
+	pr_debug("%s:%d Exit vfe %d ref_cnt %d\n", __func__, __LINE__,
 		vfe_dev->pdev->id, vfe_dev->vfe_open_cnt);
 	return 0;
 }

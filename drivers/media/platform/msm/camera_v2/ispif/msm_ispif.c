@@ -1175,7 +1175,7 @@ static int msm_ispif_init(struct ispif_device *ispif,
 	rc = msm_ispif_reset(ispif);
 	if (rc == 0) {
 		ispif->ispif_state = ISPIF_POWER_UP;
-		pr_info("%s: power up done\n", __func__);
+		pr_debug("%s: power up done\n", __func__);
 		goto end;
 	}
 

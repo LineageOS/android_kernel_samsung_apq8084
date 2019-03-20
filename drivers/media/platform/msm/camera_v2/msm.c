@@ -400,7 +400,7 @@ int msm_create_session(unsigned int session_id, struct video_device *vdev)
 	msm_init_queue(&session->stream_q);
 	msm_enqueue(msm_session_q, &session->list);
 	mutex_init(&session->lock);
-	pr_warn("msm_create_session : Succeed!, session_id %d\n",
+	pr_debug("msm_create_session : Succeed!, session_id %d\n",
 		session_id);
 	return 0;
 }
@@ -553,7 +553,7 @@ int msm_destroy_session(unsigned int session_id)
 	else
 	    pr_err("%s: Buff manger device node is NULL\n", __func__);
 
-	pr_warn("%s : Succeed", __func__);
+	pr_debug("%s : Succeed", __func__);
 
 	return 0;
 }

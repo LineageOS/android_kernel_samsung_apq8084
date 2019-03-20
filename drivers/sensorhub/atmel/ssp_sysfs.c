@@ -78,7 +78,7 @@ static void enable_sensor(struct ssp_data *data,
 		else
 			ret = send_instruction(data, ADD_SENSOR,
 				iSensorType, uBuf, 9);
-		pr_info("[SSP], delay %d, timeout %d, flag=%d, ret%d\n",
+		pr_debug("[SSP], delay %d, timeout %d, flag=%d, ret%d\n",
 			dMsDelay, maxBatchReportLatency, uBuf[8], ret);
 		if (ret <= 0) {
 			uNewEnable =

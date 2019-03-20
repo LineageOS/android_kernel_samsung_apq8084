@@ -419,7 +419,7 @@ static int msm_eeprom_power_up(struct msm_eeprom_ctrl_t *e_ctrl, bool *down)
 {
 	int rc = 0;
 	rc = msm_eeprom_match_id(e_ctrl);
-	pr_warn("%s : E \n", __func__);
+	pr_debug("%s : E \n", __func__);
 
 	if (rc < 0) {
 		 if (down) *down = true;
@@ -442,7 +442,7 @@ static int msm_eeprom_power_up(struct msm_eeprom_ctrl_t *e_ctrl, bool *down)
   */
 static int msm_eeprom_power_down(struct msm_eeprom_ctrl_t *e_ctrl, bool down)
 {
-  pr_warn("%s : E \n", __func__);
+  pr_debug("%s : E \n", __func__);
 	if (down)
 		return msm_camera_power_down(&e_ctrl->eboard_info->power_info,
 			e_ctrl->eeprom_device_type, &e_ctrl->i2c_client, 0);

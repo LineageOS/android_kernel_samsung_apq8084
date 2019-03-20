@@ -424,8 +424,8 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		return -EINVAL;
 	}
 
-	pr_warn("[%s:%d]", __func__, __LINE__);
-	pr_warn("%s : camera_id %d", __func__, s_ctrl->cci_i2c_master);
+	pr_debug("[%s:%d]", __func__, __LINE__);
+	pr_debug("%s : camera_id %d", __func__, s_ctrl->cci_i2c_master);
 	rc = msm_camera_power_down(power_info, sensor_device_type,
 		sensor_i2c_client, s_ctrl->cci_i2c_master);
 	s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
@@ -468,9 +468,7 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 	qdaemon_pid = current->pid;
 	qdaemon_tgid =  current->tgid;
-	pr_info("[%s:%d] process: %s, pid: %d, tgid: %d\n", __func__, __LINE__, current->comm, qdaemon_pid, qdaemon_tgid);
-	pr_warn("[%s:%d] %s\n", __func__, __LINE__,
-		sensor_name);
+	pr_info("[%s:%d] process: %s, pid: %d, tgid: %d sensor: %s\n", __func__, __LINE__, current->comm, qdaemon_pid, qdaemon_tgid, sensor_name);
 	CDBG("%s : camera_id %d\n", __func__, s_ctrl->cci_i2c_master);
 	rc = msm_camera_power_up(power_info, s_ctrl->sensor_device_type,
 		sensor_i2c_client, s_ctrl->cci_i2c_master);
@@ -1070,7 +1068,7 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				break;
 			}
 			s_ctrl->sensor_state = MSM_SENSOR_POWER_UP;
-			pr_err("%s:%d sensor state %d\n", __func__, __LINE__,
+			pr_debug("%s:%d sensor state %d\n", __func__, __LINE__,
 				s_ctrl->sensor_state);
 		} else {
 			rc = -EFAULT;
@@ -1098,7 +1096,7 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 				break;
 			}
 			s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
-			pr_err("%s:%d sensor state %d\n", __func__, __LINE__,
+			pr_debug("%s:%d sensor state %d\n", __func__, __LINE__,
 				s_ctrl->sensor_state);
 		} else {
 			rc = -EFAULT;

@@ -954,7 +954,7 @@ int __msm_jpeg_init(struct msm_jpeg_device *pgmn_dev)
 
 	mutex_init(&pgmn_dev->lock);
 
-	pr_err("%s:%d] Jpeg Device id %d", __func__, __LINE__,
+	pr_debug("%s:%d] Jpeg Device id %d", __func__, __LINE__,
 		   pgmn_dev->pdev->id);
 	idx = pgmn_dev->pdev->id;
 	pgmn_dev->idx = idx;

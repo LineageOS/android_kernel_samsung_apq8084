@@ -65,9 +65,9 @@ static void msm_cci_set_clk_param(struct cci_device *cci_dev,
 	}
 
 	if (i2c_freq_mode == I2C_STANDARD_MODE)
-		pr_info("cci%d will run as 100Khz\n", master);
+		pr_info("%s:%d cci%d will run as 100Khz\n", __func__, __LINE__, master);
 	else if (i2c_freq_mode == I2C_FAST_MODE)
-		pr_info("cci%d will run as 400Khz\n", master);
+		pr_info("%s:%d cci%d will run as 400Khz\n", __func__, __LINE__, master);
 
 	if (cci_dev->master_clk_init[master])
 		return;
