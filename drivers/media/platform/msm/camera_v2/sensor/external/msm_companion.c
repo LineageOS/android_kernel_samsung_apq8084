@@ -462,7 +462,7 @@ static int msm_companion_pll_init(struct companion_device *companion_dev)
 		pr_err("[syscamera][%s::%d][0x6F12::0x%04x][ret::%ld] I2C read fail \n", __FUNCTION__, __LINE__, read_value, ret);
 		return -EIO;
 	}
-	pr_err("[syscamera][%s::%d][BIN_INFO::0x%04x]\n", __FUNCTION__, __LINE__, read_value);
+	pr_debug("[syscamera][%s::%d][BIN_INFO::0x%04x]\n", __FUNCTION__, __LINE__, read_value);
 
 #if 1
 	switch(comp_dcdc_type) {
@@ -528,7 +528,7 @@ static int msm_companion_pll_init(struct companion_device *companion_dev)
 			pr_warn("[syscamera][%s::%d][BIN_INFO::0x%4x]Old hw version \n", __FUNCTION__, __LINE__, read_value);
 		}
 	}
-	pr_info("[syscamera][%s::%d][BIN_INFO:: voltage %s]\n", __FUNCTION__, __LINE__, isp_core);
+	pr_debug("[syscamera][%s::%d][BIN_INFO:: voltage %s]\n", __FUNCTION__, __LINE__, isp_core);
 	msm_camera_write_sysfs(SYSFS_ISP_CORE_PATH, isp_core, sizeof(isp_core));
 #endif
 
@@ -1270,7 +1270,7 @@ static int msm_companion_set_mode(struct companion_device *companion_dev, struct
 			pr_err("[syscamera][%s::%d] mode setting failed\n", __FUNCTION__, __LINE__);
 			ret = 0;
 		}
-		pr_err("[syscamera][%s::%d][idx::%d][reg_addr::0x%4x][reg_data::0x%4x]\n", __FUNCTION__, __LINE__, idx,
+		pr_info("[syscamera][%s::%d][idx::%d][reg_addr::0x%4x][reg_data::0x%x]\n", __FUNCTION__, __LINE__, idx,
 			mode_tbl[idx].reg_addr, mode_tbl[idx].reg_data);
 	}
 
@@ -1644,7 +1644,7 @@ static int msm_companion_init(struct companion_device *companion_dev, uint32_t s
 {
 	int rc = 0;
 
-	pr_info("[syscamera][%s::%d][E] : (dump : %d)\n", __FUNCTION__, __LINE__, companion_dump);
+	pr_debug("[syscamera][%s::%d][E] : (dump : %d)\n", __FUNCTION__, __LINE__, companion_dump);
 	if (companion_dev->companion_state == COMP_POWER_UP) {
 		pr_err("[syscamera][%s::%d]companion invalid state %d\n", __FUNCTION__, __LINE__,
 			companion_dev->companion_state);
@@ -1698,13 +1698,13 @@ static int msm_companion_release(struct companion_device *companion_dev)
 	if (stats2) {
 		kfree(stats2);
 		stats2 = NULL;
-		pr_err("[syscamera][%s::%d][stats2 free success]\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d][stats2 free success]\n", __FUNCTION__, __LINE__);
 	}
 
 	if (dump_buf) {
 		kfree(dump_buf);
 		dump_buf = NULL;
-		pr_err("[syscamera][%s::%d][dump_buf free success]\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d][dump_buf free success]\n", __FUNCTION__, __LINE__);
 	}
 
 	companion_dev->companion_state = COMP_POWER_DOWN;
@@ -1851,7 +1851,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_LOAD_FIRMWARE_STEP_A:
-		pr_info("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_A\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_A\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_pll_init(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on loading firmware\n", __FUNCTION__, __LINE__);
@@ -1859,7 +1859,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		}
 		break;
 	case COMPANION_CMD_LOAD_FIRMWARE_STEP_B:
-		pr_info("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_B\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_B\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_fw_write(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on loading firmware\n", __FUNCTION__, __LINE__);
@@ -1867,7 +1867,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		}
 		break;
 	case COMPANION_CMD_LOAD_FIRMWARE_STEP_C:
-		pr_info("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_C\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] COMPANION_CMD_LOAD_FIRMWARE_STEP_C\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_release_arm_reset(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on loading firmware\n", __FUNCTION__, __LINE__);
@@ -1876,7 +1876,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_LOAD_MASTER:
-		pr_info("[syscamera][%s::%d] Loading master\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] Loading master\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_master_write(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on loading master\n", __FUNCTION__, __LINE__);
@@ -1885,14 +1885,14 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_CAL_DATA_WRITE:
-		pr_info("[syscamera][%s::%d] compare CRC calculated inside\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] compare CRC calculated inside\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_compare_FW_crc(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on compare crc data\n", __FUNCTION__, __LINE__);
 			break;
 		}
 
-		pr_info("[syscamera][%s::%d] Writing cal data\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d] Writing cal data\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_cal_data_write(companion_dev);
 		if(rc < 0) {
 			pr_err("[syscamera][%s::%d] error on writing cal data\n", __FUNCTION__, __LINE__);
@@ -1909,7 +1909,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_STREAM_ON:
-		pr_info("[syscamera][%s::%d] Companion stream on[enable::%d]\n", __FUNCTION__, __LINE__, cdata->cfg.stream_on);
+		pr_debug("[syscamera][%s::%d] Companion stream on[enable::%d]\n", __FUNCTION__, __LINE__, cdata->cfg.stream_on);
 		if (cdata->cfg.stream_on == 1)
 			atomic_set(&comp_streamon_set, 1);
 		else
@@ -1936,7 +1936,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_SET_MODE:
-		pr_info("[syscamera][%s::%d] Companion mode setting Array size = %d, Data type = %d\n", __FUNCTION__, __LINE__, cdata->cfg.mode_setting.size, cdata->cfg.mode_setting.data_type);
+		pr_debug("[syscamera][%s::%d] Companion mode setting Array size = %d, Data type = %d\n", __FUNCTION__, __LINE__, cdata->cfg.mode_setting.size, cdata->cfg.mode_setting.data_type);
 		rc = msm_companion_set_mode(companion_dev, cdata->cfg.mode_setting);
 //		usleep(10000);
 		break;
@@ -1955,7 +1955,7 @@ static long msm_companion_cmd(struct companion_device *companion_dev, void *arg)
 		break;
 
 	case COMPANION_CMD_RELEASE:
-		pr_info("[syscamera][%s::%d]COMPANION_CMD_RELEASE\n", __FUNCTION__, __LINE__);
+		pr_debug("[syscamera][%s::%d]COMPANION_CMD_RELEASE\n", __FUNCTION__, __LINE__);
 		rc = msm_companion_release(companion_dev);
 		break;
 

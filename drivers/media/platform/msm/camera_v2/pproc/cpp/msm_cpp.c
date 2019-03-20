@@ -788,7 +788,7 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 	atomic_set(&cpp_dev->irq_cnt, 0);
 
 	msm_cpp_create_buff_queue(cpp_dev, MSM_CPP_MAX_BUFF_QUEUE);
-	pr_warn("stream_cnt:%d\n", cpp_dev->stream_cnt);
+	pr_debug("stream_cnt:%d\n", cpp_dev->stream_cnt);
 	cpp_dev->stream_cnt = 0;
 	if (cpp_dev->is_firmware_loaded == 1) {
 		pr_debug("cpp_dbg: is_firmware_loaded==1\n");
@@ -811,7 +811,7 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 			MSM_CPP_MICRO_IRQGEN_CLR);
 		pr_debug("cpp_dbg: MSM_CPP_MICRO_IRQGEN_CLR\n");
 	}
-	pr_warn("cpp_dbg: end of cpp_init_hardware\n");
+	pr_debug("cpp_dbg: end of cpp_init_hardware\n");
 	return rc;
 req_irq_fail:
 	iounmap(cpp_dev->cpp_hw_base);
@@ -1664,7 +1664,7 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 
 	mutex_lock(&cpp_dev->mutex);
 
-	CPP_DBG("E cmd: 0x%x\n", cmd);
+	pr_debug("%s:%d: cmd: 0x%x\n", __func__, __LINE__, cmd);
 	switch (cmd) {
 	case VIDIOC_MSM_CPP_GET_HW_INFO: {
 
@@ -2020,7 +2020,7 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 
 		if ((clock_rate == MSM_CPP_NOMINAL_CLOCK) ||
 			(clock_rate == MSM_CPP_TURBO_CLOCK)) {
-			pr_err("clk:%ld\n", clock_rate);
+			pr_info("%s:%d: clk_set_rate:%ld\n", __func__, __LINE__, clock_rate);
 			clk_set_rate(cpp_dev->cpp_clk[4], clock_rate);
 		}
 

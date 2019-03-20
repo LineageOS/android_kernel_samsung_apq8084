@@ -1126,7 +1126,7 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 	int32_t rc = -EFAULT;
 	uint16_t i = 0;
 	struct msm_camera_cci_client *cci_client = NULL;
-	pr_info("[%s::%d]Enter\n", __func__, __LINE__);
+	pr_debug("[%s::%d]Enter\n", __func__, __LINE__);
 
 	for (i = 0; i < ARRAY_SIZE(actuators); i++) {
 		if (set_info->actuator_params.act_type ==
@@ -1250,7 +1250,7 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 	a_ctrl->curr_step_pos = 0;
 	a_ctrl->curr_region_index = 0;
 	a_ctrl->actuator_state = ACTUATOR_POWER_UP;
-	pr_info("[%s::%d]Exit\n", __func__, __LINE__);
+	pr_debug("[%s::%d]Exit\n", __func__, __LINE__);
 
 	return rc;
 }
@@ -1393,7 +1393,7 @@ static int msm_actuator_open(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh) {
 	int rc = 0;
 	struct msm_actuator_ctrl_t *a_ctrl =  v4l2_get_subdevdata(sd);
-	pr_info("[%s::%d]Enter\n", __func__, __LINE__);
+	pr_debug("[%s::%d]Enter\n", __func__, __LINE__);
 	if (!a_ctrl) {
 		pr_err("[%s::%d] failed\n", __func__, __LINE__);
 		return -EINVAL;
@@ -1415,7 +1415,7 @@ static int msm_actuator_open(struct v4l2_subdev *sd,
 		}
 	}
 	a_ctrl->is_camera_run = TRUE;
-	pr_info("[%s::%d] Exit\n", __func__, __LINE__);
+	pr_debug("[%s::%d] Exit\n", __func__, __LINE__);
 	return rc;
 }
 
@@ -1423,7 +1423,7 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh) {
 	int rc = 0;
 	struct msm_actuator_ctrl_t *a_ctrl =  v4l2_get_subdevdata(sd);
-	pr_info("[%s::%d] Enter\n", __func__, __LINE__);
+	pr_debug("[%s::%d] Enter\n", __func__, __LINE__);
 	if (!a_ctrl) {
 		pr_err("[%s::%d]failed\n", __func__, __LINE__);
 		return -EINVAL;
@@ -1452,7 +1452,7 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 		kfree(a_ctrl->i2c_reg_tbl);
 		a_ctrl->i2c_reg_tbl = NULL;
 	}
-	pr_info("[%s::%d]Exit\n", __func__, __LINE__);
+	pr_debug("[%s::%d]Exit\n", __func__, __LINE__);
 	return rc;
 }
 

@@ -81,7 +81,7 @@ void msm_buf_mngr_sd_shutdown(struct msm_buf_mngr_device *buf_mngr_dev)
 	unsigned long flags;
 	struct msm_get_bufs *bufs, *save;
 
-	pr_err("%s:%d  E:\n", __func__, __LINE__);
+	pr_debug("%s:%d  E:\n", __func__, __LINE__);
 	spin_lock_irqsave(&buf_mngr_dev->buf_q_spinlock, flags);
 	if(!list_empty(&buf_mngr_dev->buf_qhead)) {
 	list_for_each_entry_safe(bufs, save, &buf_mngr_dev->buf_qhead, entry) {

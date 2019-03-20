@@ -195,7 +195,7 @@ static int fan53555_read(struct i2c_client *client, BYTE read_addr)
 
 void fan53555_set_voltage(int version)
 {
-	pr_err("[syscamera][%s::%d][BIN_INFO::%d] \n", __FUNCTION__, __LINE__, version);
+	pr_debug("[syscamera][%s::%d][BIN_INFO::%d] \n", __FUNCTION__, __LINE__, version);
 
 	if ( fan_dev == NULL ) {
 		pr_err("[syscamera][%s::%d][ERR] fan_dev is NULL \n", __func__, __LINE__);

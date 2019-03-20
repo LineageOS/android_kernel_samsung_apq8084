@@ -69,9 +69,9 @@ static int camera_check_event_status(struct v4l2_event *event)
 		(struct msm_v4l2_event_data *)&event->u.data[0];
 
 	if (event_data->status > MSM_CAMERA_ERR_EVT_BASE) {
-		pr_err("%s : event_data status out of bounds\n",
-				__FUNCTION__);
-		pr_err("%s : Line %d event_data->status 0X%x\n",
+		pr_err("%s:%d : event_data status out of bounds\n",
+				__FUNCTION__, __LINE__);
+		pr_err("%s:%d : event_data->status 0X%x\n",
 				__FUNCTION__, __LINE__, event_data->status);
 	    return -EFAULT;
 	}

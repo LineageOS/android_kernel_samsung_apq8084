@@ -75,7 +75,7 @@ static int vfe_probe(struct platform_device *pdev)
 		rc = -ENOMEM;
 		goto end;
 	}
-	pr_err("%s: In probe\n", __func__);	
+	pr_info("%s: In probe\n", __func__);
 	if (pdev->dev.of_node) {
 		of_property_read_u32((&pdev->dev)->of_node,
 			"cell-index", &pdev->id);
@@ -87,7 +87,7 @@ static int vfe_probe(struct platform_device *pdev)
 		}
 		vfe_dev->hw_info =
 			(struct msm_vfe_hardware_info *) match_dev->data;
-		pr_err("%s: in checking of node %s\n", __func__, match_dev->compatible);
+		pr_info("%s: in checking of node %s\n", __func__, match_dev->compatible);
 	} else {
 		vfe_dev->hw_info = (struct msm_vfe_hardware_info *)
 			platform_get_device_id(pdev)->driver_data;
@@ -98,7 +98,7 @@ static int vfe_probe(struct platform_device *pdev)
 		rc = -EINVAL;
 		goto probe_fail;
 	}
-	pr_err("%s: device id = %d\n", __func__, pdev->id);
+	pr_info("%s: device id = %d\n", __func__, pdev->id);
 
 	vfe_dev->pdev = pdev;
 	rc = vfe_dev->hw_info->vfe_ops.core_ops.get_platform_data(vfe_dev);

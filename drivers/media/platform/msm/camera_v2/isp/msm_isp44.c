@@ -198,7 +198,7 @@ static int msm_vfe44_init_hardware(struct vfe_device *vfe_dev)
 		goto vbif_remap_failed;
 	}
 
-	pr_info("%s:%d irq request id %d, %d ref_cnt %d\n",
+	pr_debug("%s:%d irq request id %d, %d ref_cnt %d\n",
 			__func__, __LINE__,
 			vfe_dev->pdev->id, vfe_dev->vfe_irq->start,
 			 vfe_dev->vfe_open_cnt);

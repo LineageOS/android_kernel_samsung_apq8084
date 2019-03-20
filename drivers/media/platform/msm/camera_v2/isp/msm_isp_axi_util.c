@@ -1329,7 +1329,7 @@ static int msm_isp_start_axi_stream(struct vfe_device *vfe_dev,
 		input_src = SRC_TO_INTF(stream_info->stream_src);
 		ISP_DBG("%s overflow_dbg src %d intf %d \n", __func__, stream_info->stream_src, input_src);
 		if (input_src >= VFE_RAW_0 && input_src < VFE_SRC_MAX) {
-			pr_err("%s RDI start stream \n", __func__);
+			pr_info("%s RDI start stream \n", __func__);
 			vfe_dev->axi_data.src_info[input_src].frame_id = 0;
 		}
 
@@ -1442,7 +1442,7 @@ static int msm_isp_stop_axi_stream(struct vfe_device *vfe_dev,
 			vfe_dev->hw_info->vfe_ops.core_ops.init_hw_reg(vfe_dev);
 			rc = 0;
 		} else {
-			pr_err("%s: VFE%d disable CAMIF on frame bound\n", __func__, vfe_dev->pdev->id);
+			pr_info("%s: VFE%d disable CAMIF on frame bound\n", __func__, vfe_dev->pdev->id);
 			vfe_dev->hw_info->vfe_ops.core_ops.
 				update_camif_state(vfe_dev, DISABLE_CAMIF);
 		}
