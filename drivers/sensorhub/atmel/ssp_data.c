@@ -318,7 +318,8 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength) {
 						|| (iSensorData == STEP_DETECTOR) || (iSensorData == STEP_COUNTER))
 					data->report_sensor_data[iSensorData](data, &sensorsdata);
 				else
-					pr_err("[SSP]: %s irq_diff is under 1msec (%d)\n", __func__, iSensorData);
+					if(printk_ratelimit())
+						pr_debug("[SSP]: %s irq_diff is under 1msec (%d)\n", __func__, iSensorData);
 				sensortime.batch_count--;
 			} while ((sensortime.batch_count > 0) && (iDataIdx < iLength));
 

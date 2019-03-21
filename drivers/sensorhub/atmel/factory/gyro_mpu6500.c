@@ -159,7 +159,7 @@ int set_gyro_cal(struct ssp_data *data)
 		iRet = ERROR;
 	}
 
-	pr_info("[SSP] Set gyro cal data %d, %d, %d\n", gyro_cal[0], gyro_cal[1], gyro_cal[2]);
+	pr_info("[SSP]: set gyro cal data %d, %d, %d\n", gyro_cal[0], gyro_cal[1], gyro_cal[2]);
 	return iRet;
 }
 

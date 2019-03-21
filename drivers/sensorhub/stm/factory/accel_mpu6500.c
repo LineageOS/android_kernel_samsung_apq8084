@@ -107,7 +107,7 @@ int set_accel_cal(struct ssp_data *data)
 		iRet = ERROR;
 	}
 
-	pr_info("[SSP] Set accel cal data %d, %d, %d\n", accel_cal[0], accel_cal[1], accel_cal[2]);
+	pr_info("[SSP]: set accel cal data %d, %d, %d\n", accel_cal[0], accel_cal[1], accel_cal[2]);
 	return iRet;
 }
 
