@@ -3882,7 +3882,7 @@ static int q6asm_memory_map_regions(struct audio_client *ac, int dir,
 		pr_err("%s: mmap APR handle NULL\n", __func__);
 		return -EINVAL;
 	}
-	pr_info("%s: Session[%d]\n", __func__, ac->session);
+	pr_debug("%s: Session[%d]\n", __func__, ac->session);
 
 	bufcnt_t = (is_contiguous) ? 1 : bufcnt;
 	bufsz_t = (is_contiguous) ? (bufsz * bufcnt) : bufsz;
@@ -3938,7 +3938,7 @@ static int q6asm_memory_map_regions(struct audio_client *ac, int dir,
 	mmap_regions->mem_pool_id = ADSP_MEMORY_MAP_SHMEM8_4K_POOL;
 	mmap_regions->num_regions = bufcnt_t; /*bufcnt & 0x00ff; */
 	mmap_regions->property_flag = 0x00;
-	pr_info("%s: map_regions->nregions = %d\n", __func__,
+	pr_debug("%s: map_regions->nregions = %d\n", __func__,
 		mmap_regions->num_regions);
 	payload = ((u8 *) mmap_region_cmd +
 		sizeof(struct avs_cmd_shared_mem_map_regions));
