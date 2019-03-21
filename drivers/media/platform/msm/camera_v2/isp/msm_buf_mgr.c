@@ -621,7 +621,7 @@ static int msm_isp_flush_buf(struct msm_isp_buf_mgr *buf_mgr,
 		uint32_t bufq_handle, enum msm_isp_buffer_flush_t flush_type)
 {
 	int rc = -1, i;
-	//unsigned long flags;
+	unsigned long flags;
 	struct msm_isp_bufq *bufq = NULL;
 	struct msm_isp_buffer *buf_info = NULL;
 
@@ -641,31 +641,26 @@ static int msm_isp_flush_buf(struct msm_isp_buf_mgr *buf_mgr,
 			pr_err("%s: buf not found\n", __func__);
 			continue;
 		}
-		//spin_lock_irqsave(&buf_info->lock, flags);
+		spin_lock_irqsave(&buf_info->lock, flags);
 
 		if (flush_type == MSM_ISP_BUFFER_FLUSH_DIVERTED &&
 			buf_info->state == MSM_ISP_BUFFER_STATE_DIVERTED) {
 			buf_info->state = MSM_ISP_BUFFER_STATE_QUEUED;
-			//spin_unlock_irqrestore(&buf_info->lock, flags);
 		} else if (flush_type == MSM_ISP_BUFFER_FLUSH_ALL) {
-			if (buf_info->state == MSM_ISP_BUFFER_STATE_DIVERTED) {
-				//spin_unlock_irqrestore(&buf_info->lock, flags);
-			} else if (buf_info->state == MSM_ISP_BUFFER_STATE_DEQUEUED) {
+			if (buf_info->state == MSM_ISP_BUFFER_STATE_DEQUEUED) {
 				if (buf_info->buf_get_count == ISP_SHARE_BUF_CLIENT) {
-					//spin_unlock_irqrestore(&buf_info->lock, flags);
+					spin_unlock_irqrestore(&buf_info->lock, flags);
 					msm_isp_put_buf(buf_mgr, bufq_handle, buf_info->buf_idx);
+					spin_lock_irqsave(&buf_info->lock, flags);
 				} else {
 					buf_info->state = MSM_ISP_BUFFER_STATE_DEQUEUED;
 					buf_info->buf_get_count = 0;
 					buf_info->buf_put_count = 0;
 					memset(buf_info->buf_used, 0,
 						sizeof(uint8_t) * 2);
-					//spin_unlock_irqrestore(&buf_info->lock, flags);
 				}
 			}
-		} else {
-			//spin_unlock_irqrestore(&buf_info->lock, flags);
-		}
+		spin_unlock_irqrestore(&buf_info->lock, flags);
 	}
 	printk("%s: %d overflow_dbg X\n", __func__, __LINE__);
 	return 0;
