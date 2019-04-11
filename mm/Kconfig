@@ -611,16 +611,6 @@ config MIN_DIRTY_THRESH_PAGES
 	  disables this option.)
 	  Do not use it if you unsure.
 
-config OOM_SCAN_WA_PREVENT_WRONG_SEARCH
-    bool "Samsung WA: prevent to search the wrong thread"
-	default n
-	help
-	  When OOM is frequently called, e.g. OOM is called within 500ms,
-	  a exiting thread can be wrongly selected. In order to prevent
-	  this malfunction, the threads are skipped to be scaned, which are
-	  linked to the process that is exiting, "task->exit_state" is
-	  EXIT_ZOMBIE or EXIT_DEAD.
-
 config SDP_CACHE_CLEANUP
 	bool "SDP requirement. cache cleanup"
 	depends on SDP
