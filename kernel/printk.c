@@ -45,6 +45,7 @@
 #include <linux/poll.h>
 #include <linux/irq_work.h>
 #include <linux/utsname.h>
+#include <linux/kallsyms.h>
 
 #include <asm/uaccess.h>
 #ifdef CONFIG_SEC_DEBUG
@@ -3288,6 +3289,7 @@ void __init dump_stack_set_arch_desc(const char *fmt, ...)
  */
 void dump_stack_print_info(const char *log_lvl)
 {
+	print_symbol("XXX: called from %s\n", (unsigned long) __builtin_return_address(0));
 	printk("%sCPU: %d PID: %d Comm: %.20s %s %s %.*s\n",
 	       log_lvl, raw_smp_processor_id(), current->pid, current->comm,
 	       print_tainted(), init_utsname()->release,
