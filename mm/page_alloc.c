@@ -117,18 +117,6 @@ unsigned long total_unmovable_pages __read_mostly;
 int percpu_pagelist_fraction;
 gfp_t gfp_allowed_mask __read_mostly = GFP_BOOT_MASK;
 
-static unsigned int boot_mode = 0;
-static int __init setup_bootmode(char *str)
-{
-	if (get_option(&str, &boot_mode)) {
-		printk("%s: boot_mode is %u\n", __func__, boot_mode);
-		return 0;
-	}
-
-	return -EINVAL;
-}
-early_param("androidboot.boot_recovery", setup_bootmode);
-
 #ifdef CONFIG_PM_SLEEP
 /*
  * The following functions are used by the suspend/hibernate code to temporarily
