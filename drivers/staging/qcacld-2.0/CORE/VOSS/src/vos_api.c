@@ -1762,9 +1762,10 @@ VOS_STATUS vos_mq_post_message_by_priority(VOS_MQ_ID msgQueueId,
 
   if (NULL == pMsgWrapper) {
       debug_count = atomic_inc_return(&vos_wrapper_empty_count);
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: VOS Core run out of message wrapper %d",
-              __func__, debug_count);
+       if (debug_count < 10 || debug_count % 1000 == 0 || debug_count == VOS_WRAPPER_MAX_FAIL_COUNT)
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  "%s: VOS Core run out of message wrapper %d",
+                  __func__, debug_count);
 
       if (VOS_WRAPPER_MAX_FAIL_COUNT == debug_count) {
           VOS_BUG(0);
