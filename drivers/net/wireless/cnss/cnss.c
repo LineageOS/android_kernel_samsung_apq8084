@@ -1991,6 +1991,16 @@ void *cnss_get_fw_ptr(void)
 EXPORT_SYMBOL(cnss_get_fw_ptr);
 #endif
 
+/* wlan prop driver cannot invoke show_stack
+ * function directly, so to invoke this function it
+ * call wcnss_dump_stack function
+ */
+void cnss_dump_stack(struct task_struct *task)
+{
+	show_stack(task, NULL);
+}
+EXPORT_SYMBOL(cnss_dump_stack);
+
 module_init(cnss_initialize);
 module_exit(cnss_exit);
 

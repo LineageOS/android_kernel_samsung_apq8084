@@ -138,4 +138,5 @@ extern void *wcnss_prealloc_get(unsigned int size);
 extern int wcnss_prealloc_put(void *ptr);
 #endif
 
+extern void cnss_dump_stack(struct task_struct *task);
 #endif /* _NET_CNSS_H_ */
