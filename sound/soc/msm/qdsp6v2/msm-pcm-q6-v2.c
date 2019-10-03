@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2017, 2019 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/time.h>
+#include <linux/mutex.h>
 #include <linux/wait.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -618,9 +619,18 @@ static int msm_pcm_playback_close(struct snd_pcm_substream *substream)
 	struct msm_audio *prtd = runtime->private_data;
 	int dir = 0;
 	int ret = 0;
+	struct msm_plat_data *pdata;
 
 	pr_debug("%s: cmd_pending 0x%lx\n", __func__, prtd->cmd_pending);
 
+	pdata = (struct msm_plat_data *)
+		dev_get_drvdata(soc_prtd->platform->dev);
+	if (!pdata) {
+		pr_err("%s: platform data is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&pdata->lock);
 	if (prtd->audio_client) {
 		dir = IN;
 		ret = wait_event_timeout(the_locks.eos_wait,
@@ -639,6 +649,7 @@ static int msm_pcm_playback_close(struct snd_pcm_substream *substream)
 	kfree(prtd);
 	runtime->private_data = NULL;
 
+	mutex_unlock(&pdata->lock);
 	return 0;
 }
 
@@ -722,8 +733,18 @@ static int msm_pcm_capture_close(struct snd_pcm_substream *substream)
 	struct snd_soc_pcm_runtime *soc_prtd = substream->private_data;
 	struct msm_audio *prtd = runtime->private_data;
 	int dir = OUT;
+	struct msm_plat_data *pdata;
 
 	pr_debug("%s\n", __func__);
+
+	pdata = (struct msm_plat_data *)
+		dev_get_drvdata(soc_prtd->platform->dev);
+	if (!pdata) {
+		pr_err("%s: platform data is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&pdata->lock);
 	if (prtd->audio_client) {
 		q6asm_cmd(prtd->audio_client, CMD_CLOSE);
 		q6asm_audio_client_buf_free_contiguous(dir,
@@ -736,6 +757,7 @@ static int msm_pcm_capture_close(struct snd_pcm_substream *substream)
 	kfree(prtd);
 	runtime->private_data = NULL;
 
+	mutex_unlock(&pdata->lock);
 	return 0;
 }
 
@@ -867,14 +889,28 @@ static int msm_pcm_chmap_ctl_put(struct snd_kcontrol *kcontrol,
 	unsigned int idx = snd_ctl_get_ioffidx(kcontrol, &ucontrol->id);
 	struct snd_pcm_substream *substream;
 	struct msm_audio *prtd;
+	struct snd_soc_pcm_runtime *rtd = NULL;
+	struct msm_plat_data *pdata = NULL;
 
 	pr_debug("%s", __func__);
 	substream = snd_pcm_chmap_substream(info, idx);
 	if (!substream)
 		return -ENODEV;
-	if (!substream->runtime)
+
+	rtd = substream->private_data;
+	if (rtd) {
+		pdata = (struct msm_plat_data *)
+			dev_get_drvdata(rtd->platform->dev);
+		if (!pdata) {
+			pr_err("%s: pdata not found\n", __func__);
+			return -ENODEV;
+		}
+	}
+
+	if (!substream->runtime || !rtd)
 		return 0;
 
+	mutex_lock(&pdata->lock);
 	prtd = substream->runtime->private_data;
 	if (prtd) {
 		prtd->set_channel_map = true;
@@ -882,6 +918,7 @@ static int msm_pcm_chmap_ctl_put(struct snd_kcontrol *kcontrol,
 				prtd->channel_map[i] =
 				(char)(ucontrol->value.integer.value[i]);
 	}
+	mutex_unlock(&pdata->lock);
 	return 0;
 }
 
@@ -893,16 +930,30 @@ static int msm_pcm_chmap_ctl_get(struct snd_kcontrol *kcontrol,
 	unsigned int idx = snd_ctl_get_ioffidx(kcontrol, &ucontrol->id);
 	struct snd_pcm_substream *substream;
 	struct msm_audio *prtd;
+	struct snd_soc_pcm_runtime *rtd = NULL;
+	struct msm_plat_data *pdata = NULL;
 
 	pr_debug("%s", __func__);
 	substream = snd_pcm_chmap_substream(info, idx);
 	if (!substream)
 		return -ENODEV;
+
+	rtd = substream->private_data;
+	if (rtd) {
+		pdata = (struct msm_plat_data *)
+			dev_get_drvdata(rtd->platform->dev);
+		if (!pdata) {
+			pr_err("%s: pdata not found\n", __func__);
+			return -ENODEV;
+		}
+	}
+
 	memset(ucontrol->value.integer.value, 0,
 		sizeof(ucontrol->value.integer.value));
-	if (!substream->runtime)
+	if (!substream->runtime || !rtd)
 		return 0; /* no channels set */
 
+	mutex_lock(&pdata->lock);
 	prtd = substream->runtime->private_data;
 
 	if (prtd && prtd->set_channel_map == true) {
@@ -914,6 +965,7 @@ static int msm_pcm_chmap_ctl_get(struct snd_kcontrol *kcontrol,
 			ucontrol->value.integer.value[i] = 0;
 	}
 
+	mutex_unlock(&pdata->lock);
 	return 0;
 }
 
@@ -988,6 +1040,7 @@ static int msm_pcm_probe(struct platform_device *pdev)
 	else
 		pdata->perf_mode = LEGACY_PCM_MODE;
 
+	mutex_init(&pdata->lock);
 	dev_set_drvdata(&pdev->dev, pdata);
 
 	dev_set_name(&pdev->dev, "%s.%d", "msm-pcm-dsp", id);
@@ -1003,6 +1056,7 @@ static int msm_pcm_remove(struct platform_device *pdev)
 	struct msm_plat_data *pdata;
 
 	pdata = dev_get_drvdata(&pdev->dev);
+	mutex_destroy(&pdata->lock);
 	kfree(pdata);
 	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
