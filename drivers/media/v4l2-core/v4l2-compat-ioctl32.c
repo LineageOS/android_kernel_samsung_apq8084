@@ -608,6 +608,7 @@ static int put_v4l2_buffer32(struct v4l2_buffer __user *kp, struct v4l2_buffer32
 	if (V4L2_TYPE_IS_PRIVATE(type)) {
 		if (convert_in_user(&kp->m.userptr, &up->m.userptr))
 			return -EFAULT;
+	}
 
 	if (V4L2_TYPE_IS_MULTIPLANAR(type)) {
 		num_planes = length;
