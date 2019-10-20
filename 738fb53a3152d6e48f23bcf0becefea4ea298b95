@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4277999d_f7bbf3a6",
+        "filename": "drivers/usb/core/hub.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 2295,
+      "author": {
+        "id": 12604
+      },
+      "writtenOn": "2019-10-20T00:54:30Z",
+      "side": 0,
+      "message": "This variable is still used in this function",
+      "range": {
+        "startLine": 2295,
+        "startChar": 4,
+        "endLine": 2295,
+        "endChar": 18
+      },
+      "revId": "738fb53a3152d6e48f23bcf0becefea4ea298b95",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
