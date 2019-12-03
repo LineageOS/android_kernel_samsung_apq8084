@@ -392,6 +392,11 @@ process_tx_info(struct ol_txrx_pdev_t *txrx_pdev,
 					 sizeof(uint32_t);
 		log_size = sizeof(pl_msdu_info.priv);
 
+		if (pl_msdu_info.num_msdu > MAX_PKT_INFO_MSDU_ID) {
+			adf_os_print("Invalid num_msdu count in %s\n", __func__);
+			adf_os_assert(0);
+			return A_ERROR;
+		}
 		for (i = 0; i < pl_msdu_info.num_msdu; i++) {
 			/*
 			 * Handle big endianess
