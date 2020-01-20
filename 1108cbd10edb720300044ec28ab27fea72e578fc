@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e1dc10ad_c461f17e",
+        "filename": "sound/core/init.c",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 18052
+      },
+      "writtenOn": "2020-01-20T16:38:22Z",
+      "side": 1,
+      "message": "Maybe too pedantic, but how about:\nif (idx2 \u003c (sizeof(int) * CHAR_BIT) \u0026\u0026 !(idx \u0026 (1U \u003c\u003c idx2)))\n\n(CHAR_BIT is defined in \u003climits.h\u003e)\n\nThis should result is exactly identical binary output, and avoids introducing any magic numbers.",
+      "revId": "1108cbd10edb720300044ec28ab27fea72e578fc",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": true
+    }
+  ]
+}
