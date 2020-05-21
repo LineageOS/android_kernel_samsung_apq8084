@@ -23,7 +23,7 @@ ifeq ($(KERNEL_BUILD),1)
 	# These are provided in external module based builds
 	# Need to explicitly define for Kernel-based builds
 	MODNAME := wlan
-	WLAN_ROOT := drivers/staging/qcacld-2.0
+	WLAN_ROOT := drivers/net/wireless/qcacld-2.0
 	WLAN_OPEN_SOURCE := 1
 endif
 
