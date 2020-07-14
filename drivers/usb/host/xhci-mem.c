@@ -406,9 +406,7 @@ static void xhci_free_container_ctx(struct xhci_hcd *xhci,
 struct xhci_input_control_ctx *xhci_get_input_control_ctx(struct xhci_hcd *xhci,
 					      struct xhci_container_ctx *ctx)
 {
-	if (ctx->type != XHCI_CTX_TYPE_INPUT)
-		return NULL;
-
+	BUG_ON(ctx->type != XHCI_CTX_TYPE_INPUT);
 	return (struct xhci_input_control_ctx *)ctx->bytes;
 }
 
